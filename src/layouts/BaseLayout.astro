@@ -1,66 +1,66 @@
 ---
 // src/layouts/BaseLayout.astro
-
-// PASSO 1: Importar os componentes que criámos
 import Navbar from '~/components/Navbar.astro';
 import Footer from '~/components/Footer.astro';
-import '~/styles/global.css'; // Importar os estilos globais
+import '~/styles/global.css';
 
-// Definimos as props para o título e descrição de cada página (importante para SEO)
 export interface Props {
   title: string;
   description: string;
+  canonical?: string; // opcional, se quiseres passar manualmente
 }
 
-const { title, description } = Astro.props;
-const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const { title, description, canonical } = Astro.props;
+const canonicalURL = canonical
+  ? canonical
+  : new URL(Astro.url.pathname, Astro.site!).href;
 ---
 <!DOCTYPE html>
 <html lang="pt-PT" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
   <meta name="generator" content={Astro.generator} />
-  
-  <!-- Meta Tags para SEO -->
+
   <title>{title} | Ativos.pt</title>
   <meta name="description" content={description} />
-  
-  <!-- URL Canónica -->
   <link rel="canonical" href={canonicalURL} />
-  
-  <!-- Open Graph (para partilhas no Facebook, etc.) -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content={canonicalURL}>
-  <meta property="og:title" content={`${title} | Ativos.pt`}>
-  <meta property="og:description" content={description}>
-  <!-- <meta property="og:image" content={new URL('/og-image.jpg', Astro.site)}> -->
 
-  <!-- Fontes (Inter, como tínhamos definido) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonicalURL} />
+  <meta property="og:title" content={`${title} | Ativos.pt`} />
+  <meta property="og:description" content={description} />
+
+  <!-- Slot opcional para meta extras (canonical custom, JSON-LD, noindex, etc.) -->
+  <slot name="head" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
   <style is:global>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
+    body { font-family: 'Inter', sans-serif; }
   </style>
 
+  <!-- Script para aplicar tema escuro apenas se o utilizador tiver escolhido -->
+  <script is:inline>
+    (function () {
+      const theme = localStorage.getItem('theme');
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    })();
+  </script>
 </head>
-<body class="bg-white dark:bg-brand-dark text-gray-800 dark:text-gray-200 antialiased">
-  
-  <!-- PASSO 2: Usar o componente Navbar -->
-  <Navbar />
 
-  <!-- O conteúdo de cada página será injetado aqui -->
+<body class="bg-white dark:bg-brand-dark text-gray-800 dark:text-gray-200 antialiased">
+  <Navbar />
   <main class="flex-grow">
     <slot />
   </main>
-
-  <!-- PASSO 3: Usar o componente Footer -->
   <Footer />
-
 </body>
 </html>

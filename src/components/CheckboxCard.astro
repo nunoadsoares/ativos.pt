@@ -1,0 +1,46 @@
+---
+// src/components/CheckboxCard.astro
+interface Props {
+  value: string;
+  label: string;
+  logo?: string;
+  checked?: boolean;
+}
+const { value, label, logo, checked = false } = Astro.props;
+---
+
+<label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition hover:bg-gray-50 dark:hover:bg-gray-700/40 border-gray-200 dark:border-gray-600">
+  <input
+    type="checkbox"
+    name="brokers"
+    value={value}
+    class="hidden"
+    id={`cb-${value}`}
+    {...(checked ? { checked: true } : {})}
+  />
+  <span class="relative">
+    <!-- Caixa -->
+    <span class="w-5 h-5 inline-block border border-gray-400 rounded-md bg-white dark:bg-gray-800"></span>
+
+    <!-- Visto -->
+    <svg
+      viewBox="0 0 24 24"
+      class="checkmark absolute top-0 left-0 w-5 h-5 text-white pointer-events-none hidden"
+    >
+      <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </span>
+
+  {logo && <img src={logo} alt={label} class="w-6 h-6 object-contain" />}
+  <span class="font-medium text-gray-900 dark:text-gray-100">{label}</span>
+
+  <style>
+    input:checked + span .checkmark {
+      display: block;
+    }
+    input:checked + span > span {
+      background-color: #d97706; /* tailwind amber-600 como placeholder de cor primária */
+      border-color: #d97706;
+    }
+  </style>
+</label>

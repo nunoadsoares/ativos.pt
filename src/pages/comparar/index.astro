@@ -1,0 +1,56 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import CheckboxCard from '~/components/CheckboxCard.astro';
+
+const brokers = await getCollection('plataformas'); // slug + data
+---
+
+<BaseLayout title="Comparador de Corretoras" description="Compare corretoras: taxas, segurança, fiscalidade e mais.">
+  <article class="max-w-4xl mx-auto py-12 px-4">
+    <h1 class="text-4xl md:text-6xl font-extrabold text-center mb-12">Comparador de Corretoras</h1>
+    <p class="text-center text-gray-500 dark:text-gray-400 mb-8">
+      Escolhe até 4 corretoras para comparar:
+    </p>
+
+    <form id="compare-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+      {brokers.map(b => (
+        <CheckboxCard
+          value={b.slug}
+          label={b.data.nome}
+          logo={b.data.logo}
+        />
+      ))}
+    </form>
+
+    <div class="text-center">
+      <button id="compare-btn" class="inline-block bg-primary text-white font-bold py-4 px-16 rounded-full text-xl hover:opacity-90 transition-all">
+        Comparar
+      </button>
+    </div>
+  </article>
+
+  <Fragment slot="head">
+    <meta name="robots" content="noindex,follow" />
+  </Fragment>
+
+  <script is:inline>
+    const btn = document.getElementById('compare-btn');
+    const form = document.getElementById('compare-form');
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const checked = [...form.querySelectorAll('input[type="checkbox"]:checked')].map(i => i.value);
+      if (checked.length < 2) {
+        alert('Seleciona pelo menos 2 corretoras.');
+        return;
+      }
+      if (checked.length > 4) {
+        alert('Máximo 4 corretoras.');
+        return;
+      }
+      const path = checked.sort().join('-vs-');
+      window.location.href = `/comparar/${path}`;
+    });
+  </script>
+</BaseLayout>

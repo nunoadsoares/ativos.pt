@@ -1,0 +1,7 @@
+beautifulsoup4==4.12.3
+pandas==2.2.2
+playwright==1.45.0
+pyjstat==2.4.1
+requests==2.32.3
+# (as tuas versões podem ser ligeiramente diferentes)
+# Nota: Não faz mal manter o playwright e o beautifulsoup4 por agora.

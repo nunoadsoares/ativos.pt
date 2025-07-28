@@ -1,0 +1,151 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import PontosChave from '~/components/PontosChave.astro';
+import CountryFlag from '~/components/CountryFlag.astro';
+import JsonLD from '~/components/JsonLD.astro';
+
+// 1) Rotas estáticas
+export async function getStaticPaths() {
+  const allEntries = await getCollection('plataformas');
+  return allEntries.map((entry) => ({ params: { slug: entry.slug } }));
+}
+
+// 2) Dados da página
+const { slug } = Astro.params;
+const entry = await getEntry('plataformas', slug!);
+if (!entry) return new Response(null, { status: 404 });
+
+const { Content } = await entry.render();
+const { data } = entry;
+
+// 3) Sugestões para "Comparar com"
+const all = await getCollection('plataformas');
+const currentSlug = entry.slug;
+const suggestions = all
+  .filter(e => e.slug !== currentSlug)
+  .slice(0, 2); // ajusta como quiseres
+---
+<BaseLayout title={`Análise à ${data.nome}`} description={data.description}>
+  <!-- SEO extra -->
+  <Fragment slot="head">
+    <JsonLD entry={entry} />
+  </Fragment>
+
+  <div class="bg-gray-50 dark:bg-brand-dark">
+    <article class="max-w-4xl mx-auto py-12 sm:py-20 px-4">
+
+      <!-- Cabeçalho -->
+      <header class="text-center mb-12">
+        <img src={data.logo} alt={`Logo ${data.nome}`} class="h-28 w-28 rounded-full object-contain bg-white p-2 shadow-xl mx-auto mb-6" />
+        <p class="text-lg font-semibold text-primary">Análise de Corretora</p>
+        <h1 class="text-5xl md:text-7xl font-extrabold text-gray-900 dark:text-white tracking-tighter mt-1">
+          {data.nome}
+        </h1>
+      </header>
+
+      <!-- Pontos-Chave -->
+      <PontosChave pontos={data.pontos_chave} />
+
+      <!-- Conteúdo Principal -->
+      <div class="prose prose-lg dark:prose-invert mx-auto mt-16">
+        <Content />
+      </div>
+
+      <!-- Comparar com -->
+      {suggestions.length > 0 && (
+        <section class="mt-16 text-sm">
+          <h3 class="font-bold mb-3">Comparar com:</h3>
+          <ul class="space-y-1">
+            {suggestions.map((s) => {
+              const pair = [currentSlug, s.slug].sort().join('-vs-');
+              return (
+                <li>
+                  <a href={`/comparar/${pair}`} class="underline text-primary">
+                    {data.nome} vs {s.data.nome}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      <!-- Ficha Técnica -->
+      <section class="mt-20">
+        <h2 class="text-4xl font-bold text-center mb-10 text-gray-900 dark:text-white">Ficha Técnica</h2>
+        <div class="bg-white dark:bg-gray-800/50 p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 text-base">
+            <!-- Info Geral -->
+            <div>
+              <h3 class="font-bold mb-4 text-xl text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Informação Geral</h3>
+              <dl class="space-y-4">
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500 dark:text-gray-400">Sede:</dt>
+                  <dd class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                    <CountryFlag country={data.info_geral.sede} />
+                    <span>{data.info_geral.sede}</span>
+                  </dd>
+                </div>
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500 dark:text-gray-400">Regulador:</dt>
+                  <dd class="font-semibold text-gray-800 dark:text-gray-200 text-right">{data.info_geral.regulador}</dd>
+                </div>
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500 dark:text-gray-400">Fundação:</dt>
+                  <dd class="font-semibold text-gray-800 dark:text-gray-200">{data.info_geral.ano_fundacao}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <!-- Taxas -->
+            <div>
+              <h3 class="font-bold mb-4 text-xl text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Taxas Principais</h3>
+              <dl class="space-y-4">
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500 dark:text-gray-400">Custódia:</dt>
+                  <dd class="font-semibold text-gray-800 dark:text-gray-200">{data.taxas_principais.custodia}</dd>
+                </div>
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500 dark:text-gray-400">Levantamento:</dt>
+                  <dd class="font-semibold text-gray-800 dark:text-gray-200">{data.taxas_principais.levantamento}</dd>
+                </div>
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500 dark:text-gray-400">Inatividade:</dt>
+                  <dd class="font-semibold text-gray-800 dark:text-gray-200">{data.taxas_principais.inactividade}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <!-- Fiscal -->
+            <div class="md:col-span-2">
+              <h3 class="font-bold mb-4 text-xl text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Informação Fiscal (Portugal)</h3>
+              <dl class="space-y-4">
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500 dark:text-gray-400">Retenção na Fonte (Juros):</dt>
+                  <dd class="font-semibold text-gray-800 dark:text-gray-200 text-right">{data.info_fiscal.retencao_na_fonte_juros}</dd>
+                </div>
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500 dark:text-gray-400">Retenção na Fonte (Dividendos):</dt>
+                  <dd class="font-semibold text-gray-800 dark:text-gray-200 text-right">{data.info_fiscal.retencao_na_fonte_dividendos}</dd>
+                </div>
+                <div class="flex justify-between items-center">
+                  <dt class="text-gray-500 dark:text-gray-400">Formulários Fiscais:</dt>
+                  <dd class="font-semibold text-gray-800 dark:text-gray-200 text-right">{data.info_fiscal.formularios_fiscais}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="mt-20 text-center">
+        <a href={data.url_afiliado} target="_blank" rel="noopener nofollow" class="inline-block bg-primary text-white font-bold py-4 px-12 rounded-full text-xl hover:opacity-90 transition-all duration-300 transform hover:scale-105">
+          Abrir Conta na {data.nome}
+        </a>
+        <p class="text-xs text-gray-400 mt-3">(Poderá ser um link de afiliado)</p>
+      </section>
+    </article>
+  </div>
+</BaseLayout>

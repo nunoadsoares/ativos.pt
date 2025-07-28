@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  # Definimos o nosso serviço/contentor, que vamos chamar de 'web'
+  web:
+    # A receita para construir a imagem é o Dockerfile na pasta atual ('.')
+    build: .
+    # O nome que damos à imagem depois de construída
+    image: ativos-pt-web
+    # Mapeamos a porta 80 do nosso VPS (host) para a porta 80 do contentor
+    ports:
+      - "80:80"
+    # Garante que o contentor arranca automaticamente se o servidor reiniciar
+    restart: always

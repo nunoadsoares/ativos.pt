@@ -1,0 +1,18 @@
+---
+// Este componente recebe os dados do ativo como props
+interface Props {
+    items: {
+        label: string;
+        value: string;
+    }[]
+}
+const { items } = Astro.props;
+---
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8 text-center">
+    {items.map(item => (
+        <div class="bg-white dark:bg-gray-800/50 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{item.label}</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{item.value}</dd>
+        </div>
+    ))}
+</div>

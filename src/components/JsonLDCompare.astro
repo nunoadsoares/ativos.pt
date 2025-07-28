@@ -1,0 +1,25 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  brokers: CollectionEntry<'plataformas'>[];
+  canonical: string;
+}
+
+const { brokers, canonical } = Astro.props;
+
+const itemList = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": brokers.map(b => b.data.nome).join(' vs '),
+  "url": canonical,
+  "itemListElement": brokers.map((b, i) => ({
+    "@type": "ListItem",
+    "position": i + 1,
+    "url": new URL(`/plataformas/${b.slug}`, Astro.site!).href,
+    "name": b.data.nome,
+    "description": b.data.description
+  }))
+};
+---
+<script type="application/ld+json" is:inline set:html={JSON.stringify(itemList)} />

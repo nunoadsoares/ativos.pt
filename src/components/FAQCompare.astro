@@ -1,0 +1,62 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  brokers: CollectionEntry<'plataformas'>[];
+  canonical: string;
+}
+
+const { brokers, canonical } = Astro.props;
+const nomes = brokers.map(b => b.data.nome);
+const par = nomes.join(' vs ');
+
+// Perguntas/Respostas simples (podes ajustar à mão depois)
+const faqs = [
+  {
+    q: `Qual é a corretora mais barata para ações dos EUA entre ${par}?`,
+    a: `Depende do volume e da estrutura de comissões de cada uma. A ${nomes[0]} pode ser vantajosa em ordens pequenas, enquanto a ${nomes[1] ?? ''} tende a ganhar em volumes maiores. Confere a tabela e o futuro comparador de custos para números exatos.`
+  },
+  {
+    q: `Qual destas corretoras permite investir sem comissões em ETFs?`,
+    a: `Tanto a ${nomes.find(n => n.toLowerCase().includes('xtb')) ?? 'XTB'} como a ${nomes.find(n => n.toLowerCase().includes('trading 212')) ?? 'Trading 212'} têm modelos “0% comissão” em certos limites. Lê as notas de cada uma para perceber as condições.`
+  },
+  {
+    q: `Há retenção na fonte sobre dividendos/juros nestas corretoras?`,
+    a: `Sim, quase todas retêm imposto na origem (ex.: EUA). O detalhe varia por instrumento e país. Consulta a secção “Informação Fiscal” da tabela.`
+  },
+  {
+    q: `Qual oferece melhor apoio ao cliente em português?`,
+    a: `${nomes.find(n => n.toLowerCase().includes('xtb')) ?? 'XTB'} e ${nomes.find(n => n.toLowerCase().includes('activtrades')) ?? 'ActivTrades'} destacam-se por suporte em português. Outras operam apenas em inglês/espanhol.`
+  },
+  {
+    q: `Estas corretoras são seguras e reguladas?`,
+    a: `Sim. Todas estão reguladas por autoridades europeias ou internacionais de topo (BaFin, FCA, CySEC, etc.) e usam contas segregadas. Ainda assim, o capital investido em mercados financeiros nunca é isento de risco.`
+  }
+];
+
+// JSON-LD
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": faqs.map(f => ({
+    "@type": "Question",
+    "name": f.q,
+    "acceptedAnswer": { "@type": "Answer", "text": f.a }
+  })),
+  "url": canonical
+};
+---
+
+<section class="mt-20 max-w-4xl mx-auto">
+  <h2 class="text-3xl font-bold text-center mb-8">Perguntas Frequentes</h2>
+  <div class="space-y-6">
+    {faqs.map((f) => (
+      <details class="bg-white dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+        <summary class="cursor-pointer font-semibold">{f.q}</summary>
+        <p class="mt-3 text-gray-700 dark:text-gray-300">{f.a}</p>
+      </details>
+    ))}
+  </div>
+</section>
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />

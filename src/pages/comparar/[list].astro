@@ -1,0 +1,116 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import CompareTable from '~/components/CompareTable.astro';
+import JsonLDCompare from '~/components/JsonLDCompare.astro';
+import FAQCompare from '~/components/FAQCompare.astro';
+
+import { getCollection, type CollectionEntry } from 'astro:content';
+
+export const prerender = true;
+
+type BrokerEntry = CollectionEntry<'plataformas'>;
+type BrokerData  = BrokerEntry['data'];
+type Broker      = BrokerData & { slug: string };
+
+// ---------------- helpers ----------------
+async function getBrokersBySlugs(slugs: string[]) {
+  const all = await getCollection('plataformas');
+  const map = new Map(all.map(e => [e.slug.toLowerCase(), e]));
+  return slugs
+    .map(s => map.get(s.toLowerCase()))
+    .filter((e): e is BrokerEntry => Boolean(e));
+}
+
+// ---------------- static paths ----------------
+export async function getStaticPaths() {
+  const all   = await getCollection('plataformas');
+  const slugs = all.map(e => e.slug);
+
+  const lists: string[] = [];
+
+  // gera pares, trios e até 4
+  const max = 4;
+  const min = 2;
+  const backtrack = (start: number, path: string[]) => {
+    if (path.length >= min && path.length <= max) {
+      lists.push([...path].sort().join('-vs-'));
+    }
+    if (path.length === max) return;
+    for (let i = start; i < slugs.length; i++) {
+      path.push(slugs[i]);
+      backtrack(i + 1, path);
+      path.pop();
+    }
+  };
+  backtrack(0, []);
+
+  // elimina duplicados, por segurança
+  const uniqueLists = Array.from(new Set(lists));
+  return uniqueLists.map(list => ({ params: { list } }));
+}
+
+// ---------------- runtime ----------------
+const { list } = Astro.params as { list: string };
+const requested = list.split('-vs-').filter(Boolean);
+const unique    = Array.from(new Set(requested)).sort();
+
+if (unique.length < 2) {
+  return new Response(null, { status: 404 });
+}
+
+const brokerEntries = await getBrokersBySlugs(unique);
+if (brokerEntries.length < 2) {
+  return new Response(null, { status: 404 });
+}
+
+const brokers: Broker[] = brokerEntries.map(e => ({ slug: e.slug, ...e.data }));
+
+// SEO
+const title       = `${brokers.map(b => b.nome).join(' vs ')} – Comparador de Corretoras`;
+const description = `Compare ${brokers.map(b => b.nome).join(', ')}: taxas, regulação, fiscalidade e principais características.`;
+const canonical   = new URL(`/comparar/${unique.join('-vs-')}`, Astro.site!).href;
+---
+<BaseLayout title={title} description={description}>
+  <Fragment slot="head">
+    <link rel="canonical" href={canonical} />
+    <JsonLDCompare brokers={brokerEntries} canonical={canonical} />
+  </Fragment>
+
+  <article class="max-w-5xl mx-auto py-12 px-4">
+    <h1 class="text-4xl md:text-6xl font-extrabold text-center mb-12">
+      {brokers.map(b => b.nome).join(' vs ')}
+    </h1>
+
+    <p class="text-center text-gray-600 dark:text-gray-400 max-w-3xl mx-auto mb-10">
+      Compare rapidamente taxas, regulação, fiscalidade e funcionalidades das corretoras selecionadas.
+    </p>
+
+    <CompareTable brokers={brokers} />
+
+    <!-- FAQ + JSON-LD -->
+    <FAQCompare brokers={brokerEntries} canonical={canonical} />
+
+    <!-- Texto contextual (SEO e UX) -->
+    <section class="mt-20 prose prose-lg dark:prose-invert mx-auto">
+      <h2>Como interpretar esta comparação</h2>
+      <p>
+        Esta página coloca lado a lado {brokers.map(b => b.nome).join(', ')} para que possas
+        perceber rapidamente diferenças de custos, enquadramento regulatório e regras fiscais.
+        Não existe uma “melhor corretora” universal: tudo depende do teu perfil, do volume de
+        ordens, dos mercados que pretendes aceder e das funcionalidades que valorizas (plataformas
+        avançadas, juros sobre saldo parado, suporte em português, etc.).
+      </p>
+      <p>
+        Modelos com “0% comissão” são ótimos para ordens pequenas, mas podem esconder custos no
+        câmbio ou ter limites mensais. Já corretoras profissionais tendem a ter comissões diretas
+        mais baixas, mas podem implicar maior curva de aprendizagem. Usa a tabela como ponto de
+        partida, lê a ficha detalhada de cada plataforma. Um bom processo de escolha
+        combina números, conveniência e segurança.
+      </p>
+    </section>
+
+    <section class="mt-16 text-center">
+      <a href="/comparar" class="inline-block mt-8 text-primary underline">Voltar ao comparador</a>
+    </section>
+  </article>
+</BaseLayout>

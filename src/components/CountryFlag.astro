@@ -1,0 +1,47 @@
+---
+interface Props {
+    country: string;
+    className?: string;
+}
+const { country, className = 'w-6 h-auto rounded-sm' } = Astro.props;
+
+// Mapa que associa o nome do país ao seu código de 2 letras (ISO 3166-1 alpha-2)
+const countryMap: { [key: string]: string } = {
+    'alemanha': 'de',
+    'eua': 'us',
+    'irlanda': 'ie',
+    'chipre': 'cy',
+    'polónia': 'pl',
+    'frança': 'fr',
+    'espanha': 'es',
+    'portugal': 'pt',
+    'reino unido': 'gb',
+    'suíça': 'ch',
+    'holanda': 'nl',
+    'itália': 'it',
+    'canadá': 'ca',
+    'austrália': 'au',
+    'singapura': 'sg',
+    'emirados árabes unidos': 'ae',
+    'ilhas cayman': 'ky',
+    'israel': 'il',
+    'luxemburgo': 'lu',
+    'malta': 'mt',
+    'hong kong': 'hk',
+    'bulgária': 'bg'
+    // Adicionar outros países aqui no futuro
+};
+
+// Convertemos para minúsculas para garantir que a correspondência funciona
+const countryCode = countryMap[country.toLowerCase()];
+---
+{countryCode && (
+    <img 
+        src={`https://flagcdn.com/${countryCode}.svg`} 
+        alt={`Bandeira de ${country}`}
+        class={className}
+        width="24"
+        height="18"
+        loading="lazy"
+    />
+)}

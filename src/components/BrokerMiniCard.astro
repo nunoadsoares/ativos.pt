@@ -1,0 +1,8 @@
+---
+const { broker, selected = false } = Astro.props;
+---
+<label class="flex items-center gap-3 p-3 border rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+  <input type="checkbox" name="x" value={broker.slug} checked={selected} class="h-5 w-5" />
+  <img src={broker.logo} alt={broker.nome} class="h-8 w-8 object-contain bg-white rounded" />
+  <span class="font-semibold">{broker.nome}</span>
+</label>

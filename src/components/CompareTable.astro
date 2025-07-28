@@ -1,0 +1,157 @@
+---
+import CountryFlag from '~/components/CountryFlag.astro';
+
+/** Tipos (ajusta se mudares o schema) */
+type Fiscal = {
+  retencao_na_fonte_juros?: string;
+  retencao_na_fonte_dividendos?: string;
+  formularios_fiscais?: string;
+};
+type Taxas = {
+  custodia?: string;
+  levantamento?: string;
+  inactividade?: string;
+  cambio?: string;
+};
+type InfoGeral = {
+  sede?: string;
+  regulador?: string;
+  ano_fundacao?: number | string;
+};
+type Broker = {
+  slug: string;
+  nome: string;
+  logo: string;
+  info_geral: InfoGeral;
+  info_fiscal: Fiscal;
+  taxas_principais: Taxas;
+};
+
+interface Props { brokers: Broker[] }
+const { brokers } = Astro.props as Props;
+
+/* ---------- CAMPOS DA TABELA ---------- */
+type Field = {
+  label: string;
+  path: string;               // dot-notation
+  metric?: 'lower' | 'higher';
+};
+const fields: Field[] = [
+  { label: 'Sede', path: 'info_geral.sede' },
+  { label: 'Regulador', path: 'info_geral.regulador' },
+  { label: 'Custódia', path: 'taxas_principais.custodia', metric: 'lower' },
+  { label: 'Levantamento', path: 'taxas_principais.levantamento', metric: 'lower' },
+  { label: 'Inatividade', path: 'taxas_principais.inactividade', metric: 'lower' },
+  { label: 'Câmbio', path: 'taxas_principais.cambio', metric: 'lower' },
+  { label: 'Retenção Juros', path: 'info_fiscal.retencao_na_fonte_juros' },
+  { label: 'Retenção Dividendos', path: 'info_fiscal.retencao_na_fonte_dividendos' },
+  { label: 'Formulários Fiscais', path: 'info_fiscal.formularios_fiscais' },
+];
+
+/* ---------- HELPERS ---------- */
+function getDeep(obj: any, path: string): any {
+  return path.split('.').reduce((o, p) => (o ? o[p] : undefined), obj);
+}
+function toNumber(val: string | undefined): number | null {
+  if (!val) return null;
+  const v = val.toLowerCase();
+  if (v.includes('grátis') || v.includes('gratis') || v.includes('free')) return 0;
+  if (v.includes('não aplicável') || v.includes('n/a') || v.includes('n/i')) return null;
+  const cleaned = v.replace(/[€$£]/g, '').replace(',', '.').replace(/\s+/g, '').replace(/[^0-9.\-]/g, '');
+  const num = parseFloat(cleaned);
+  return Number.isNaN(num) ? null : num;
+}
+// quem ganha por linha
+const bestPerField: Record<string, number[]> = {};
+fields.forEach((f) => {
+  if (!f.metric) return;
+  let best: number | null = null;
+  let winners: number[] = [];
+  brokers.forEach((b, i) => {
+    const raw = getDeep(b, f.path);
+    const num = typeof raw === 'string' ? toNumber(raw) : null;
+    if (num === null) return;
+    if (best === null) { best = num; winners = [i]; }
+    else if (f.metric === 'lower') {
+      if (num < best) { best = num; winners = [i]; }
+      else if (num === best) winners.push(i);
+    } else {
+      if (num > best) { best = num; winners = [i]; }
+      else if (num === best) winners.push(i);
+    }
+  });
+  if (winners.length) bestPerField[f.path] = winners;
+});
+---
+<div class="flex justify-end mb-4">
+  <button id="copy-link" class="text-xs sm:text-sm px-3 py-2 bg-primary text-white rounded-md hover:opacity-90 transition">
+    Copiar link desta comparação
+  </button>
+</div>
+
+<div class="overflow-x-auto relative">
+  <table class="min-w-full text-sm md:text-base border-collapse">
+    <thead>
+      <tr class="bg-gray-100 dark:bg-gray-800">
+        <th
+          class="sticky left-0 z-20 bg-gray-100 dark:bg-gray-800 px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">
+          Campo
+        </th>
+        {brokers.map((b) => (
+          <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">
+            <div class="flex items-center gap-2">
+              <img src={b.logo} alt={`Logo ${b.nome}`} class="h-6 w-6 object-contain rounded bg-white" loading="lazy" />
+              <span>{b.nome}</span>
+            </div>
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {fields.map((f) => (
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          <th
+            class="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">
+            {f.label}
+          </th>
+          {brokers.map((b, idx) => {
+            const raw = getDeep(b, f.path) ?? '—';
+            const isBest = bestPerField[f.path]?.includes(idx);
+            const cellClass = isBest ? 'bg-green-50 dark:bg-green-900/20 font-semibold' : '';
+            // linha especial: sede => mostrar CountryFlag
+            if (f.path === 'info_geral.sede') {
+              return (
+                <td class={`px-4 py-3 align-top ${cellClass}`}>
+                  <div class="flex items-center gap-2">
+                    <CountryFlag country={raw} />
+                    <span>{raw}</span>
+                  </div>
+                </td>
+              );
+            }
+            return (
+              <td class={`px-4 py-3 align-top ${cellClass}`}>
+                {raw}
+              </td>
+            );
+          })}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+<script is:inline>
+  const btn = document.getElementById('copy-link');
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        btn.textContent = 'Link copiado!';
+        setTimeout(() => (btn.textContent = 'Copiar link desta comparação'), 2000);
+      } catch {
+        alert('Não foi possível copiar. Copia manualmente: ' + window.location.href);
+      }
+    });
+  }
+</script>

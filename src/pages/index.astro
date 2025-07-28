@@ -1,61 +1,262 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
+// src/pages/index.astro
+import BaseLayout from '~/layouts/BaseLayout.astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
+import dadosMercado from '~/data/indicadores_chave.json';
 
-// src/components/Navbar.astro
-import logoImage from '~/assets/logo.png';
+export const prerender = true;
 
-// ADICIONA ESTAS 3 LINHAS PARA DEBUG
-console.log('--- DEBUG: Informação do Logo Importado ---');
-console.log(logoImage);
-console.log('-----------------------------------------');
+const { indicadores = {}, data_scrape, fonte } = dadosMercado;
+const listaIndicadores = Object.values(indicadores);
 
-
-// Definimos o tipo para garantir a consistência dos dados
 type AtivoEntry = CollectionEntry<'ativos'>;
+type PlataformaEntry = CollectionEntry<'plataformas'>;
 
-// Vamos buscar todas as entradas da coleção 'ativos'
-// O Astro ordena-as por data (se existir no frontmatter) ou por nome de ficheiro
 const todosAtivos: AtivoEntry[] = await getCollection('ativos');
+const plataformas: PlataformaEntry[] = await getCollection('plataformas');
+
+const ativosDestaque = todosAtivos.slice(0, 6);
+const plataformasDestaque = plataformas.slice(0, 6);
+
+const simuladores = [
+  {
+    slug: 'comparador-custos',
+    titulo: 'Comparador de Custos de Corretoras',
+    desc: 'Calcula comissões, câmbios e custódias anuais nas principais corretoras.',
+    emoji: '💸'
+  },
+  {
+    slug: 'mais-valias', // ajusta se o ficheiro ainda não existir
+    titulo: 'Simulador de Mais‑Valias',
+    desc: 'Apura o imposto a pagar e testa o englobamento no IRS.',
+    emoji: '🧾'
+  },
+  {
+    slug: 'yield-arrendamento',
+    titulo: 'Yield de Arrendamento',
+    desc: 'Compara yield bruta vs líquida e simula impostos.',
+    emoji: '🏠'
+  }
+];
+
+function formatarData(dataStr: string) {
+  const d = new Date(dataStr);
+  d.setDate(d.getDate() + 1);
+  return d.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+}
+const scrapeHuman = new Date(data_scrape).toLocaleString('pt-PT');
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "O que encontro no Ativos.pt?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Indicadores de mercado atualizados, simuladores fiscais e financeiros, um glossário de ativos e análises detalhadas de corretoras usadas em Portugal."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Os simuladores do Ativos.pt são gratuitos?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sim. Todos os simuladores são gratuitos e podem ser usados sem registo."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Posso comparar corretoras no Ativos.pt?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sim. Temos um comparador de corretoras que permite analisar taxas, regulação e custos anuais estimados de várias plataformas."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Os dados fiscais estão adaptados a Portugal?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sim. Todo o conteúdo é focado no contexto português, incluindo tributação (IRS) e formulários relevantes."
+      }
+    }
+  ]
+};
 ---
-<BaseLayout 
-  title="Glossário de Ativos Financeiros"
-  description="Explore o nosso glossário completo sobre os mais variados tipos de ativos financeiros, desde ações e ETFs a criptomoedas e PPRs."
+
+<BaseLayout
+  title="Ativos.pt – Investir com Dados, Ferramentas e Contexto Português"
+  description="Indicadores de mercado, simuladores fiscais, comparador de corretoras e um glossário completo de ativos. Tudo pensado para investidores em Portugal."
 >
-  <main class="bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-      
-      <!-- Cabeçalho da Página -->
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+  </Fragment>
+
+  <main class="bg-gray-50 dark:bg-brand-dark">
+    <!-- HERO -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-20 text-center">
+      <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+        Investir em Portugal, <span class="text-primary">com clareza</span>
+      </h1>
+      <p class="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-gray-600 dark:text-gray-300">
+        Indicadores chave, simuladores práticos e comparações de corretoras. Menos ruído, mais decisões informadas.
+      </p>
+
+      <div class="mt-10 flex flex-wrap justify-center gap-4">
+        <a href="/comparar" class="bg-primary text-white font-semibold py-3 px-8 rounded-full hover:opacity-90 transition">
+          Comparar Corretoras
+        </a>
+        <a href="/simuladores/comparador-custos" class="bg-white dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-semibold py-3 px-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          Simular Custos
+        </a>
+      </div>
+    </section>
+
+    <!-- INDICADORES -->
+    {listaIndicadores.length > 0 && (
+      <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <h2 class="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-10">
+          Indicadores chave do mercado
+        </h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {listaIndicadores.map((ind: any) => (
+            <div class="bg-white dark:bg-gray-800/60 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 text-center flex flex-col justify-between">
+              <div>
+                <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 h-10">{ind.label}</p>
+                <div class="flex items-baseline justify-center gap-x-1 mt-3">
+                  <span class="text-4xl font-extrabold text-gray-900 dark:text-white">{ind.valor}</span>
+                  <span class="text-lg font-medium text-gray-500 dark:text-gray-400">{ind.unidade}</span>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                ({formatarData(ind.data_referencia)})
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">
+          Fonte: {fonte} · Última atualização: {scrapeHuman}
+        </p>
+      </section>
+    )}
+
+    <!-- SIMULADORES -->
+    <section class="bg-white dark:bg-gray-900/40 py-16">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-10">
+          Simuladores & Calculadoras
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {simuladores.map(s => (
+            <a href={`/simuladores/${s.slug}`} class="block group bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-shadow">
+              <div class="text-4xl mb-4">{s.emoji}</div>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                {s.titulo}
+              </h3>
+              <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{s.desc}</p>
+              <span class="inline-block mt-4 text-primary text-sm font-semibold">Abrir →</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA COMPARADOR DE CUSTOS -->
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div class="bg-gradient-to-r from-primary to-secondary rounded-3xl p-10 md:p-14 text-center shadow-xl text-white">
+        <h2 class="text-3xl md:text-4xl font-extrabold mb-4">
+          Qual é a corretora mais barata para ti?
+        </h2>
+        <p class="max-w-2xl mx-auto text-base md:text-lg opacity-90 mb-8">
+          Compara, em segundos, comissões, câmbios e custos de custódia das principais plataformas usadas em Portugal.
+        </p>
+        <a
+          href="/simuladores/comparador-custos"
+          class="inline-flex justify-center items-center text-center whitespace-normal break-words font-bold bg-white text-primary rounded-full py-3 px-8 w-full max-w-xs sm:w-auto mx-auto hover:opacity-90 transition"
+        >
+          Abrir Comparador de Custos
+        </a>
+      </div>
+    </section>
+
+    <!-- GLOSSÁRIO -->
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="text-center mb-12">
-        <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-          Glossário de Ativos
-        </h1>
-        <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
-          Tudo o que precisa de saber sobre o mundo dos investimentos, explicado de forma simples e clara.
+        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Glossário de Ativos</h2>
+        <p class="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          Entende os principais instrumentos de investimento: riscos, liquidez, prazo e tributação em Portugal.
         </p>
       </div>
 
-      <!-- Grelha de Cartões Responsiva -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {todosAtivos.map((ativo) => (
-          <a 
-            href={`/ativos/${ativo.slug}/`} 
-            class="group block bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl focus:shadow-xl transition-all duration-300 ease-in-out border border-gray-200 dark:border-gray-700 overflow-hidden"
-          >
+        {ativosDestaque.map((ativo) => (
+          <a href={`/ativos/${ativo.slug}/`} class="group block bg-white dark:bg-gray-800/60 rounded-xl shadow-md hover:shadow-xl transition border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-6">
-              <h2 class="text-xl font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                 {ativo.data.title}
-              </h2>
+              </h3>
               {ativo.data.subtitle && (
-                <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                  {ativo.data.subtitle}
-                </p>
+                <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">{ativo.data.subtitle}</p>
               )}
             </div>
           </a>
         ))}
       </div>
 
-    </div>
+      <div class="text-center mt-10">
+        <a href="/ativos" class="inline-block text-primary underline font-semibold">Ver todos os ativos →</a>
+      </div>
+    </section>
+
+    <!-- CORRETORAS -->
+    <section class="bg-gray-100 dark:bg-gray-800/40 py-16">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Corretoras & Plataformas</h2>
+          <p class="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Análises detalhadas de plataformas de investimento: taxas, regulação, fiscalidade e funcionalidades.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {plataformasDestaque.map(p => (
+            <a href={`/plataformas/${p.slug}`} class="group bg-white dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-md hover:shadow-xl transition">
+              <img src={p.data.logo} alt={p.data.nome} class="h-10 w-10 object-contain mb-4" />
+              <h3 class="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">{p.data.nome}</h3>
+              <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{p.data.description}</p>
+              <span class="inline-block mt-4 text-primary text-sm font-semibold">Ver análise →</span>
+            </a>
+          ))}
+        </div>
+
+        <div class="text-center mt-10">
+          <a href="/plataformas" class="inline-block text-primary underline font-semibold">Ver todas as corretoras →</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- NEWSLETTER -->
+    <section class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+      <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">Recebe novidades e ferramentas novas</h2>
+      <p class="text-gray-600 dark:text-gray-400 mb-8">
+        Enviamos apenas conteúdo útil: novos simuladores, comparações e alertas de oportunidades.
+      </p>
+      <form class="flex flex-col sm:flex-row gap-3 justify-center">
+        <input
+          type="email"
+          placeholder="O teu email"
+          class="w-full sm:w-80 px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
+          required
+        />
+        <button class="bg-primary text-white font-semibold py-3 px-8 rounded-xl hover:opacity-90 transition">
+          Subscrever
+        </button>
+      </form>
+      <p class="mt-3 text-xs text-gray-400">Sem spam. Podes cancelar quando quiseres.</p>
+    </section>
   </main>
 </BaseLayout>
