@@ -1,0 +1,61 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection, type CollectionEntry } from 'astro:content';
+
+// src/components/Navbar.astro
+import logoImage from '~/assets/logo.png';
+
+// ADICIONA ESTAS 3 LINHAS PARA DEBUG
+console.log('--- DEBUG: Informação do Logo Importado ---');
+console.log(logoImage);
+console.log('-----------------------------------------');
+
+
+// Definimos o tipo para garantir a consistência dos dados
+type AtivoEntry = CollectionEntry<'ativos'>;
+
+// Vamos buscar todas as entradas da coleção 'ativos'
+// O Astro ordena-as por data (se existir no frontmatter) ou por nome de ficheiro
+const todosAtivos: AtivoEntry[] = await getCollection('ativos');
+---
+<BaseLayout 
+  title="Glossário de Ativos Financeiros"
+  description="Explore o nosso glossário completo sobre os mais variados tipos de ativos financeiros, desde ações e ETFs a criptomoedas e PPRs."
+>
+  <main class="bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+      
+      <!-- Cabeçalho da Página -->
+      <div class="text-center mb-12">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+          Glossário de Ativos
+        </h1>
+        <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
+          Tudo o que precisa de saber sobre o mundo dos investimentos, explicado de forma simples e clara.
+        </p>
+      </div>
+
+      <!-- Grelha de Cartões Responsiva -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {todosAtivos.map((ativo) => (
+          <a 
+            href={`/ativos/${ativo.slug}/`} 
+            class="group block bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl focus:shadow-xl transition-all duration-300 ease-in-out border border-gray-200 dark:border-gray-700 overflow-hidden"
+          >
+            <div class="p-6">
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                {ativo.data.title}
+              </h2>
+              {ativo.data.subtitle && (
+                <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+                  {ativo.data.subtitle}
+                </p>
+              )}
+            </div>
+          </a>
+        ))}
+      </div>
+
+    </div>
+  </main>
+</BaseLayout>

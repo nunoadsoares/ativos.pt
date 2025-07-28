@@ -1,0 +1,30 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+
+// 1. Importamos o nosso componente React como qualquer outro componente
+import CalculadoraMaisValias from '~/components/CalculadoraMaisValias.jsx';
+---
+<BaseLayout 
+  title="Calculadora de Mais-Valias"
+  description="Calcule facilmente as mais-valias e o imposto a pagar sobre os seus investimentos em ações, ETFs e outros ativos."
+>
+  <div class="py-12 md:py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+        Simulador de Mais-Valias
+      </h1>
+      <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
+        Use esta ferramenta para calcular o valor líquido da venda dos seus ativos, aplicando a taxa de 28%.
+      </p>
+    </div>
+
+    <div class="mt-12">
+      <CalculadoraMaisValias client:load />
+    </div>
+
+    <div class="max-w-3xl mx-auto mt-12 text-sm text-gray-500 dark:text-gray-400 text-left space-y-2 px-4">
+      <p><strong>Nota:</strong> Esta calculadora aplica a taxa autónoma de 28% sobre as mais-valias. Não considera a opção de englobamento. O valor das despesas é subtraído ao valor da venda para apurar a mais-valia.</p>
+      <p>Este simulador é apenas para fins informativos e não dispensa a consulta de um profissional de contabilidade ou da legislação fiscal em vigor.</p>
+    </div>
+  </div>
+</BaseLayout>

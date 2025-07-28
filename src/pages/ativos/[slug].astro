@@ -1,0 +1,67 @@
+---
+// Importa as funções necessárias e o layout
+import { getCollection, getEntry, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { AstroError } from 'astro/errors';
+
+// Define um tipo para clareza, usando a CollectionEntry do Astro
+type AtivoEntry = CollectionEntry<'ativos'>;
+
+/**
+ * A função getStaticPaths gera todas as rotas dinâmicas no momento do build.
+ * Continua igual e está correta.
+ */
+export async function getStaticPaths() {
+  const allEntries = await getCollection('ativos');
+  return allEntries.map((entry) => ({
+    params: { slug: entry.slug },
+  }));
+}
+
+// Obtém o 'slug' a partir dos parâmetros da URL
+const { slug } = Astro.params;
+
+// Validação para garantir que o slug não é undefined
+if (slug === undefined) {
+  throw new AstroError('Slug não encontrado', 'O slug não pode ser indefinido.');
+}
+
+/**
+ * CORREÇÃO #1: Usa getEntry(collection, slug) para obter a entrada.
+ * Esta é a API moderna e mais simples.
+ */
+const entry: AtivoEntry | undefined = await getEntry('ativos', slug);
+
+// Se a entrada não for encontrada, lança um erro 404.
+if (entry === undefined) {
+  throw new AstroError('Not Found', `A página para o slug "${slug}" não foi encontrada.`);
+}
+
+/**
+ * CORREÇÃO #2: Os dados (frontmatter) estão em `entry.data`.
+ * A função `entry.render()` retorna o componente `Content` e outras informações, mas não `data`.
+ */
+const { Content } = await entry.render();
+const { data } = entry; // Extrai os dados do frontmatter aqui
+---
+<!-- O layout recebe o título a partir de `data` -->
+<BaseLayout title={data.title} description={data.description}>
+  <main class="py-8 sm:py-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Usamos a classe `prose` do Tailwind para estilizar o conteúdo do Markdown -->
+      <article class="prose prose-lg dark:prose-invert">
+        <h1>{data.title}</h1>
+        
+        <!-- Verifica se o subtítulo existe antes de o renderizar -->
+        {data.subtitle && (
+          <p class="lead text-xl text-gray-600 dark:text-gray-400 !mt-2">
+            {data.subtitle}
+          </p>
+        )}
+
+        <!-- Renderiza o corpo do ficheiro Markdown -->
+        <Content />
+      </article>
+    </div>
+  </main>
+</BaseLayout>
