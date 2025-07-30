@@ -1,43 +1,63 @@
-# ────────────────────────────────
-# DOGMA: nunca ignores o que vai para produção
-# ────────────────────────────────
+########################################
+# BUILD & CACHE
+########################################
+dist/                  # saída de build do Astro
+.astro/                # tipos gerados
+.vite/                 # cache local do Vite
+.cache/                # outras ferramentas (esbuild, etc.)
+.turbo/                # Turborepo (se algum dia usares)
 
-# 1. Saída de build (já tens)
-dist/
-.astro/
+########################################
+# DEPENDÊNCIAS
+########################################
+node_modules/          # npm / pnpm / yarn
 
-# 2. Dependências (já tens)
-node_modules/
+########################################
+# PYTHON VIRTUALENVS
+########################################
+venv/
+scraper/venv/          # o que te ficou no repo
+__pycache__/           # cache python
+*.py[cod]              # bytecode python
 
-# 3. Logs (já tens)
+########################################
+# LOGS
+########################################
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
 
-# 4. Variáveis de ambiente (já tens)
-.env*
-!.env.example           # mantém um ficheiro-exemplo, se existir
+########################################
+# VARIÁVEIS DE AMBIENTE
+########################################
+.env
+.env.*                 # ex.: .env.local, .env.production
+!.env.example          # mantém o ficheiro-exemplo, se existir
 
-# 5. macOS & IDEs (tens alguns – junto os restantes)
-.DS_Store
-.idea/
-.vscode/                # settings locais do VS Code
+########################################
+# SISTEMA & IDEs
+########################################
+.DS_Store              # macOS
+.idea/                 # JetBrains IDEs
+.vscode/               # settings locais do VS Code
 
-# 6. Docker artefacts
+########################################
+# DOCKER ARTIFACTS
+########################################
 docker-compose.override.yml
-**/Dockerfile-local*    # se criares ficheiros Docker só p/ dev
-.tmp_docker/            # volumes temporários, se usares
+**/Dockerfile-local*   # Dockerfiles só de desenvolvimento
+.tmp_docker/           # volumes temporários, se usares
 
-# 7. Astro / build caches
-.cache/                 # usado por algumas ferramentas
-.turbo/                 # se começares a usar Turborepo
-.vite/                  # cache local do Vite
-
-# 8. Testes e relatórios
+########################################
+# TESTES & COBERTURA
+########################################
 coverage/
 *.lcov
 
-# 9. Outros binários ou artefactos
-*.log
-*.sqlite                # se tiveres BD local de testes
+########################################
+# OUTROS BINÁRIOS / ARTEFACTOS
+########################################
+*.sqlite               # BD local de testes, se existir
+node_modules
