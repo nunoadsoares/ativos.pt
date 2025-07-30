@@ -1,28 +1,43 @@
-# build output
-dist/
+# ────────────────────────────────
+# DOGMA: nunca ignores o que vai para produção
+# ────────────────────────────────
 
-# generated types
+# 1. Saída de build (já tens)
+dist/
 .astro/
 
-# dependencies
+# 2. Dependências (já tens)
 node_modules/
 
-# logs
+# 3. Logs (já tens)
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# environment variables
-.env
-.env.production
+# 4. Variáveis de ambiente (já tens)
+.env*
+!.env.example           # mantém um ficheiro-exemplo, se existir
 
-# macOS-specific files
+# 5. macOS & IDEs (tens alguns – junto os restantes)
 .DS_Store
-
-# jetbrains setting folder
 .idea/
+.vscode/                # settings locais do VS Code
 
-# Python virtual environments
-venv/
-scraper/venv/
+# 6. Docker artefacts
+docker-compose.override.yml
+**/Dockerfile-local*    # se criares ficheiros Docker só p/ dev
+.tmp_docker/            # volumes temporários, se usares
+
+# 7. Astro / build caches
+.cache/                 # usado por algumas ferramentas
+.turbo/                 # se começares a usar Turborepo
+.vite/                  # cache local do Vite
+
+# 8. Testes e relatórios
+coverage/
+*.lcov
+
+# 9. Outros binários ou artefactos
+*.log
+*.sqlite                # se tiveres BD local de testes
