@@ -3,7 +3,7 @@ name: Deploy to Hetzner VPS
 on:
   push:
     branches:
-      - main # Ou o nome do teu ramo principal
+      - master # Acionado no ramo 'master'
 
 jobs:
   deploy:
@@ -16,6 +16,6 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /nuno/ativos.pt 
+            cd /home/nuno/sites/ativos.pt
             git pull
             docker-compose up --build -d
