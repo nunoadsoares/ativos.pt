@@ -1,27 +1,27 @@
 ########################################
-# BUILD & CACHE
+# 1. BUILD & CACHE
 ########################################
 dist/                  # saída de build do Astro
 .astro/                # tipos gerados
 .vite/                 # cache local do Vite
-.cache/                # outras ferramentas (esbuild, etc.)
+.cache/                # cache de ferramentas (esbuild, etc.)
 .turbo/                # Turborepo (se algum dia usares)
 
 ########################################
-# DEPENDÊNCIAS
+# 2. DEPENDÊNCIAS
 ########################################
 node_modules/          # npm / pnpm / yarn
 
 ########################################
-# PYTHON VIRTUALENVS
+# 3. PYTHON VIRTUALENVS
 ########################################
 venv/
-scraper/venv/          # o que te ficou no repo
-__pycache__/           # cache python
-*.py[cod]              # bytecode python
+scraper/venv/          # virtualenv que ficou no repo
+__pycache__/           # cache Python
+*.py[cod]              # byte-code Python
 
 ########################################
-# LOGS
+# 4. LOGS
 ########################################
 npm-debug.log*
 yarn-debug.log*
@@ -30,34 +30,32 @@ pnpm-debug.log*
 *.log
 
 ########################################
-# VARIÁVEIS DE AMBIENTE
+# 5. VARIÁVEIS DE AMBIENTE
 ########################################
-.env
-.env.*                 # ex.: .env.local, .env.production
+.env*                  # .env, .env.local, .env.production, etc.
 !.env.example          # mantém o ficheiro-exemplo, se existir
 
 ########################################
-# SISTEMA & IDEs
+# 6. SISTEMA & IDEs
 ########################################
 .DS_Store              # macOS
 .idea/                 # JetBrains IDEs
 .vscode/               # settings locais do VS Code
 
 ########################################
-# DOCKER ARTIFACTS
+# 7. DOCKER ARTIFACTS
 ########################################
 docker-compose.override.yml
 **/Dockerfile-local*   # Dockerfiles só de desenvolvimento
-.tmp_docker/           # volumes temporários, se usares
+.tmp_docker/           # volumes temporários
 
 ########################################
-# TESTES & COBERTURA
+# 8. TESTES & COBERTURA
 ########################################
-coverage/
+coverage/              # relatórios de cobertura
 *.lcov
 
 ########################################
-# OUTROS BINÁRIOS / ARTEFACTOS
+# 9. OUTROS BINÁRIOS / ARTEFACTOS
 ########################################
-*.sqlite               # BD local de testes, se existir
-node_modules
+*.sqlite               # BD local de testes
