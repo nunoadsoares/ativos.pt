@@ -1,0 +1,32 @@
+name: Update Economic Data
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # Corre todos os dias às 7h UTC
+  workflow_dispatch: # Permite correr manualmente
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r ./packages/data-worker/requirements.txt
+
+      - name: Run Data Worker
+        run: python ./packages/data-worker/apibp/apibp.py
+
+      - name: Commit and push if data changed
+        run: |
+          git config --global user.name "Ativos.pt Data Bot"
+          git config --global user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --staged --quiet || git commit -m "Data: Atualização automática dos indicadores"
+          git push
