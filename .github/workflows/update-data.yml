@@ -2,8 +2,8 @@ name: Update Economic Data
 
 on:
   schedule:
-    - cron: '0 7 * * *' # Corre todos os dias às 7h UTC
-  workflow_dispatch: # Permite correr manualmente
+    - cron: '0 7 * * *'
+  workflow_dispatch:
 
 jobs:
   update:
@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r ./packages/data-worker/requirements.txt
-
+      
       - name: Run Data Worker
         run: python ./packages/data-worker/apibp/apibp.py
 
