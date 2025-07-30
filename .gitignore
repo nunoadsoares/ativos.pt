@@ -1,61 +1,21 @@
-########################################
-# 1. BUILD & CACHE
-########################################
-dist/
-.astro/
-.vite/
-.cache/
-.turbo/
-
-########################################
-# 2. DEPENDÊNCIAS
-########################################
-node_modules/
-
-########################################
-# 3. PYTHON VIRTUALENVS
-########################################
-venv/
-scraper/venv/
+# Ambiente Virtual Python
+/.venv
 __pycache__/
-*.py[cod]
+*.pyc
 
-########################################
-# 4. LOGS
-########################################
+# Dependências e Ficheiros de Build do Node.js/Astro
+/node_modules
+/packages/webapp/node_modules
+/packages/webapp/dist
+/packages/webapp/.astro
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-*.log
 
-########################################
-# 5. VARIÁVEIS DE AMBIENTE
-########################################
-.env*
-!.env.example
-
-########################################
-# 6. SISTEMA & IDEs
-########################################
+# Ficheiros de Sistema e IDE
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/
-
-########################################
-# 7. DOCKER ARTIFACTS
-########################################
-docker-compose.override.yml
-**/Dockerfile-local*
-.tmp_docker/
-
-########################################
-# 8. TESTES & COBERTURA
-########################################
-coverage/
-*.lcov
-
-########################################
-# 9. OUTROS BINÁRIOS / ARTEFACTOS
-########################################
-*.sqlite

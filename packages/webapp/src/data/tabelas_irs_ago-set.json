@@ -1,0 +1,225 @@
+{
+  "fonte": "Tabelas_RF_Continente_2025_01_08_a_30_09.xlsx",
+  "tabelas": {
+    "trabalho_dependente": {
+      "nao_casado_sem_dependentes": [
+        {
+          "remuneracao_ate": 870.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 0.0
+        },
+        {
+          "remuneracao_ate": 992.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 21.43
+        },
+        {
+          "remuneracao_ate": 1070.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 21.43
+        },
+        {
+          "remuneracao_ate": 1136.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 21.43
+        },
+        {
+          "remuneracao_ate": 1187.0,
+          "taxa": 0.0108,
+          "parcela_abater": 12.27,
+          "parcela_dependente": 21.43
+        },
+        {
+          "remuneracao_ate": 1787.0,
+          "taxa": 0.0244,
+          "parcela_abater": 28.42,
+          "parcela_dependente": 21.43
+        },
+        {
+          "remuneracao_ate": 2078.0,
+          "taxa": 0.0314,
+          "parcela_abater": 40.93,
+          "parcela_dependente": 21.43
+        },
+        {
+          "remuneracao_ate": 2432.0,
+          "taxa": 0.0524,
+          "parcela_abater": 84.57000000000001,
+          "parcela_dependente": 21.43
+        },
+        {
+          "remuneracao_ate": 3233.0,
+          "taxa": 0.0767,
+          "parcela_abater": 143.67,
+          "parcela_dependente": 21.43
+        },
+        {
+          "remuneracao_ate": 5547.0,
+          "taxa": 0.1389,
+          "parcela_abater": 344.77,
+          "parcela_dependente": 21.43
+        },
+        {
+          "remuneracao_ate": 20221.0,
+          "taxa": 0.4495,
+          "parcela_abater": 2067.67,
+          "parcela_dependente": 21.43
+        },
+        {
+          "remuneracao_ate": 20221.0,
+          "taxa": 0.4717,
+          "parcela_abater": 2516.5800000000004,
+          "parcela_dependente": 21.43
+        }
+      ],
+      "casado_1_titular": [
+        {
+          "remuneracao_ate": 870.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 0.0
+        },
+        {
+          "remuneracao_ate": 992.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 34.29
+        },
+        {
+          "remuneracao_ate": 1070.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 34.29
+        },
+        {
+          "remuneracao_ate": 1136.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 34.29
+        },
+        {
+          "remuneracao_ate": 1187.0,
+          "taxa": 0.0108,
+          "parcela_abater": 12.27,
+          "parcela_dependente": 34.29
+        },
+        {
+          "remuneracao_ate": 1787.0,
+          "taxa": 0.0244,
+          "parcela_abater": 28.42,
+          "parcela_dependente": 34.29
+        },
+        {
+          "remuneracao_ate": 2078.0,
+          "taxa": 0.0314,
+          "parcela_abater": 40.93,
+          "parcela_dependente": 34.29
+        },
+        {
+          "remuneracao_ate": 2432.0,
+          "taxa": 0.0524,
+          "parcela_abater": 84.57000000000001,
+          "parcela_dependente": 34.29
+        },
+        {
+          "remuneracao_ate": 3233.0,
+          "taxa": 0.0767,
+          "parcela_abater": 143.67,
+          "parcela_dependente": 34.29
+        },
+        {
+          "remuneracao_ate": 5547.0,
+          "taxa": 0.1389,
+          "parcela_abater": 344.77,
+          "parcela_dependente": 34.29
+        },
+        {
+          "remuneracao_ate": 20221.0,
+          "taxa": 0.4495,
+          "parcela_abater": 2067.67,
+          "parcela_dependente": 34.29
+        },
+        {
+          "remuneracao_ate": 20221.0,
+          "taxa": 0.4717,
+          "parcela_abater": 2516.5800000000004,
+          "parcela_dependente": 34.29
+        }
+      ]
+    },
+    "pensoes": {
+      "nao_casado_sem_dependentes": [
+        {
+          "remuneracao_ate": 870.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 0.0
+        },
+        {
+          "remuneracao_ate": 992.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 0.0
+        },
+        {
+          "remuneracao_ate": 1063.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 0.0
+        },
+        {
+          "remuneracao_ate": 1116.0,
+          "taxa": 0.0,
+          "parcela_abater": 0.0,
+          "parcela_dependente": 0.0
+        },
+        {
+          "remuneracao_ate": 1214.0,
+          "taxa": 0.0108,
+          "parcela_abater": 12.06,
+          "parcela_dependente": 0.001
+        },
+        {
+          "remuneracao_ate": 1837.0,
+          "taxa": 0.0244,
+          "parcela_abater": 28.58,
+          "parcela_dependente": 0.009
+        },
+        {
+          "remuneracao_ate": 2074.0,
+          "taxa": 0.0314,
+          "parcela_abater": 41.44,
+          "parcela_dependente": 0.011
+        },
+        {
+          "remuneracao_ate": 2301.0,
+          "taxa": 0.0524,
+          "parcela_abater": 85.0,
+          "parcela_dependente": 0.015
+        },
+        {
+          "remuneracao_ate": 3398.0,
+          "taxa": 0.0862,
+          "parcela_abater": 162.78,
+          "parcela_dependente": 0.038
+        },
+        {
+          "remuneracao_ate": 5833.0,
+          "taxa": 0.1561,
+          "parcela_abater": 400.31,
+          "parcela_dependente": 0.087
+        },
+        {
+          "remuneracao_ate": 18332.0,
+          "taxa": 0.505,
+          "parcela_abater": 2435.4500000000003,
+          "parcela_dependente": 0.372
+        }
+      ]
+    }
+  }
+}
