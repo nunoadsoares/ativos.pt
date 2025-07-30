@@ -1,0 +1,85 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const todasPlataformas = await getCollection('plataformas');
+
+// Schema JSON-LD para a página de listagem (HUB)
+const itemListSchema = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Plataformas de Investimento em Portugal",
+  "description": "Análise e comparação das melhores corretoras e plataformas para investir em Portugal.",
+  "itemListElement": todasPlataformas.map((plataforma, index) => ({
+    "@type": "ListItem",
+    "position": index + 1,
+    "item": {
+      "@type": "Service",
+      "name": plataforma.data.nome,
+      "description": plataforma.data.description,
+      "url": new URL(`/plataformas/${plataforma.slug}/`, Astro.site).href,
+      "logo": new URL(plataforma.data.logo, Astro.site).href
+    }
+  }))
+};
+---
+<BaseLayout
+  title="Plataformas de Investimento"
+  description="Análise e comparação das melhores corretoras e plataformas para investir em Portugal."
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(itemListSchema)} />
+  </Fragment>
+
+  <main class="bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+      
+      <div class="text-center mb-12">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+          Plataformas de Investimento
+        </h1>
+        <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
+          Encontre a corretora ideal para o seu perfil. Analisamos as melhores opções disponíveis em Portugal.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {todasPlataformas.map((plataforma) => (
+          <div class="group flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 transition-all duration-300 ease-in-out border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-6 flex-grow">
+              <div class="flex items-center gap-4 mb-4">
+                {/* ALTERAÇÃO: Tamanho do logo ainda mais pequeno para garantir que a mudança é visível */}
+                <img src={plataforma.data.logo} alt={`Logo ${plataforma.data.nome}`} class="h-10 w-10 rounded-full object-contain bg-white p-1 shadow-md" />
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                  {plataforma.data.nome}
+                </h2>
+              </div>
+              <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+                {plataforma.data.description}
+              </p>
+            </div>
+            <div class="p-6 pt-0 mt-auto">
+              <div class="flex items-center space-x-4">
+                 <a 
+                  href={`/plataformas/${plataforma.slug}/`} 
+                  class="w-full text-center px-4 py-2 rounded-md text-sm font-medium text-primary dark:text-gray-300 border border-primary hover:bg-primary/10 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Ler Análise
+                </a>
+                 <a 
+                  href={plataforma.data.url_afiliado}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  class="w-full text-center px-4 py-2 rounded-md text-sm font-medium text-white bg-primary hover:opacity-90 transition-opacity"
+                >
+                  Abrir Conta
+                </a>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  </main>
+</BaseLayout>

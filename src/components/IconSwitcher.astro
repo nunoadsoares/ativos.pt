@@ -1,0 +1,30 @@
+---
+import AcoesIcon   from './icons/AcoesIcon.astro';
+import EtfIcon     from './icons/EtfIcon.astro';
+import PprIcon     from './icons/PprIcon.astro';
+import CriptoIcon  from './icons/CriptoIcon.astro';
+import OuroIcon    from './icons/OuroIcon.astro';
+import ForexIcon   from './icons/ForexIcon.astro';
+import P2PIcon     from './icons/P2PIcon.astro';
+import GenericIcon from './icons/GenericIcon.astro';
+
+const { title } = Astro.props;
+/* normaliza para lowercase e remove acentos grossos */
+const key = (title ?? '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '');
+
+const Icon =
+  key.includes('acoes')        ? AcoesIcon  :
+  key.includes('ação')         ? AcoesIcon  : // segurança extra
+  key.includes('etf')          ? EtfIcon    :
+  key.includes('ppr')          ? PprIcon    :
+  key.includes('cripto')       ? CriptoIcon :
+  key.includes('ouro')         ? OuroIcon   :
+  key.includes('forex')        ? ForexIcon  :
+  key.includes('p2p')          ? P2PIcon    :
+  key.includes('peer')         ? P2PIcon    : // extra fallback
+  GenericIcon;
+---
+<Icon />

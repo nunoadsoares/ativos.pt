@@ -1,0 +1,89 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import CalculadoraEnglobamento from '~/components/CalculadoraEnglobamento.jsx';
+
+// SEO: Dados estruturados para a secção de FAQ
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "O que significa 'englobar' rendimentos?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Englobar significa somar os rendimentos de investimentos (como mais-valias ou dividendos) aos seus outros rendimentos anuais (como salários ou pensões) para que tudo seja tributado em conjunto, de acordo com os escalões progressivos de IRS. A alternativa é a tributação autónoma, onde se aplica uma taxa fixa de 28% apenas sobre esses rendimentos de investimento."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Esta calculadora considera os 50% da mais-valia de ações para englobamento?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sim. A lógica de cálculo para o cenário de englobamento já assume que apenas 50% do saldo positivo entre mais e menos-valias de ações, ETFs e outros valores mobiliários é que é efetivamente somado ao seu rendimento coletável, conforme a legislação em vigor."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "O resultado desta calculadora é 100% exato e vinculativo?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Não. Este simulador é uma ferramenta de apoio e fornece uma estimativa com base nas tabelas de retenção na fonte. O cálculo final da sua liquidação de IRS pode ter outras variáveis não consideradas aqui. A ferramenta não dispensa a consulta de um profissional de contabilidade nem da legislação fiscal em vigor."
+      }
+    }
+  ]
+};
+---
+<BaseLayout 
+  title="Calculadora de Mais-Valias: Englobar ou Taxa de 28%?"
+  description="Simule o imposto a pagar sobre as suas mais-valias e descubra se é mais vantajoso optar pelo englobamento ou pela taxa autónoma de 28% no seu IRS."
+>
+  {/* Adiciona o schema de FAQ ao <head> da página */}
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+  </Fragment>
+
+  <div class="py-12 md:py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+        Simulador de Mais-Valias: Englobar vs Taxa 28%
+      </h1>
+      <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
+        Descubra qual a opção mais vantajosa para si. Insira os seus dados e compare o imposto a pagar em ambos os cenários.
+      </p>
+    </div>
+
+    <div class="mt-12">
+      <CalculadoraEnglobamento client:load />
+    </div>
+
+    <div class="max-w-3xl mx-auto mt-12 text-sm text-gray-500 dark:text-gray-400 text-left space-y-2 px-4">
+      <p><strong>Nota:</strong> Este simulador utiliza as tabelas de retenção na fonte como aproximação para os escalões de IRS. O resultado é uma estimativa e não dispensa a consulta de um profissional ou da legislação em vigor.</p>
+    </div>
+
+    <div class="max-w-3xl mx-auto mt-16 px-4">
+      <h2 class="text-2xl font-bold text-center text-gray-900 dark:text-white">Perguntas Frequentes</h2>
+      <div class="mt-8 space-y-6">
+        {faqSchema.mainEntity.map(faq => (
+          <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border dark:border-gray-700 cursor-pointer">
+            <summary class="flex items-center justify-between font-medium text-gray-900 dark:text-white">
+              {faq.name}
+              <svg class="h-6 w-6 text-gray-500 group-open:rotate-180 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <p class="mt-3 text-gray-600 dark:text-gray-300">
+              {faq.acceptedAnswer.text}
+            </p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <style is:global>
+    .input-field {
+      @apply block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary;
+    }
+  </style>
+</BaseLayout>

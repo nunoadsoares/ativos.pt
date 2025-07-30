@@ -1,0 +1,100 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { getCollection, type CollectionEntry } from 'astro:content';
+import IconSwitcher from '~/components/IconSwitcher.astro';
+
+type AtivoEntry = CollectionEntry<'ativos'>;
+
+/* Carrega todos os ativos e ordena alfabeticamente pelo título */
+const ativos: AtivoEntry[] = (await getCollection('ativos')).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title, 'pt-PT')
+);
+
+/* JSON-LD ItemList para SEO */
+const itemListSchema = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: "Tipos de Ativos",
+  itemListElement: ativos.map((a, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    item: {
+      "@type": "Article",
+      name: a.data.title,
+      url: new URL(`/ativos/${a.slug}/`, Astro.site).href,
+      description: a.data.description
+    }
+  }))
+};
+---
+
+<BaseLayout
+  title="Hub de Ativos | Risco, Liquidez e Tributação"
+  description="Compare risco, liquidez e enquadramento fiscal dos principais ativos disponíveis aos investidores portugueses."
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline>
+      {JSON.stringify(itemListSchema)}
+    </script>
+  </Fragment>
+
+  <main class="bg-gray-50 dark:bg-gray-900 py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Cabeçalho -->
+      <header class="text-center mb-16">
+        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+          Hub de Ativos
+        </h1>
+        <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-600 dark:text-gray-300">
+          Navegue pelas principais classes de ativos e veja rapidamente risco, liquidez e enquadramento fiscal.
+        </p>
+      </header>
+
+      <!-- Grelha de cartões -->
+      <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr">
+        {ativos.map((ativo) => (
+          <a
+            href={`/ativos/${ativo.slug}/`}
+            class="group relative flex flex-col h-full rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 bg-white dark:bg-gray-800 transition-transform duration-300 hover:-translate-y-1"
+          >
+            <!-- Ícone -->
+            <div class="flex items-center justify-center h-24 bg-primary/10 dark:bg-primary/20">
+              <IconSwitcher title={ativo.data.title} />
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="flex flex-col flex-1 p-6">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-1 text-center">
+                {ativo.data.title}
+              </h2>
+              {ativo.data.subtitle && (
+                <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-4 flex-grow">
+                  {ativo.data.subtitle}
+                </p>
+              )}
+
+              <dl class="mt-auto space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                <div class="flex justify-between">
+                  <dt class="font-medium">Risco</dt>
+                  <dd class="text-right">{ativo.data.risco ?? '—'}</dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">Liquidez</dt>
+                  <dd class="text-right">{ativo.data.liquidez ?? '—'}</dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">Horizonte</dt>
+                  <dd class="text-right">{ativo.data.prazo ?? '—'}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <!-- Destaque no hover -->
+            <span class="pointer-events-none absolute inset-0 rounded-2xl bg-primary/10 opacity-0 group-hover:opacity-20 transition-opacity"></span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </main>
+</BaseLayout>

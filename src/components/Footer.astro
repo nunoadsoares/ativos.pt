@@ -1,22 +1,70 @@
 ---
-// src/components/Footer.astro
-const currentYear = new Date().getFullYear();
+/* Ano corrente para copyright */
+const year = new Date().getFullYear();
 ---
-<footer class="bg-white dark:bg-brand-dark border-t border-gray-200 dark:border-gray-800">
-  <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 overflow-hidden">
-    <nav class="-mx-5 -my-2 flex flex-wrap justify-center" aria-label="Footer">
-      <div class="px-5 py-2">
-        <a href="/sobre" class="text-base text-gray-500 hover:text-gray-900 dark:hover:text-white">Sobre</a>
+<footer class="bg-gray-50 dark:bg-brand-dark border-t border-gray-200 dark:border-gray-700 text-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+    <!-- Navegação/colunas -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
+
+      <!-- Coluna 1 -->
+      <div>
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Ativos.pt</h2>
+        <ul class="space-y-2">
+          <li><a href="/simuladores"   class="hover:underline text-gray-600 dark:text-gray-300">Simuladores</a></li>
+          <li><a href="/guias-fiscais" class="hover:underline text-gray-600 dark:text-gray-300">Guias Fiscais</a></li>
+          <li><a href="/ativos"        class="hover:underline text-gray-600 dark:text-gray-300">Ativos</a></li>
+          <li><a href="/plataformas"   class="hover:underline text-gray-600 dark:text-gray-300">Corretoras</a></li>
+        </ul>
       </div>
-      <div class="px-5 py-2">
-        <a href="/glossario" class="text-base text-gray-500 hover:text-gray-900 dark:hover:text-white">Glossário</a>
+
+      <!-- Coluna 2 -->
+      <div>
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Institucional</h2>
+        <ul class="space-y-2">
+          <li><a href="/sobre"      class="hover:underline text-gray-600 dark:text-gray-300">Sobre</a></li>
+          <li><a href="/contacto"   class="hover:underline text-gray-600 dark:text-gray-300">Contacto</a></li>
+          <li><a href="/politica-privacidade" class="hover:underline text-gray-600 dark:text-gray-300">Privacidade</a></li>
+          <li><a href="/termos"     class="hover:underline text-gray-600 dark:text-gray-300">Termos de Utilização</a></li>
+        </ul>
       </div>
-      <div class="px-5 py-2">
-        <a href="/contacto" class="text-base text-gray-500 hover:text-gray-900 dark:hover:text-white">Contacto</a>
+
+      <!-- Coluna 3 -->
+      <div>
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Segue-nos</h2>
+        <div class="flex space-x-4">
+          <a href="https://twitter.com/ativos_pt" class="text-gray-500 hover:text-primary" aria-label="Twitter">
+            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg>
+          </a>
+          <a href="https://github.com/ativospt" class="text-gray-500 hover:text-primary" aria-label="GitHub">
+            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .5a12 12 0 00-3.79 23.4c.6.11.82-.26.82-.58v-2.03c-3.34.73-4-1.42-4-1.42a3.15 3.15 0 00-1.34-1.78c-1.1-.75.08-.74.08-.74a2.5 2.5 0 011.82 1.22 2.54 2.54 0 003.46 1 2.56 2.56 0 01.77-1.59c-2.67-.3-5.47-1.34-5.47-5.94a4.66 4.66 0 011.24-3.26 4.32 4.32 0 01.12-3.22s1-.33 3.3 1.26a11.38 11.38 0 016 0C15 5.4 16 5.7 16 5.7a4.32 4.32 0 01.12 3.22 4.64 4.64 0 011.24 3.25c0 4.61-2.8 5.63-5.48 5.93a2.85 2.85 0 01.82 2.22v3.29c0 .32.22.7.82.58A12 12 0 0012 .5z"/></svg>
+          </a>
+          <a href="/rss.xml" class="text-gray-500 hover:text-primary" aria-label="RSS">
+            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M4 11a9 9 0 019 9h3a12 12 0 00-12-12v3zm0 4a5 5 0 015 5h3a8 8 0 00-8-8v3zm0 4a1 1 0 011 1h3a4 4 0 00-4-4v3z"/></svg>
+          </a>
+        </div>
       </div>
-    </nav>
-    <p class="mt-8 text-center text-base text-gray-400 dark:text-gray-500">
-      &copy; {currentYear} Ativos.pt. Todos os direitos reservados.
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="mt-10 text-gray-500 dark:text-gray-400 text-xs leading-relaxed">
+      <p>
+        <strong>Aviso:</strong> O conteúdo disponibilizado no Ativos.pt tem
+        caráter meramente informativo e educacional. Não constitui
+        recomendação de investimento nem dispensa a consulta de profissionais
+        qualificados. O utilizador é o único responsável pelas decisões que
+        tomar com base na informação aqui apresentada.
+      </p>
+      <p class="mt-2">
+        Alguns links podem ser afiliados. Ao utilizá-los ajuda a manter o
+        projeto sem custos adicionais para si.
+      </p>
+    </div>
+
+    <!-- Copyright -->
+    <p class="mt-8 text-center text-gray-400 dark:text-gray-500">
+      &copy; {year} Ativos.pt · Todos os direitos reservados
     </p>
   </div>
 </footer>

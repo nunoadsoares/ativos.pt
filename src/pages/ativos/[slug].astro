@@ -3,6 +3,7 @@ import { getCollection, getEntry, type CollectionEntry } from 'astro:content';
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import AtivoInfoGrid from '~/components/AtivoInfoGrid.astro';
 import JsonLD from '~/components/JsonLD.astro';
+import CtaSimulador from '~/components/CtaSimulador.astro';
 
 export async function getStaticPaths() {
   const allEntries = await getCollection('ativos');
@@ -13,62 +14,61 @@ const { slug } = Astro.params;
 const entry = await getEntry('ativos', slug!);
 
 if (!entry) {
-    return new Response(null, { status: 404 });
+  return new Response(null, { status: 404 });
 }
 
 const { Content } = await entry.render();
 
 const infoItems = [
-    { label: "Nível de Risco", value: entry.data.risco ?? '—' },
-    { label: "Liquidez", value: entry.data.liquidez ?? '—' },
-    { label: "Horizonte Temporal", value: entry.data.prazo ?? '—' },
+  { label: "Nível de Risco", value: entry.data.risco ?? '—' },
+  { label: "Liquidez", value: entry.data.liquidez ?? '—' },
+  { label: "Horizonte Temporal", value: entry.data.prazo ?? '—' },
 ];
 
 const taxItems = [
-    { label: "Taxa Standard", value: entry.data.tributacao?.taxa ?? '—' },
-    { label: "Anexo IRS", value: entry.data.tributacao?.anexo_irs ?? '—' },
-    { label: "Englobamento", value: entry.data.tributacao?.englobamento ? 'Opcional' : 'Não aplicável' },
+  { label: "Taxa Standard", value: entry.data.tributacao?.taxa ?? '—' },
+  { label: "Anexo IRS", value: entry.data.tributacao?.anexo_irs ?? '—' },
+  { label: "Englobamento", value: entry.data.tributacao?.englobamento ? 'Opcional' : 'Não aplicável' },
 ];
+
+// CORREÇÃO: Lógica mais flexível para mostrar o CTA.
+// Agora verifica se o texto do anexo_irs *inclui* "Anexo G" ou "Anexo J".
+const anexo = entry.data.tributacao?.anexo_irs ?? '';
+const mostrarCta = anexo.includes('Anexo G') || anexo.includes('Anexo J');
 ---
 <BaseLayout title={entry.data.title} description={entry.data.description}>
-    <Fragment slot="head">
-        <JsonLD entry={entry} />
-    </Fragment>
+  <Fragment slot="head">
+    <JsonLD entry={entry} />
+  </Fragment>
 
-    <article class="max-w-4xl mx-auto py-8 sm:py-16 px-4">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tighter">
-                {entry.data.title}
-            </h1>
-            {entry.data.subtitle && (
-                <p class="mt-4 text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                    {entry.data.subtitle}
-                </p>
-            )}
-        </header>
+  <article class="max-w-4xl mx-auto py-8 sm:py-16 px-4">
+    <header class="text-center mb-8">
+      <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tighter">
+        {entry.data.title}
+      </h1>
+      {entry.data.subtitle && (
+        <p class="mt-4 text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          {entry.data.subtitle}
+        </p>
+      )}
+    </header>
 
-        <AtivoInfoGrid items={infoItems} />
-        
-        <div class="prose prose-lg dark:prose-invert mx-auto mt-12">
-            <Content />
-        </div>
+    <AtivoInfoGrid items={infoItems} />
+    
+    <div class="prose prose-lg dark:prose-invert mx-auto mt-12">
+      <Content />
+    </div>
 
-        {entry.data.tributacao && (
-            <section class="mt-16">
-                <h2 class="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">Como Declarar: Tributação</h2>
-                <AtivoInfoGrid items={taxItems} />
-            </section>
-        )}
+    {entry.data.tributacao && (
+      <section class="mt-16">
+        <h2 class="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">Como Declarar: Tributação</h2>
+        <AtivoInfoGrid items={taxItems} />
+      </section>
+    )}
 
-        <section class="mt-16 text-center bg-gray-100 dark:bg-gray-800/50 p-8 rounded-xl border border-gray-200 dark:border-gray-700">
-            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Simulador Relacionado</h3>
-            <p class="mt-2 text-gray-600 dark:text-gray-400">Em breve: um simulador de mais-valias específico para {entry.data.title}.</p>
-        </section>
-
-        <section class="mt-16 text-center">
-            <a href="/simuladores/mais-valias" class="inline-block bg-primary text-white font-bold py-3 px-8 rounded-full text-lg hover:opacity-90 transition-opacity">
-                Ver Simulador Geral de Mais-Valias
-            </a>
-        </section>
-    </article>
+    {/* CTA para o simulador de englobamento, se for aplicável */}
+    {mostrarCta && (
+      <CtaSimulador />
+    )}
+  </article>
 </BaseLayout>

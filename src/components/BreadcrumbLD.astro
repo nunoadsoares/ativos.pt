@@ -1,0 +1,19 @@
+---
+/* Espera prop `breadcrumbs` [{ name, url }, …] */
+const { breadcrumbs = [] } = Astro.props;
+---
+
+{breadcrumbs.length > 0 && (
+  <script type="application/ld+json" is:inline>
+    {JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: breadcrumbs.map((b, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: b.name,
+        item: b.url
+      }))
+    })}
+  </script>
+)}

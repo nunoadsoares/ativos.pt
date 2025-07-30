@@ -1,0 +1,36 @@
+---
+// src/components/CtaSimulador.astro
+---
+<aside class="not-prose mt-16">
+  <div class="bg-gray-100 dark:bg-gray-800/50 rounded-2xl p-8 border dark:border-gray-700">
+    <div class="md:flex md:items-center md:gap-8">
+      
+      {/* Ícone (só aparece em ecrãs médios ou maiores) */}
+      <div class="hidden md:block flex-shrink-0">
+        <div class="bg-primary/10 text-primary rounded-full h-20 w-20 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+        </div>
+      </div>
+      
+      {/* Texto descritivo */}
+      <div class="flex-grow text-center md:text-left">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+          Englobar ou não? Teste o seu caso.
+        </h2>
+        <p class="mt-2 text-gray-600 dark:text-gray-300">
+          Não tem a certeza se a taxa de 28% é a melhor opção? Use a nossa calculadora para simular o imposto e descubra quanto pode poupar.
+        </p>
+      </div>
+
+      {/* Botão de Ação */}
+      <div class="mt-6 md:mt-0 flex-shrink-0 text-center">
+        <a href="/simuladores/englobamento-mais-valias" class="inline-block w-full sm:w-auto bg-primary text-white font-bold py-3 px-8 rounded-full text-lg hover:opacity-90 transition-all duration-300 transform hover:scale-105">
+          Usar Simulador
+        </a>
+      </div>
+
+    </div>
+  </div>
+</aside>

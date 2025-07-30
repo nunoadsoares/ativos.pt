@@ -1,0 +1,63 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+
+const simuladores = [
+  { slug: 'salario-liquido',  titulo: 'Salário Líquido 2025',          desc: 'Calcula retenção, SS e deduções mensais.',                       emoji: '💶' },
+  { slug: 'englobamento-mais-valias',     titulo: 'Simulador de Englobamento',     desc: 'Compara taxa liberatória e englobar no IRS.',                    emoji: '🧾' },
+  { slug: 'comparador-custos',titulo: 'Comparador de Custos',          desc: 'Comissões, câmbios e custódias anuais de corretoras.',           emoji: '💸' },
+  { slug: 'mais-valias',      titulo: 'Mais-Valias de Ações & ETFs',   desc: 'Apura imposto, regra FIFO e correção monetária.',                emoji: '📈' },
+  { slug: 'yield-arrendamento',titulo:'Yield de Arrendamento',         desc: 'Yield bruta vs líquida, IR e IMI.',                              emoji: '🏠' },
+];
+
+const itemListSchema = {
+  "@context":"https://schema.org",
+  "@type":"ItemList",
+  "name":"Simuladores Financeiros e Fiscais",
+  "itemListElement": simuladores.map((s,i)=>({
+    "@type":"ListItem",
+    "position":i+1,
+    "item":{
+      "@type":"SoftwareApplication",
+      "name":s.titulo,
+      "url":new URL(`/simuladores/${s.slug}/`,Astro.site).href,
+      "applicationCategory":"FinancesApplication",
+      "operatingSystem":"Web"
+    }
+  }))
+};
+---
+
+<BaseLayout
+  title="Simuladores | Ferramentas Financeiras e Fiscais • Ativos.pt"
+  description="Salário líquido, englobamento, comparador de corretoras, yield de arrendamento e muito mais – todas as calculadoras num só lugar."
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(itemListSchema)} />
+  </Fragment>
+
+  <main class="bg-gray-50 dark:bg-brand-dark py-16">
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-12">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white">
+        Simuladores & Calculadoras
+      </h1>
+      <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
+        Otimiza decisões financeiras com ferramentas feitas para o contexto português.
+      </p>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {simuladores.map(s => (
+          <a href={`/simuladores/${s.slug}`} class="group bg-white dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-md hover:shadow-xl transition">
+            <div class="text-4xl mb-4">{s.emoji}</div>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+              {s.titulo}
+            </h2>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{s.desc}</p>
+            <span class="inline-block mt-4 text-primary text-sm font-semibold">Abrir →</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </main>
+</BaseLayout>

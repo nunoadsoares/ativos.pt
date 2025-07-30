@@ -1,0 +1,57 @@
+---
+import { getCollection, getEntry, type CollectionEntry } from 'astro:content';
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { AstroError } from 'astro/errors';
+import JsonLD from '~/components/JsonLD.astro';
+import CtaSimulador from '~/components/CtaSimulador.astro';
+
+type GuiaEntry = CollectionEntry<'fiscais'>;
+
+export async function getStaticPaths() {
+  const allEntries: GuiaEntry[] = await getCollection('fiscais');
+  return allEntries.map((entry) => ({ params: { slug: entry.slug } }));
+}
+
+const { slug } = Astro.params;
+if (slug === undefined) {
+  throw new AstroError('Slug não encontrado');
+}
+
+const entry: GuiaEntry | undefined = await getEntry('fiscais', slug);
+
+if (!entry) {
+  throw new AstroError('Not Found', `Guia não encontrado para o slug: ${slug}`);
+}
+
+const { Content } = await entry.render();
+const { data } = entry;
+---
+<BaseLayout title={data.title} description={data.description}>
+  
+  <Fragment slot="head">
+    <JsonLD entry={entry} />
+  </Fragment>
+
+  <main class="py-12 md:py-20">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-8">
+        <p class="text-base font-semibold text-primary uppercase tracking-wide">{data.category}</p>
+        <h1 class="mt-2 text-3xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">{data.title}</h1>
+        <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+          Última atualização: <time datetime={data.updatedDate.toISOString()}>
+            {new Date(data.updatedDate).toLocaleDateString('pt-PT', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </time>
+        </p>
+      </div>
+
+      <article class="prose prose-lg dark:prose-invert mx-auto">
+        <Content />
+      </article>
+
+      {/* CORREÇÃO: Adicionada a categoria "IRS" à lista para mostrar o CTA */}
+      {['Mais-Valias', 'Dividendos', 'Criptoativos', 'IRS'].includes(data.category) && (
+        <CtaSimulador />
+      )}
+    </div>
+  </main>
+</BaseLayout>

@@ -3,7 +3,7 @@ import type { CollectionEntry } from 'astro:content';
 import logoImage from '~/assets/logo.png';
 
 interface Props {
-    entry: CollectionEntry<'ativos'> | CollectionEntry<'plataformas'>;
+  entry: CollectionEntry<'ativos'> | CollectionEntry<'plataformas'> | CollectionEntry<'fiscais'>;
 }
 const { entry } = Astro.props;
 const { data } = entry;
@@ -18,16 +18,14 @@ const schema = {
   "author": {
     "@type": "Organization",
     "name": "Ativos.pt",
-    // CORREÇÃO: Adicionado '!' para indicar ao TypeScript que Astro.site existe
-    "url": Astro.site!.href 
+    "url": Astro.site!.href
   },
   "publisher": {
     "@type": "Organization",
     "name": "Ativos.pt",
     "logo": {
       "@type": "ImageObject",
-      // CORREÇÃO: Adicionado '!' para indicar ao TypeScript que Astro.site existe
-      "url": new URL(logoImage.src, Astro.site!).href 
+      "url": new URL(logoImage.src, Astro.site!).href
     }
   },
 };

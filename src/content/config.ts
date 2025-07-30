@@ -1,6 +1,6 @@
 import { defineCollection, z } from 'astro:content';
 
-// Schema para a coleção 'ativos'
+// Schema para a coleção 'ativos' (sem alterações)
 const ativos = defineCollection({
   type: 'content',
   schema: z.object({
@@ -18,12 +18,11 @@ const ativos = defineCollection({
   }),
 });
 
-// Schema para a coleção 'plataformas'
+// Schema para a coleção 'plataformas' (sem alterações)
 const plataformas = defineCollection({
     type: 'content',
     schema: z.object({
         nome: z.string(),
-        // Adicionamos o campo 'description' que faltava
         description: z.string(), 
         logo: z.string(),
         url_afiliado: z.string().url(),
@@ -47,8 +46,20 @@ const plataformas = defineCollection({
     }),
 });
 
-// Exportamos as duas coleções
+// NOVO: Schema para a coleção 'fiscais'
+const fiscais = defineCollection({
+  type: 'content',
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    category: z.string(), // Ex: "IRS", "Mais-Valias", "Dividendos"
+    updatedDate: z.date(),
+  }),
+});
+
+// Exportamos as três coleções
 export const collections = {
   ativos,
   plataformas,
+  fiscais, // <-- ADICIONADO
 };
