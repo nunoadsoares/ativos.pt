@@ -1,24 +1,24 @@
 ########################################
 # 1. BUILD & CACHE
 ########################################
-dist/                  # saída de build do Astro
-.astro/                # tipos gerados
-.vite/                 # cache local do Vite
-.cache/                # cache de ferramentas (esbuild, etc.)
-.turbo/                # Turborepo (se algum dia usares)
+dist/
+.astro/
+.vite/
+.cache/
+.turbo/
 
 ########################################
 # 2. DEPENDÊNCIAS
 ########################################
-node_modules/          # npm / pnpm / yarn
+node_modules/
 
 ########################################
 # 3. PYTHON VIRTUALENVS
 ########################################
 venv/
-scraper/venv/          # virtualenv que ficou no repo
-__pycache__/           # cache Python
-*.py[cod]              # byte-code Python
+scraper/venv/
+__pycache__/
+*.py[cod]
 
 ########################################
 # 4. LOGS
@@ -32,30 +32,30 @@ pnpm-debug.log*
 ########################################
 # 5. VARIÁVEIS DE AMBIENTE
 ########################################
-.env*                  # .env, .env.local, .env.production, etc.
-!.env.example          # mantém o ficheiro-exemplo, se existir
+.env*
+!.env.example
 
 ########################################
 # 6. SISTEMA & IDEs
 ########################################
-.DS_Store              # macOS
-.idea/                 # JetBrains IDEs
-.vscode/               # settings locais do VS Code
+.DS_Store
+.idea/
+.vscode/
 
 ########################################
 # 7. DOCKER ARTIFACTS
 ########################################
 docker-compose.override.yml
-**/Dockerfile-local*   # Dockerfiles só de desenvolvimento
-.tmp_docker/           # volumes temporários
+**/Dockerfile-local*
+.tmp_docker/
 
 ########################################
 # 8. TESTES & COBERTURA
 ########################################
-coverage/              # relatórios de cobertura
+coverage/
 *.lcov
 
 ########################################
 # 9. OUTROS BINÁRIOS / ARTEFACTOS
 ########################################
-*.sqlite               # BD local de testes
+*.sqlite
