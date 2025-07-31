@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Clona o repositório autenticado com o PAT
+      # 1. Clona o repositório com autenticação via GH_PAT
       - name: Check out repository
         uses: actions/checkout@v4
         with:
@@ -37,6 +37,5 @@ jobs:
           git config --global user.name "Ativos.pt Data Bot"
           git config --global user.email "bot@users.noreply.github.com"
           git add -A
-          # só commita se houver algo a mudar
           git diff --staged --quiet || git commit -m "Data: Atualização automática dos indicadores"
           git push origin HEAD:master
