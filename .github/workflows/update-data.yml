@@ -10,13 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout com o PAT
+      # 1. Checkout do repositório
+      # Importante: 'persist-credentials: false' impede que o actions/checkout configure o credential helper padrão
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_PAT }}
+          persist-credentials: false # <--- Esta é a linha chave adicionada
 
-      # 2. Debug: variáveis de ambiente
+      # 2. Debug: variáveis de ambiente (manter para verificação)
       - name: Mostrar variáveis de ambiente relevantes
         run: |
           echo "📁 Diretório atual: $(pwd)"
@@ -56,10 +58,14 @@ jobs:
           git config --global user.name "Ativos.pt Data Bot"
           git config --global user.email "bot@users.noreply.github.com"
 
-          echo "🔁 Reconfigurar remote origin com GH_PAT"
-          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}
+          # Reconfigurar o remote origin com o PAT ANTES do push.
+          # Isso é crucial para garantir que o PAT seja usado para autenticação.
+          # O formato 'https://x-access-token:${GH_PAT}@github.com/...' incorpora o token diretamente no URL.
+          echo "🔁 Reconfigurar remote origin com GH_PAT para o push"
+          git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}"
 
           git add -A
+          # Apenas faz commit se houver alterações
           git diff --staged --quiet || git commit -m "Data: Atualização automática dos indicadores"
 
           echo "🚀 Push para origin HEAD:master com autenticação via PAT"
