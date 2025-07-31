@@ -18,6 +18,7 @@ jobs:
 
       # 2. Debug: variáveis de ambiente
       - name: Show relevant environment variables
+        shell: bash # <-- CORREÇÃO ADICIONADA AQUI
         run: |
           echo "📁 Current directory: $(pwd)"
           echo "🔀 Current branch: $(git branch --show-current)"
@@ -40,8 +41,9 @@ jobs:
       - name: Run Data Worker
         run: python ./packages/data-worker/update_all.py
 
-      # 6. Commit e push (VERSÃO COM DEPURAÇÃO FINAL)
+      # 6. Commit e push
       - name: Commit and push if data changed
+        shell: bash # <-- CORREÇÃO ADICIONADA AQUI
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
