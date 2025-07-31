@@ -1,37 +1,34 @@
 # --- ESTÁGIO 1: O Construtor (Builder) ---
-# Usamos uma imagem oficial do Node.js para construir o nosso site
 FROM node:18-alpine AS builder
-
-# Definimos o diretório de trabalho dentro do contentor
 WORKDIR /app
 
-# Copiamos os ficheiros de dependências e instalamos (ignorando conflitos de peer-deps)
+# 1) Instalamos as dependências de compilação para node-gyp
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    pkgconfig
+
+# 2) Copiamos ficheiros de dependências e instalamos (legacy-peer-deps evita conflitos)
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
-# Copiamos o resto do código do nosso site
+# 3) Copiamos todo o código e geramos a build estática
 COPY . .
-
-# Executamos o comando de build do Astro para gerar os ficheiros estáticos
-# O resultado será colocado na pasta /app/dist/
 RUN npm run build
 
 # --- ESTÁGIO 2: O Servidor Final (Nginx) ---
-# Começamos com uma imagem oficial e leve do Nginx
 FROM nginx:1.25-alpine
 
-# Removemos a configuração padrão do Nginx
+# Removemos a configuração default e copiamos a nossa
 RUN rm /etc/nginx/conf.d/default.conf
-
-# Copiamos a nossa configuração personalizada (do Passo 1) para o sítio certo
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
-# Copiamos os ficheiros estáticos (a pasta 'dist') gerados no builder
-# para a pasta que o Nginx serve ao público
+# Copiamos a saída do builder para o diretório servido pelo Nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expor a porta 80 para o exterior
+# Porta exposta
 EXPOSE 80
 
-# O comando que o Nginx executa quando o contentor arranca
+# Inicia o Nginx
 CMD ["nginx", "-g", "daemon off;"]
