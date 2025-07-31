@@ -10,33 +10,53 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Usa actions/checkout com o PAT
+      # 1. Checkout com o PAT
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_PAT }}
 
-      # 2. Debug: verifica se o token está acessível
-      - name: Verificar se GH_PAT está presente
-        run: echo "${{ secrets.GH_PAT != '' && '✅ GH_PAT is set' || '❌ GH_PAT is empty or not found' }}"
+      # 2. Debug: variáveis de ambiente
+      - name: Mostrar variáveis de ambiente relevantes
+        run: |
+          echo "PWD: $(pwd)"
+          echo "Branch atual: $(git branch --show-current)"
+          echo "Origem remota: $(git remote get-url origin)"
+          echo "GH_PAT length: ${#GH_PAT:-0}"
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
 
-      # 3. Prepara o Python
+      # 3. Preparar Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 4. Instala dependências do data-worker
+      # 4. Instalar dependências
       - name: Install dependencies
         run: pip install -r ./packages/data-worker/requirements.txt
 
-      # 5. Executa TODOS os extractores
+      # 5. Executar extractores
       - name: Run Data Worker
         run: python ./packages/data-worker/update_all.py
 
-      # 6. Faz commit/push se houve alterações
-      - name: Commit and push if data changed
+      # 6. Debug antes do commit/push
+      - name: Estado antes do commit
         run: |
+          echo "Ficheiros modificados:"
+          git status --short
+          echo "Remotes:"
+          git remote -v
+
+      # 7. Commit e push com debug extra
+      - name: Commit and push if data changed (debug)
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git config --global user.name "Ativos.pt Data Bot"
+          git config --global user.email "bot@users.noreply.github.com"
           git add -A
           git diff --staged --quiet || git commit -m "Data: Atualização automática dos indicadores"
-          git push
+          echo "A tentar fazer push com URL:"
+          echo "  https://x-access-token:${GH_PAT}@github.com/nunoadsoares/ativos.pt.git"
+          git push https://x-access-token:${GH_PAT}@github.com/nunoadsoares/ativos.pt.git HEAD
