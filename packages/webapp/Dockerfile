@@ -1,34 +1,37 @@
 # --- ESTÁGIO 1: O Construtor (Builder) ---
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
+
 WORKDIR /app
 
-# 1) Instalamos as dependências de compilação para node-gyp
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    pkgconfig
+# Instalar ferramentas de compilação necessárias para dependências nativas (caso sejam necessárias)
+RUN apk add --no-cache python3 make g++
 
-# 2) Copiamos ficheiros de dependências e instalamos (legacy-peer-deps evita conflitos)
+# Copiar apenas as dependências para permitir cache do Docker em builds futuros
 COPY package*.json ./
+
+# Instalação rápida (usa binários pre-build, mais rápido em Node 20)
 RUN npm install --legacy-peer-deps
 
-# 3) Copiamos todo o código e geramos a build estática
+# Copia o resto do código da aplicação
 COPY . .
+
+# Build do site estático
 RUN npm run build
 
 # --- ESTÁGIO 2: O Servidor Final (Nginx) ---
 FROM nginx:1.25-alpine
 
-# Removemos a configuração default e copiamos a nossa
+# Remover a configuração default do nginx
 RUN rm /etc/nginx/conf.d/default.conf
+
+# Copiar configuração personalizada
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
-# Copiamos a saída do builder para o diretório servido pelo Nginx
+# Copiar ficheiros estáticos gerados no builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Porta exposta
+# Expor a porta 80
 EXPOSE 80
 
-# Inicia o Nginx
+# Comando de arranque
 CMD ["nginx", "-g", "daemon off;"]
