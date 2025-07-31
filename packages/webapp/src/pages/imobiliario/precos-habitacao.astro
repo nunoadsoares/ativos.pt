@@ -1,0 +1,82 @@
+---
+// packages/webapp/src/pages/imobiliario/precos-habitacao.astro
+import sqlite from 'better-sqlite3';
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import HousingPriceChart from '~/components/HousingPriceChart.tsx';
+
+const db = sqlite('public/datahub.db');
+const kpiRow = db.prepare("SELECT * FROM key_indicators WHERE indicator_key = 'precos_habitacao_var'").get();
+const kpi = {
+    value: kpiRow?.value ?? 0,
+    date: kpiRow ? new Date(kpiRow.reference_date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' }) : ''
+};
+
+const title = "Observatório do Preço da Habitação em Portugal";
+const description = `Análise da evolução dos preços da habitação em Portugal. A variação homóloga mais recente foi de ${kpi.value}% em ${kpi.date}. Veja o índice de preços histórico.`;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+
+const faqSchema = {
+    "@context":"https://schema.org","@type":"FAQPage",
+    "mainEntity":[
+        { "@type":"Question", "name":"O que mede o Índice de Preços da Habitação?", "acceptedAnswer":{"@type":"Answer", "text":"O Índice de Preços da Habitação (IPHab) mede a evolução dos preços de transação de todos os imóveis residenciais (novos e existentes) transacionados em Portugal." }},
+        { "@type":"Question", "name":"O que significa a 'variação homóloga'?", "acceptedAnswer":{"@type":"Answer", "text":"A variação homóloga compara o nível de preços de um período (neste caso, um trimestre) com o mesmo período do ano anterior, indicando a taxa de crescimento anual."}}
+    ]
+};
+---
+<BaseLayout {title} {description} {canonical}>
+    <Fragment slot="head">
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+    </Fragment>
+
+    <article class="max-w-5xl mx-auto py-12 px-4 space-y-12">
+        <header class="text-center">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white">
+                Observatório do Preço da Habitação
+            </h1>
+            <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                A evolução do mercado imobiliário residencial em Portugal, com dados oficiais.
+            </p>
+        </header>
+
+        <section class="text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-inner">
+            <h2 class="text-sm font-bold uppercase text-gray-500 tracking-widest">Variação Homóloga (YoY)</h2>
+            <div class="flex justify-center items-center gap-4 mt-2">
+                <p class="text-7xl font-extrabold" class:list={[ kpi.value > 0 ? 'text-red-500' : 'text-green-500' ]}>
+                    {kpi.value > 0 ? '+' : ''}{kpi.value}%
+                </p>
+            </div>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">
+                Última atualização: {kpi.date}
+            </p>
+        </section>
+
+        <section class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-brand-dark shadow-md">
+            <h3 class="font-bold text-lg mb-4 text-center">Evolução Histórica do Índice de Preços (Base 100 = 2015)</h3>
+            <HousingPriceChart client:only="react" />
+            <div class="mt-2 text-xs text-gray-400 italic text-center">
+                Fonte: Banco de Portugal / INE, via <a href="https://bpstat.bportugal.pt/" target="_blank" rel="noopener" class="underline hover:text-primary">BPstat</a>
+            </div>
+        </section>
+
+        {/* --- SECÇÃO EXPLICATIVA ATUALIZADA --- */}
+        <section class="pt-8 border-t dark:border-gray-700">
+            <h2 class="text-3xl font-bold text-center mb-8">Como Interpretar Estes Dados</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                {/* Caixa de explicação para o Índice */}
+                <div class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-md prose dark:prose-invert max-w-none">
+                    <h3 class="text-xl font-semibold mt-0">O Índice de Preços (IPHab)</h3>
+                    <p>O gráfico principal mostra o <strong>Índice de Preços da Habitação (IPHab)</strong>. Este índice não representa o preço médio de uma casa em euros, mas sim a sua evolução em relação a um ano base (neste caso, 2015 = 100). Um valor de <strong>150</strong>, por exemplo, significa que os preços estão <strong>50% mais altos</strong> do que estavam em 2015.</p>
+                </div>
+
+                {/* Caixa de explicação para a Variação */}
+                 <div class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-md prose dark:prose-invert max-w-none">
+                    <h3 class="text-xl font-semibold mt-0">A Variação Homóloga (YoY)</h3>
+                    <p>O grande indicador no topo da página mostra a <strong>variação homóloga</strong>. Esta é a métrica mais comum para medir a "febre" do mercado. Ela compara o nível de preços de um trimestre com o <strong>mesmo trimestre do ano anterior</strong>. Um valor de <strong>+10%</strong> indica que as casas, em média, ficaram 10% mais caras no espaço de um ano.</p>
+                </div>
+
+            </div>
+        </section>
+
+    </article>
+</BaseLayout>

@@ -1,12 +1,9 @@
 ---
-// src/layouts/BaseLayout.astro
-
 import Navbar         from '~/components/Navbar.astro';
 import Footer         from '~/components/Footer.astro';
 import BreadcrumbLD   from '~/components/BreadcrumbLD.astro';
 import CriticalStyles from '~/components/CriticalStyles.astro';
 
-/* ── Props ─────────────────────────────────── */
 export interface Props {
   title:        string;
   description:  string;
@@ -17,7 +14,6 @@ export interface Props {
 const { title, description, canonical, breadcrumbs } = Astro.props;
 const canonicalURL = canonical ?? new URL(Astro.url.pathname, Astro.site!).href;
 
-/* ── Breadcrumb helper ─────────────────────── */
 function gerarCrumbsFromUrl(path: string) {
   const parts  = path.split('/').filter(Boolean);
   const labels: Record<string, string> = {

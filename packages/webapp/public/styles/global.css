@@ -1,15 +1,13 @@
-/* 1. Fonte local Inter (apenas latin e pesos 400-700) */
+/* 1. Fonte local Inter Variable */
 @import "@fontsource-variable/inter/wght.css";
 
-/* Exemplo de fallback global */
-html {
-  font-family: "InterVariable", system-ui, sans-serif;
-}
-
-/* 2. Tailwind base + componentes */
+/* 2. Tailwind base, components e utilities */
 @tailwind base;
 
 @layer base {
+  html {
+    font-family: "InterVariable", system-ui, sans-serif;
+  }
   input, select, textarea {
     @apply bg-white text-gray-900 border border-gray-300 rounded px-4 py-2 w-full;
   }

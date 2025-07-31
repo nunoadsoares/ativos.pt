@@ -1,6 +1,7 @@
 ---
-import BaseLayout from '~/layouts/BaseLayout.astro';
+// Importações de módulos
 import { getCollection, type CollectionEntry } from 'astro:content';
+import BaseLayout from '~/layouts/BaseLayout.astro';
 import IconSwitcher from '~/components/IconSwitcher.astro';
 
 type AtivoEntry = CollectionEntry<'ativos'>;
@@ -14,7 +15,7 @@ const ativos: AtivoEntry[] = (await getCollection('ativos')).sort((a, b) =>
 const itemListSchema = {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  name: "Tipos de Ativos",
+  name: "Tipos de Ativos de Investimento",
   itemListElement: ativos.map((a, i) => ({
     "@type": "ListItem",
     position: i + 1,
@@ -29,72 +30,100 @@ const itemListSchema = {
 ---
 
 <BaseLayout
-  title="Hub de Ativos | Risco, Liquidez e Tributação"
-  description="Compare risco, liquidez e enquadramento fiscal dos principais ativos disponíveis aos investidores portugueses."
+  title="Hub de Ativos de Investimento | Guia Completo e Comparação"
+  description="Guia completo para ativos de investimento. Compare risco, liquidez e enquadramento fiscal de ações, ETFs, PPRs, criptomoedas e mais."
 >
   <Fragment slot="head">
     <script type="application/ld+json" is:inline>
       {JSON.stringify(itemListSchema)}
     </script>
+    <style is:inline>
+      /* Estilo Glassmorphism para os cards */
+      .glass-card {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .dark .glass-card {
+        background: rgba(31, 41, 55, 0.2);
+        border: 1px solid rgba(55, 65, 81, 0.3);
+      }
+
+      /* Animação de fundo subtil */
+      @keyframes pulse-bg {
+        0%, 100% { background-color: rgba(236, 116, 44, 0.05); }
+        50% { background-color: rgba(236, 116, 44, 0.15); }
+      }
+    </style>
   </Fragment>
 
-  <main class="bg-gray-50 dark:bg-gray-900 py-16">
+  <main class="bg-gray-100 dark:bg-gray-900 py-16 min-h-screen">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-      <!-- Cabeçalho -->
       <header class="text-center mb-16">
         <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-          Hub de Ativos
+          Guia de Ativos de Investimento
         </h1>
         <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-600 dark:text-gray-300">
-          Navegue pelas principais classes de ativos e veja rapidamente risco, liquidez e enquadramento fiscal.
+          Navegue pelas principais classes de <strong>ativos de investimento</strong> e compare o seu risco, liquidez e enquadramento fiscal.
         </p>
       </header>
 
-      <!-- Grelha de cartões -->
-      <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr">
+      <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr">
         {ativos.map((ativo) => (
           <a
             href={`/ativos/${ativo.slug}/`}
-            class="group relative flex flex-col h-full rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 bg-white dark:bg-gray-800 transition-transform duration-300 hover:-translate-y-1"
+            class="group relative flex flex-col h-full p-6 rounded-2xl glass-card transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:ring-2 hover:ring-primary/50"
           >
-            <!-- Ícone -->
-            <div class="flex items-center justify-center h-24 bg-primary/10 dark:bg-primary/20">
-              <IconSwitcher title={ativo.data.title} />
-            </div>
-
-            <!-- Conteúdo -->
-            <div class="flex flex-col flex-1 p-6">
-              <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-1 text-center">
+            <div class="flex items-center space-x-4 mb-4">
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center p-2 text-primary dark:text-secondary dark:bg-primary/30">
+                 <IconSwitcher title={ativo.data.title} class="w-full h-full"/>
+              </div>
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300 group-hover:text-primary">
                 {ativo.data.title}
               </h2>
-              {ativo.data.subtitle && (
-                <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-4 flex-grow">
-                  {ativo.data.subtitle}
-                </p>
-              )}
-
-              <dl class="mt-auto space-y-1 text-sm text-gray-700 dark:text-gray-300">
-                <div class="flex justify-between">
-                  <dt class="font-medium">Risco</dt>
-                  <dd class="text-right">{ativo.data.risco ?? '—'}</dd>
-                </div>
-                <div class="flex justify-between">
-                  <dt class="font-medium">Liquidez</dt>
-                  <dd class="text-right">{ativo.data.liquidez ?? '—'}</dd>
-                </div>
-                <div class="flex justify-between">
-                  <dt class="font-medium">Horizonte</dt>
-                  <dd class="text-right">{ativo.data.prazo ?? '—'}</dd>
-                </div>
-              </dl>
             </div>
+            
+            {ativo.data.subtitle && (
+              <p class="text-sm text-gray-700 dark:text-gray-300 mb-6 flex-grow">
+                {ativo.data.subtitle}
+              </p>
+            )}
 
-            <!-- Destaque no hover -->
-            <span class="pointer-events-none absolute inset-0 rounded-2xl bg-primary/10 opacity-0 group-hover:opacity-20 transition-opacity"></span>
+            <dl class="mt-auto space-y-2 text-sm text-gray-700 dark:text-gray-300 border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div class="flex justify-between">
+                <dt class="font-medium">Risco</dt>
+                <dd class="text-right font-semibold">{ativo.data.risco ?? '—'}</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="font-medium">Liquidez</dt>
+                <dd class="text-right font-semibold">{ativo.data.liquidez ?? '—'}</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="font-medium">Horizonte</dt>
+                <dd class="text-right font-semibold">{ativo.data.prazo ?? '—'}</dd>
+              </div>
+            </dl>
+            
+            <span class="absolute inset-0 rounded-2xl ring-2 ring-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
           </a>
         ))}
       </div>
+      
+      <div class="mt-16 flex justify-center">
+        <a 
+          href="/imobiliario/" 
+          class="bg-primary hover:bg-secondary text-white font-bold py-4 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 flex items-center space-x-2">
+          <span>Ver o Hub Imobiliário</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            <path fill-rule="evenodd" d="M4.293 15.707a1 1 0 010-1.414L8.586 10 4.293 5.707a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+          </svg>
+        </a>
+      </div>
+
     </div>
   </main>
 </BaseLayout>

@@ -44,26 +44,67 @@ const brokersSSR = Object.values(costsSSR as any).map((b: any) => ({
       <form id="sim-form" class="grid md:grid-cols-2 gap-6">
         <div>
           <label class="block text-sm mb-1" for="ordersEU">Ordens/mês (UE)</label>
-          <input id="ordersEU" name="ordersEU" type="number" value="2" min="0" class="w-full rounded-lg border px-3 py-2" />
+          <input
+            id="ordersEU"
+            name="ordersEU"
+            type="number"
+            value="2"
+            min="0"
+            class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2"
+          />
         </div>
         <div>
           <label class="block text-sm mb-1" for="ticketEU">Ticket médio (€)</label>
-          <input id="ticketEU" name="ticketEU" type="number" value="1000" min="0" class="w-full rounded-lg border px-3 py-2" />
+          <input
+            id="ticketEU"
+            name="ticketEU"
+            type="number"
+            value="1000"
+            min="0"
+            class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2"
+          />
         </div>
         <div>
           <label class="block text-sm mb-1" for="ordersUS">Ordens/mês (EUA)</label>
-          <input id="ordersUS" name="ordersUS" type="number" value="2" min="0" class="w-full rounded-lg border px-3 py-2" />
+          <input
+            id="ordersUS"
+            name="ordersUS"
+            type="number"
+            value="2"
+            min="0"
+            class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2"
+          />
         </div>
         <div>
           <label class="block text-sm mb-1" for="ticketUS">Ticket médio ($)</label>
-          <input id="ticketUS" name="ticketUS" type="number" value="1000" min="0" class="w-full rounded-lg border px-3 py-2" />
+          <input
+            id="ticketUS"
+            name="ticketUS"
+            type="number"
+            value="1000"
+            min="0"
+            class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2"
+          />
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm mb-1" for="carteira">Valor da carteira (€)</label>
-          <input id="carteira" name="carteira" type="number" value="20000" min="0" class="w-full rounded-lg border px-3 py-2" />
+          <input
+            id="carteira"
+            name="carteira"
+            type="number"
+            value="20000"
+            min="0"
+            class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2"
+          />
         </div>
         <div class="md:col-span-2 flex items-center gap-2">
-          <input id="fx" name="fx" type="checkbox" class="h-4 w-4 rounded border-gray-300" checked />
+          <input
+            id="fx"
+            name="fx"
+            type="checkbox"
+            checked
+            class="h-4 w-4 rounded border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800"
+          />
           <label for="fx" class="text-sm">Há conversão cambial?</label>
         </div>
       </form>

@@ -1,0 +1,184 @@
+---
+import fs from 'node:fs/promises';
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import RatesCompareChart from '~/components/RatesCompareChart.tsx';
+
+type RateInfo = {
+  code: string;
+  label: string;
+  value: string;
+  date: string;
+  stats: {
+    min?: { value: number; date: string };
+    max?: { value: number; date: string };
+  };
+};
+
+const FILES = [
+  { code: 'taeg', label: 'TAEG' },
+  { code: 'tan',  label: 'TAN' }
+];
+
+const seriesInfo: RateInfo[] = [];
+
+for (const { code, label } of FILES) {
+  const csvUrl = new URL(`../../../public/data/interest_rate_${code}.csv`, import.meta.url);
+  let txt = '';
+  try {
+    txt = await fs.readFile(csvUrl, 'utf-8');
+  } catch {
+    txt = '';
+  }
+
+  const rows = txt.trim().split('\n').slice(1);
+  const data = rows
+    .map(line => line.split(','))
+    .filter(([, v]) => v !== '' && !isNaN(+v))
+    .map(([d, v]) => ({ date: new Date(d), value: +v }));
+
+  if (data.length === 0) {
+    seriesInfo.push({ code, label, value: 'Sem Dados', date: '', stats: {} });
+    continue;
+  }
+
+  // Último valor
+  const last = data[data.length - 1];
+  // Min/Max
+  const sorted = [...data].sort((a, b) => a.value - b.value);
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+
+  seriesInfo.push({
+    code,
+    label,
+    value: last.value.toFixed(2),
+    date: last.date.toLocaleString('pt-PT', { month: 'long', year: 'numeric' }),
+    stats: {
+      min: { value: min.value, date: min.date.toLocaleString('pt-PT', { month: 'long', year: 'numeric' }) },
+      max: { value: max.value, date: max.date.toLocaleString('pt-PT', { month: 'long', year: 'numeric' }) }
+    }
+  });
+}
+
+// Filtrar só as séries com dados para apresentação na tabela
+const tableSeries = seriesInfo.filter(s => s.value !== 'Sem Dados');
+
+const title       = 'TAEG & TAN – Novos Créditos à Habitação';
+const description = `Histórico e últimos valores da TAEG (${seriesInfo.find(s=>s.code==='taeg')?.value}% em ${seriesInfo.find(s=>s.code==='taeg')?.date})${seriesInfo.find(s=>s.code==='tan')?.value !== 'Sem Dados' ? ` e da TAN (${seriesInfo.find(s=>s.code==='tan')?.value}% em ${seriesInfo.find(s=>s.code==='tan')?.date})` : ''}.`;
+const canonical   = new URL('/imobiliario/taeg-tan', Astro.site).href;
+
+const faqSchema = {
+  "@context":"https://schema.org","@type":"FAQPage",
+  "mainEntity":[
+    {
+      "@type":"Question","name":"O que é a TAEG?",
+      "acceptedAnswer":{"@type":"Answer","text":"A TAEG inclui todos os encargos associados ao crédito à habitação, permitindo comparar o custo efetivo dos empréstimos."}
+    },
+    {
+      "@type":"Question","name":"O que é a TAN?",
+      "acceptedAnswer":{"@type":"Answer","text":"A TAN é a taxa de juro nominal acordada, sem comissões ou outros custos. Se não disponível, significa que não foi divulgada para o período."}
+    }
+  ]
+};
+---
+
+<BaseLayout {title} {description} {canonical}>
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+  </Fragment>
+
+  <article class="max-w-5xl mx-auto py-12 px-4 space-y-12">
+    <!-- Header -->
+    <header class="text-center">
+      <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white">
+        TAEG &amp; TAN – Novos Créditos à Habitação
+      </h1>
+      <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+        Últimos valores e histórico das taxas aplicadas em novos créditos à habitação.
+      </p>
+    </header>
+
+    <!-- KPI Cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {seriesInfo.map(info => (
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md flex flex-col">
+          <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Último valor {info.label}
+          </h2>
+          <p class="mt-2 text-4xl font-extrabold text-gray-900 dark:text-white">
+            {info.value !== 'Sem Dados' ? `${info.value}%` : 'Sem Dados'}
+          </p>
+          {info.date && (
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              ({info.date})
+            </p>
+          )}
+        </div>
+      ))}
+    </section>
+
+    <!-- Chart Section -->
+    <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-6">
+      <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4 text-center">
+        Evolução Histórica
+      </h2>
+      <RatesCompareChart client:only="react" />
+      <p class="mt-4 text-xs text-gray-500 dark:text-gray-400 italic text-center">
+        Fonte: Banco de Portugal via <a href="https://bpstat.bportugal.pt" target="_blank" rel="noopener" class="underline hover:text-primary">BPstat</a>
+      </p>
+    </section>
+
+    <!-- Stats Table (exibe só séries com dados) -->
+    {tableSeries.length > 0 && (
+      <section class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-100 dark:bg-gray-700">
+              <th class="p-3 text-sm font-medium text-gray-700 dark:text-gray-300">Taxa</th>
+              <th class="p-3 text-sm font-medium text-gray-700 dark:text-gray-300">Valor Mínimo</th>
+              <th class="p-3 text-sm font-medium text-gray-700 dark:text-gray-300">Data</th>
+              <th class="p-3 text-sm font-medium text-gray-700 dark:text-gray-300">Valor Máximo</th>
+              <th class="p-3 text-sm font-medium text-gray-700 dark:text-gray-300">Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tableSeries.map(info => (
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="p-3 font-semibold text-gray-800 dark:text-gray-100">{info.label}</td>
+                <td class="p-3 text-green-600 dark:text-green-400">
+                  {info.stats.min?.value.toFixed(2)}%
+                </td>
+                <td class="p-3 text-gray-600 dark:text-gray-300">{info.stats.min?.date}</td>
+                <td class="p-3 text-red-600 dark:text-red-400">
+                  {info.stats.max?.value.toFixed(2)}%
+                </td>
+                <td class="p-3 text-gray-600 dark:text-gray-300">{info.stats.max?.date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    )}
+
+    <!-- Explanation Section -->
+    <section class="pt-8 border-t border-gray-200 dark:border-gray-700">
+      <h2 class="text-3xl font-bold text-center mb-8">Como interpretar estes dados</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-md prose dark:prose-invert max-w-none">
+          <h3 class="text-xl font-semibold mt-0">Taxa Anual de Encargos Efetiva Global (TAEG)</h3>
+          <p>
+            A <strong>TAEG</strong> inclui não só a taxa de juro, mas também todos os encargos associados ao empréstimo
+            (seguros, comissões, etc.), permitindo uma comparação real do custo total do crédito.
+          </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-md prose dark:prose-invert max-w-none">
+          <h3 class="text-xl font-semibold mt-0">Taxa Anual Nominal (TAN)</h3>
+          <p>
+            A <strong>Taxa Anual Nominal (TAN)</strong> representa a taxa de juro base acordada entre o cliente e a entidade financeira, expressa numa base anual, sem incluir comissões, impostos ou outros encargos associados ao crédito.
+          </p>
+
+        </div>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
