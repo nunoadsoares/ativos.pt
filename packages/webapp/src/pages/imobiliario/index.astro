@@ -1,75 +1,52 @@
 ---
-// Importações de módulos
-import { promises as fs } from 'fs';
-import path from 'path';
-import sqlite from 'better-sqlite3';
 import BaseLayout from '~/layouts/BaseLayout.astro';
 
-// --- LÓGICA DE CARREGAMENTO DE DADOS ---
-// Esta é a mesma lógica das suas páginas 'filho', mas combinada para o hub.
-
-// 1. Dados do Preço da Habitação (de `precos-habitacao.astro`)
+// 1. Preços da Habitação (KPI) — lê o JSON exportado
 let housingKpi = { value: 0, date: '' };
 try {
-  const db = sqlite(path.resolve(process.cwd(), 'public/datahub.db'));
-  const kpiRow = db.prepare("SELECT * FROM key_indicators WHERE indicator_key = 'precos_habitacao_var'").get();
-  if (kpiRow) {
-    housingKpi.value = kpiRow.value ?? 0;
-    housingKpi.date = new Date(kpiRow.reference_date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' });
-  }
-} catch (e) {
-  console.error("Erro ao ler dados de preços da habitação:", e);
-}
+  const data = await import('../../../public/data-housing-kpi.json');
+  housingKpi.value = data.value ?? 0;
+  housingKpi.date = data.reference_date
+    ? new Date(data.reference_date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' })
+    : '';
+} catch (e) {}
 
-// 2. Dados da TAEG & TAN (de `taeg-tan.astro`)
-const FILES = [{ code: 'taeg', label: 'TAEG' }]; // Apenas TAEG é suficiente para o hub
+// 2. TAEG (do CSV)
 let taegInfo = { value: 'Sem Dados', date: '' };
 try {
-  const csvUrl = new URL(`../../../public/data/interest_rate_taeg.csv`, import.meta.url);
-  const txt = await fs.readFile(csvUrl, 'utf-8');
+  const csvModule = await import('../../../public/data/interest_rate_taeg.csv?raw');
+  const txt = csvModule.default || '';
   const rows = txt.trim().split('\n').slice(1);
-  const data = rows
+  const dataArr = rows
     .map(line => line.split(','))
     .filter(([, v]) => v !== '' && !isNaN(+v))
     .map(([d, v]) => ({ date: new Date(d), value: +v }));
-  if (data.length > 0) {
-    const last = data[data.length - 1];
+  if (dataArr.length > 0) {
+    const last = dataArr[dataArr.length - 1];
     taegInfo.value = last.value.toFixed(2);
     taegInfo.date = last.date.toLocaleString('pt-PT', { month: 'long', year: 'numeric' });
   }
-} catch (e) {
-  console.error("Erro ao ler dados da TAEG:", e);
-}
+} catch (e) {}
 
-// 3. Dados do Risco de Incumprimento (de `risco-incumprimento.astro`)
+// 3. Risco de Incumprimento (JSON)
 let highestRisk = { value: 'N/D', name: 'N/D' };
 try {
-  const dataPath = path.resolve(process.cwd(), 'public/data/map_default_risk.json');
-  const jsonData = await fs.readFile(dataPath, 'utf-8');
-  const riskData: Record<string, { value: number | null; type: string }> = JSON.parse(jsonData);
-  
+  const riskData = await import('../../../public/data/map_default_risk.json');
   const validRegions = Object.entries(riskData)
     .filter(([_, data]) => data && data.value !== null)
     .map(([name, data]) => ({
       name: name,
-      value: data.value as number
+      value: data.value as number,
     }));
-
   if (validRegions.length > 0) {
     validRegions.sort((a, b) => b.value - a.value);
-    // Verificamos se existe um primeiro elemento antes de aceder às propriedades
-    if (validRegions[0]) {
-      // Usamos uma verificação condicional para garantir que 'name' existe antes do 'replace'
-      const name = validRegions[0].name || 'Região Desconhecida';
-      highestRisk.value = validRegions[0].value.toFixed(2);
-      highestRisk.name = name.replace(' (NUTS II)', '').replace(' (NUTS III)', '');
-    }
+    const name = validRegions[0].name || 'Região Desconhecida';
+    highestRisk.value = validRegions[0].value.toFixed(2);
+    highestRisk.name = name.replace(' (NUTS II)', '').replace(' (NUTS III)', '');
   }
-} catch (e) {
-  console.error("Erro ao ler dados do mapa de risco:", e);
-}
+} catch (e) {}
 
-// --- SEO E METADADOS ---
+// SEO
 const title = "Observatório e Guia do Mercado Imobiliário em Portugal";
 const description = `Análise completa do mercado imobiliário português: descubra a evolução dos preços, o custo dos novos créditos à habitação (TAEG/TAN) e o risco de incumprimento por região.`;
 const canonical = new URL('/imobiliario/', Astro.site).href;
@@ -91,7 +68,7 @@ const faqSchema = {
       "name":"Qual é a diferença entre TAEG e TAN?",
       "acceptedAnswer":{
         "@type":"Answer",
-        "text":"A **TAEG** (Taxa Anual de Encargos Efetiva Global) inclui todos os custos do crédito (juros, comissões, seguros), dando o custo real do empréstimo. A **TAN** (Taxa Anual Nominal) é apenas a taxa de juro base."
+        "text":"A TAEG (Taxa Anual de Encargos Efetiva Global) inclui todos os custos do crédito (juros, comissões, seguros), dando o custo real do empréstimo. A TAN (Taxa Anual Nominal) é apenas a taxa de juro base."
       }
     },
     {
@@ -110,7 +87,6 @@ const faqSchema = {
   <Fragment slot="head">
     <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
     <style is:inline>
-      /* Estilo Glassmorphism para os cards */
       .glass-card {
         background: rgba(255, 255, 255, 0.2);
         backdrop-filter: blur(10px);
@@ -184,7 +160,6 @@ const faqSchema = {
       </a>
     </section>
 
-    <!-- Divisor e introdução -->
     <hr class="border-gray-200 dark:border-gray-700 my-12" />
 
     <section>
@@ -246,6 +221,5 @@ const faqSchema = {
         </div>
       </a>
     </section>
-
   </article>
 </BaseLayout>

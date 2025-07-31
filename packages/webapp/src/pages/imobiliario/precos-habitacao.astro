@@ -1,14 +1,17 @@
 ---
 // packages/webapp/src/pages/imobiliario/precos-habitacao.astro
-import sqlite from 'better-sqlite3';
+
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import HousingPriceChart from '~/components/HousingPriceChart.tsx';
 
-const db = sqlite('public/datahub.db');
-const kpiRow = db.prepare("SELECT * FROM key_indicators WHERE indicator_key = 'precos_habitacao_var'").get();
+// Importa o JSON gerado pelo script
+import kpiRow from '../../../public/data-housing-kpi.json';
+
 const kpi = {
     value: kpiRow?.value ?? 0,
-    date: kpiRow ? new Date(kpiRow.reference_date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' }) : ''
+    date: kpiRow?.reference_date
+      ? new Date(kpiRow.reference_date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' })
+      : ''
 };
 
 const title = "Observatório do Preço da Habitação em Portugal";
