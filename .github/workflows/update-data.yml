@@ -60,4 +60,5 @@ jobs:
           git diff --staged --quiet || git commit -m "Data: Atualização automática dos indicadores"
 
           echo "🚀 A fazer push com GH_PAT para ${{ github.repository }} em ${{ github.ref }}"
-          git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }} HEAD:${{ github.ref }}
+          git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }} HEAD:master
+
