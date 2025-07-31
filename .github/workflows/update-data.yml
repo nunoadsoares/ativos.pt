@@ -36,6 +36,7 @@ jobs:
         run: |
           git config --global user.name "Ativos.pt Data Bot"
           git config --global user.email "bot@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/nunoadsoares/ativos.pt.git
           git add -A
           git diff --staged --quiet || git commit -m "Data: Atualização automática dos indicadores"
-          git push https://x-access-token:${GH_TOKEN}@github.com/nunoadsoares/ativos.pt.git HEAD:master
+          git push origin HEAD:master
