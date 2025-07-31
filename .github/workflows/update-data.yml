@@ -16,14 +16,20 @@ jobs:
         with:
           persist-credentials: false
 
-      # 2. Debug: variáveis de ambiente
+      # 2. Debug: variáveis de ambiente (com verificação de token corrigida)
       - name: Show relevant environment variables
-        shell: bash # <-- CORREÇÃO ADICIONADA AQUI
+        shell: bash
         run: |
           echo "📁 Current directory: $(pwd)"
           echo "🔀 Current branch: $(git branch --show-current)"
           echo "🌐 Remote origin: $(git remote get-url origin)"
-          echo "🔐 GH_PAT length: ${#GH_PAT:-0}"
+          
+          # --- MÉTODO DE VERIFICAÇÃO ALTERNATIVO E MAIS SEGURO ---
+          if [ -z "${GH_PAT}" ]; then
+            echo "🔐 GH_PAT status: NOT SET or EMPTY"
+          else
+            echo "🔐 GH_PAT status: SET"
+          fi
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
 
@@ -43,7 +49,7 @@ jobs:
 
       # 6. Commit e push
       - name: Commit and push if data changed
-        shell: bash # <-- CORREÇÃO ADICIONADA AQUI
+        shell: bash
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
