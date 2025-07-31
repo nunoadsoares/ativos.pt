@@ -48,19 +48,16 @@ jobs:
           echo "🔁 Remotes configurados:"
           git remote -v
 
-      # 7. Commit e push com debug extra
-      - name: Commit and push if data changed (debug)
+      # 7. Commit e push com GH_PAT de forma explícita
+      - name: Commit and push if data changed
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git config --global user.name "Ativos.pt Data Bot"
           git config --global user.email "bot@users.noreply.github.com"
 
-          echo "🔁 Redefinindo o remote origin com GH_PAT..."
-          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/nunoadsoares/ativos.pt.git
-
           git add -A
           git diff --staged --quiet || git commit -m "Data: Atualização automática dos indicadores"
 
-          echo "🚀 A fazer push com GH_PAT no remote origin..."
-          git push origin HEAD
+          echo "🚀 A fazer push com GH_PAT para ${{ github.repository }} em ${{ github.ref }}"
+          git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }} HEAD:${{ github.ref }}
