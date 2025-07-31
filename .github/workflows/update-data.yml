@@ -2,9 +2,8 @@ name: Update Economic Data
 
 on:
   schedule:
-    # Corre todos os dias às 7h UTC (corresponde às 8h em Portugal Continental no verão)
     - cron: '0 7 * * *'
-  workflow_dispatch: # Permite execução manual a partir do separador "Actions"
+  workflow_dispatch:
 
 jobs:
   update:
@@ -12,14 +11,12 @@ jobs:
 
     steps:
       # 1. Checkout do repositório
-      # O `token` foi removido daqui pois não é necessário para o checkout de um repo público.
-      # O `persist-credentials: false` é a parte crucial a manter.
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      # 2. Debug: variáveis de ambiente (mantido para depuração)
+      # 2. Debug: variáveis de ambiente
       - name: Show relevant environment variables
         run: |
           echo "📁 Current directory: $(pwd)"
@@ -43,29 +40,17 @@ jobs:
       - name: Run Data Worker
         run: python ./packages/data-worker/update_all.py
 
-      # 6. Debug: verificar o estado antes do commit
-      - name: Status before commit
-        run: |
-          echo "📦 Modified files:"
-          git status --short
-          echo "🔁 Configured remotes:"
-          git remote -v
-
-      # 7. Commit e push das alterações usando o GH_PAT
-      # Este passo contém a lógica corrigida.
+      # 6. Commit e push (VERSÃO COM DEPURAÇÃO FINAL)
       - name: Commit and push if data changed
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          # Configura o utilizador do Git para o commit
-          git config --global user.name "Ativos.pt Data Bot"
-          git config --global user.email "bot@users.noreply.github.com"
+          # Configura o utilizador do Git
+          git config user.name "Ativos.pt Data Bot"
+          git config user.email "bot@users.noreply.github.com"
 
-          # Adiciona todas as alterações (novos ficheiros, modificados, apagados)
+          # Adiciona e faz commit das alterações
           git add -A
-          
-          # Faz commit apenas se existirem alterações no "stage".
-          # Se não houver nada para commitar, o workflow continua sem erro.
           if git diff --staged --quiet; then
             echo "✅ No changes to commit."
             exit 0
@@ -74,16 +59,14 @@ jobs:
             echo "📝 Commit created."
           fi
 
-          # *** A CORREÇÃO PRINCIPAL ESTÁ AQUI ***
-          # Remove o cabeçalho de autenticação do token padrão (GITHUB_TOKEN)
-          # que o `actions/checkout` adiciona.
-          echo "🔐 Removing default authentication header to use PAT."
-          git config --unset-all http.https://github.com/.extraheader
+          # Adiciona o novo remote com o token
+          git remote add pat_origin "https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}"
 
-          # Reconfigura a URL do remote 'origin' para usar o Personal Access Token
-          echo "🔁 Reconfiguring 'origin' remote with PAT."
-          git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}"
+          echo "--- 🔍 DEPURAÇÃO FINAL ANTES DO PUSH 🔍 ---"
+          echo "A verificar os remotes configurados:"
+          git remote -v
+          echo "-------------------------------------------"
 
-          # Faz o push das alterações para a branch 'master'
-          echo "🚀 Pushing changes to the repository."
-          git push origin HEAD:master
+          # Tenta fazer o push
+          echo "🚀 Pushing changes using 'pat_origin'..."
+          git push pat_origin HEAD:master
