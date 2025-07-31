@@ -16,65 +16,37 @@ jobs:
         with:
           persist-credentials: false
 
-      # 2. Debug: variáveis de ambiente (com verificação de token corrigida)
-      - name: Show relevant environment variables
-        shell: bash
-        run: |
-          echo "📁 Current directory: $(pwd)"
-          echo "🔀 Current branch: $(git branch --show-current)"
-          echo "🌐 Remote origin: $(git remote get-url origin)"
-          
-          # --- MÉTODO DE VERIFICAÇÃO ALTERNATIVO E MAIS SEGURO ---
-          if [ -z "${GH_PAT}" ]; then
-            echo "🔐 GH_PAT status: NOT SET or EMPTY"
-          else
-            echo "🔐 GH_PAT status: SET"
-          fi
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-
-      # 3. Preparar Python
+      # 2. Preparar Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 4. Instalar dependências
+      # 3. Instalar dependências
       - name: Install dependencies
         run: pip install -r ./packages/data-worker/requirements.txt
 
-      # 5. Executar o script que atualiza os dados
+      # 4. Executar o script que atualiza os dados
       - name: Run Data Worker
         run: python ./packages/data-worker/update_all.py
 
-      # 6. Commit e push
+      # 5. Commit e push se existirem alterações
       - name: Commit and push if data changed
         shell: bash
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          # Configura o utilizador do Git
           git config user.name "Ativos.pt Data Bot"
           git config user.email "bot@users.noreply.github.com"
 
-          # Adiciona e faz commit das alterações
           git add -A
+          # Faz commit apenas se existirem alterações
           if git diff --staged --quiet; then
             echo "✅ No changes to commit."
             exit 0
-          else
-            git commit -m "Data: Atualização automática dos indicadores económicos"
-            echo "📝 Commit created."
           fi
+          git commit -m "Data: Atualização automática dos indicadores económicos"
 
-          # Adiciona o novo remote com o token
+          # Adiciona o novo remote e faz o push
           git remote add pat_origin "https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}"
-
-          echo "--- 🔍 DEPURAÇÃO FINAL ANTES DO PUSH 🔍 ---"
-          echo "A verificar os remotes configurados:"
-          git remote -v
-          echo "-------------------------------------------"
-
-          # Tenta fazer o push
-          echo "🚀 Pushing changes using 'pat_origin'..."
           git push pat_origin HEAD:master
