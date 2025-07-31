@@ -7,6 +7,7 @@ interface Props {
 }
 
 const { brokers, canonical } = Astro.props;
+const siteUrl = Astro.site?.href ?? 'https://www.ativos.pt';
 
 const itemList = {
   "@context": "https://schema.org",
@@ -16,10 +17,11 @@ const itemList = {
   "itemListElement": brokers.map((b, i) => ({
     "@type": "ListItem",
     "position": i + 1,
-    "url": new URL(`/plataformas/${b.slug}`, Astro.site!).href,
+    "url": new URL(`/plataformas/${b.slug}`, siteUrl).href,
     "name": b.data.nome,
-    "description": b.data.description
+    "description": b.data.description ?? ''
   }))
 };
 ---
+
 <script type="application/ld+json" is:inline set:html={JSON.stringify(itemList)} />

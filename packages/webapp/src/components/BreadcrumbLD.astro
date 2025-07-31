@@ -1,19 +1,23 @@
 ---
-/* Espera prop `breadcrumbs` [{ name, url }, …] */
+// Este componente espera receber uma prop `breadcrumbs`
+// que é um array de objetos, ex: [{ name: "Início", url: "/" }]
 const { breadcrumbs = [] } = Astro.props;
 ---
 
+{/* O script só é renderizado se existirem breadcrumbs para evitar um array vazio */}
 {breadcrumbs.length > 0 && (
-  <script type="application/ld+json" is:inline>
-    {JSON.stringify({
+  <script
+    type="application/ld+json"
+    is:inline
+    set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
-      itemListElement: breadcrumbs.map((b, i) => ({
+      "itemListElement": breadcrumbs.map((b, i) => ({
         "@type": "ListItem",
-        position: i + 1,
-        name: b.name,
-        item: b.url
-      }))
+        "position": i + 1,
+        "name": b.name,
+        "item": b.url,
+      })),
     })}
-  </script>
+  />
 )}

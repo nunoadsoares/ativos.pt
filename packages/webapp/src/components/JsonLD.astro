@@ -8,26 +8,28 @@ interface Props {
 const { entry } = Astro.props;
 const { data } = entry;
 
+const siteUrl = Astro.site?.href ?? 'https://www.ativos.pt';
 const headline = 'title' in data ? data.title : data.nome;
 
 const schema = {
   "@context": "https://schema.org",
   "@type": "Article",
   "headline": headline,
-  "description": data.description,
+  "description": data.description ?? '',
   "author": {
     "@type": "Organization",
     "name": "Ativos.pt",
-    "url": Astro.site!.href
+    "url": siteUrl
   },
   "publisher": {
     "@type": "Organization",
     "name": "Ativos.pt",
     "logo": {
       "@type": "ImageObject",
-      "url": new URL(logoImage.src, Astro.site!).href
+      "url": new URL(logoImage.src, siteUrl).href
     }
   },
 };
 ---
+
 <script type="application/ld+json" is:inline set:html={JSON.stringify(schema)} />
