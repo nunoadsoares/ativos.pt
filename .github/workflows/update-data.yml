@@ -19,10 +19,10 @@ jobs:
       # 2. Debug: variáveis de ambiente
       - name: Mostrar variáveis de ambiente relevantes
         run: |
-          echo "PWD: $(pwd)"
-          echo "Branch atual: $(git branch --show-current)"
-          echo "Origem remota: $(git remote get-url origin)"
-          echo "GH_PAT length: ${#GH_PAT:-0}"
+          echo "📁 Diretório atual: $(pwd)"
+          echo "🔀 Branch atual: $(git branch --show-current)"
+          echo "🌐 Origem remota: $(git remote get-url origin)"
+          echo "🔐 GH_PAT length: ${#GH_PAT:-0}"
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
 
@@ -43,9 +43,9 @@ jobs:
       # 6. Debug antes do commit/push
       - name: Estado antes do commit
         run: |
-          echo "Ficheiros modificados:"
+          echo "📦 Ficheiros modificados:"
           git status --short
-          echo "Remotes:"
+          echo "🔁 Remotes configurados:"
           git remote -v
 
       # 7. Commit e push com debug extra
@@ -55,8 +55,12 @@ jobs:
         run: |
           git config --global user.name "Ativos.pt Data Bot"
           git config --global user.email "bot@users.noreply.github.com"
+
+          echo "🔁 Redefinindo o remote origin com GH_PAT..."
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/nunoadsoares/ativos.pt.git
+
           git add -A
           git diff --staged --quiet || git commit -m "Data: Atualização automática dos indicadores"
-          echo "A tentar fazer push com URL:"
-          echo "  https://x-access-token:${GH_PAT}@github.com/nunoadsoares/ativos.pt.git"
-          git push https://x-access-token:${GH_PAT}@github.com/nunoadsoares/ativos.pt.git HEAD
+
+          echo "🚀 A fazer push com GH_PAT no remote origin..."
+          git push origin HEAD
