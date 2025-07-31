@@ -35,4 +35,16 @@ export default defineConfig({
       },
     }),
   ],
+
+  /* ─────────────── Extra Vite (ignorar better-sqlite3 no bundle) ─────────────── */
+  vite: {
+    resolve: {
+      alias: {
+        'better-sqlite3': false,   // torna-se “falso” no bundle de browser
+      },
+    },
+    ssr: {
+      external: ['better-sqlite3'], // continua disponível no build/SSR
+    },
+  },
 });

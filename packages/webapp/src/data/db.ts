@@ -1,29 +1,50 @@
 // packages/webapp/src/data/db.ts
-
-import Database from 'better-sqlite3';
 import path from 'node:path';
 
-// Define o tipo de dados que esperamos da nossa tabela
+/* ─────────── Tipos ─────────── */
 export interface Indicator {
   indicator_key: string;
-  label: string;
-  value: number;
-  unit: string;
-  reference_date: string;
-  updated_at: string;
+  label:         string;
+  value:         number;
+  unit:          string;
+  reference_date:string;
+  updated_at:    string;
 }
 
-// Constrói o caminho para a base de dados que está na pasta `public`
-// Usamos `process.cwd()` para obter a raiz do projeto atual.
-const dbPath = path.join(process.cwd(), 'public', 'datahub.db');
-
-const db = new Database(dbPath, { readonly: true });
+/* ─────────── Cache ─────────── */
+let cache: Indicator[] | null = null;
 
 /**
- * Vai à base de dados buscar a lista mais recente de todos os indicadores.
+ * Devolve a lista mais recente de indicadores.
+ * • No SSR (build) lê directamente a SQLite via better-sqlite3
+ * • No browser faz fetch ao JSON gerado pelo data-worker
  */
-export function getLatestIndicators(): Indicator[] {
-  const stmt = db.prepare('SELECT * FROM key_indicators');
-  const data = stmt.all() as Indicator[];
-  return data;
+export async function getLatestIndicators(): Promise<Indicator[]> {
+  if (cache) return cache; // evita leituras repetidas
+
+  if (import.meta.env.SSR) {
+    /* ----------- Só corre no build/SSR ----------- */
+    // Import dinâmico para não entrar no bundle de browser
+    const { default: Database } = await import('better-sqlite3');
+    const dbPath = path.join(process.cwd(), 'public', 'datahub.db');
+    const db     = new Database(dbPath, { readonly: true });
+
+    cache = db.prepare('SELECT * FROM key_indicators').all() as Indicator[];
+    return cache;
+  }
+
+  /* ----------- Fallback no browser ----------- */
+  const resp = await fetch('/data/datalake/latest.json');
+  const json = await resp.json();
+
+  cache = Object.entries(json.indicadores).map(([key, value]) => ({
+    indicator_key: key,
+    label:         key,
+    value:         value as number,
+    unit:          typeof value === 'number' ? '%' : '',
+    reference_date: json.data,
+    updated_at:    json.data,
+  })) as Indicator[];
+
+  return cache;
 }

@@ -1,0 +1,129 @@
+---
+import fs from 'node:fs/promises';
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import EuriborCompareChart from '~/components/EuriborCompareChart.tsx';
+
+// 1) Gera todos os combos de 1 a 3 prazos
+export async function getStaticPaths() {
+  const codes = ['quota3m','quota6m','quota12m'];
+  const lists: string[] = [];
+  function bt(i: number, path: string[]) {
+    if (path.length >= 1 && path.length <= 3) {
+      lists.push(path.join('-vs-'));
+    }
+    if (path.length === 3) return;
+    for (let j = i; j < codes.length; j++) {
+      path.push(codes[j]);
+      bt(j+1, path);
+      path.pop();
+    }
+  }
+  bt(0, []);
+  return lists.map(l => ({ params: { list: l } }));
+}
+
+const { list } = Astro.params as { list: string };
+const selectedCodes = list.split('-vs-');
+
+// 2) Últimos valores: [{label, code, valor, data}]
+const eurLabels: Record<string, string> = {
+  quota3m: "Euribor 3M",
+  quota6m: "Euribor 6M",
+  quota12m: "Euribor 1 Ano",
+};
+const fileMap: Record<string, string> = {
+  quota3m: "3m",
+  quota6m: "6m",
+  quota12m: "1y",
+};
+
+type EuriborInfo = { code: string; label: string; value: string; date: string };
+
+const seriesInfo: EuriborInfo[] = [];
+for (const code of selectedCodes) {
+  const filecode = fileMap[code];
+  const file = new URL(`../../../public/data/euribor_${filecode}_share.csv`, import.meta.url);
+  const txt  = await fs.readFile(file, 'utf8');
+  const rows = txt.trim().split('\n');
+  const [d, v] = rows[rows.length-1]?.split(',') ?? [];
+  seriesInfo.push({
+    code,
+    label: eurLabels[code],
+    value: v && !isNaN(+v) ? Number(v).toFixed(1) : "–",
+    date: d ? new Date(d).toLocaleString('pt-PT', { month: 'long', year: 'numeric' }) : "",
+  });
+}
+
+// canonical + FAQ
+const canonical = new URL(`/euribor/${list}`, Astro.site!).href;
+const faqSchema = {
+  "@context":"https://schema.org","@type":"FAQPage",
+  "mainEntity":[
+    {
+      "@type":"Question","name":"O que é a Euribor?",
+      "acceptedAnswer":{"@type":"Answer","text":"A Euribor (Euro Interbank Offered Rate) é a taxa média de juro interbancária na zona euro, usada como referência em contratos de crédito à habitação."}
+    },
+    {
+      "@type":"Question","name":"Como se interpretam estas percentagens?",
+      "acceptedAnswer":{"@type":"Answer","text":"Trata-se da percentagem de novos contratos de crédito à habitação indexados a cada prazo da Euribor."}
+    }
+  ]
+};
+---
+
+<BaseLayout
+  title={`Comparador Euribor Crédito à Habitação: ${seriesInfo.map(i => i.label).join(' vs ')}`}
+  description={`Comparação dinâmica das percentagens de novos contratos de crédito à habitação indexados à Euribor para os prazos selecionados: ${seriesInfo.map(i => `${i.label}: ${i.value}% (${i.date})`).join('; ')}`}
+>
+  <Fragment slot="head">
+    <link rel="canonical" href={canonical} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+  </Fragment>
+
+  <article class="max-w-5xl mx-auto py-12 px-4 space-y-8">
+    <h1 class="text-4xl md:text-6xl font-extrabold text-center">
+      Comparador Euribor em Crédito à Habitação
+    </h1>
+
+    <!-- Subtítulo prazos dinâmicos -->
+    <div class="flex flex-wrap justify-center items-center gap-3 text-lg md:text-2xl font-bold text-primary mt-2 mb-2">
+      {seriesInfo.map((s, idx) => (
+        <>
+          <span class="font-bold">{s.label}</span>
+          {idx < seriesInfo.length - 1 && <span class="mx-2 text-gray-400 font-normal">vs</span>}
+        </>
+      ))}
+    </div>
+
+    <p class="text-center text-lg text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
+      Nesta página é possível comparar a evolução histórica da <b>percentagem de novos contratos de crédito à habitação</b>. No Fundo a percentagem de contratos indexados à Euribor nos prazos selecionados acima.<br/>
+      <span class="block mt-2 text-base">
+        <b>Últimos valores disponíveis:</b>
+        {seriesInfo.map((s, i) => (
+          <span>
+            {' '}
+            <span class="font-bold text-primary">{s.label}</span>
+            {' — '}
+            <span class="font-bold">{s.value}&nbsp;%</span>
+            {s.date && <span class="text-gray-500"> ({s.date})</span>}
+            {i < seriesInfo.length - 1 && <span>; </span>}
+          </span>
+        ))}
+      </span>
+    </p>
+
+    <div class="border rounded-lg p-4 bg-white dark:bg-gray-800">
+      <EuriborCompareChart
+        client:only="react"
+        periods={seriesInfo.map(s => fileMap[s.code])}
+      />
+      <div class="mt-2 text-xs text-gray-400 italic text-center">
+        Fonte: Banco de Portugal, <a href="https://bpstat.bportugal.pt/" target="_blank" rel="noopener" class="underline hover:text-primary">BPstat</a>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <a href="/euribor" class="text-primary underline">Selecionar outros prazos</a>
+    </div>
+  </article>
+</BaseLayout>

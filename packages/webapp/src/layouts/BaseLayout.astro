@@ -1,10 +1,10 @@
 ---
-/* src/layouts/BaseLayout.astro */
+// src/layouts/BaseLayout.astro
+
 import Navbar         from '~/components/Navbar.astro';
 import Footer         from '~/components/Footer.astro';
 import BreadcrumbLD   from '~/components/BreadcrumbLD.astro';
 import CriticalStyles from '~/components/CriticalStyles.astro';
-import '~/styles/global.css';
 
 /* ── Props ─────────────────────────────────── */
 export interface Props {
@@ -38,6 +38,7 @@ function gerarCrumbsFromUrl(path: string) {
 }
 const crumbs = breadcrumbs ?? gerarCrumbsFromUrl(Astro.url.pathname);
 ---
+
 <!DOCTYPE html>
 <html lang="pt-PT" class="scroll-smooth">
   <head>
@@ -56,19 +57,21 @@ const crumbs = breadcrumbs ?? gerarCrumbsFromUrl(Astro.url.pathname);
     <meta property="og:title"       content={`${title} | Ativos.pt`} />
     <meta property="og:description" content={description} />
 
-    <!-- Pre-connect ao GA (mantém tracking) -->
+    <!-- Pre-connect ao GA -->
     <link rel="preconnect" href="https://www.googletagmanager.com" />
 
-    <!-- CSS crítico inline (above-the-fold) -->
+    <!-- CSS crítico inline -->
     <CriticalStyles />
 
-    <!-- CSS global carregado de forma não bloqueante -->
-    <link rel="stylesheet"
-          href="/styles/global.css"
-          media="print"
-          onload="this.media='all'" />
+    <!-- CSS global (non-blocking load) -->
+    <link
+      rel="stylesheet"
+      href="/styles/global.css"
+      media="print"
+      onload="this.media='all'"
+    />
 
-    <!-- Google Analytics diferido -->
+    <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-VV97HC0LD3"></script>
     <script is:inline>
       window.addEventListener('load', () => {
@@ -79,13 +82,13 @@ const crumbs = breadcrumbs ?? gerarCrumbsFromUrl(Astro.url.pathname);
       });
     </script>
 
-    <!-- Slot opcional para meta extra (JSON-LD, etc.) -->
+    <!-- Slot para meta extra (JSON-LD etc.) -->
     <slot name="head" />
 
     <!-- Breadcrumb JSON-LD -->
     <BreadcrumbLD breadcrumbs={crumbs} />
 
-    <!-- Tema escuro / claro (antes do first paint) -->
+    <!-- Tema escuro/claro antes do first paint -->
     <script is:inline>
       (() => {
         const theme = localStorage.getItem('theme');

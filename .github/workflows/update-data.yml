@@ -2,27 +2,34 @@ name: Update Economic Data
 
 on:
   schedule:
+    # corre todos os dias às 07:00 UTC (08:00 em Portugal continental no inverno, 07:00 no verão)
     - cron: '0 7 * * *'
   workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
+
     steps:
+      # 1. Clona o repositório
       - name: Check out repository
         uses: actions/checkout@v4
 
+      # 2. Prepara o Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # 3. Instala dependências do data-worker
       - name: Install dependencies
         run: pip install -r ./packages/data-worker/requirements.txt
-      
-      - name: Run Data Worker
-        run: python ./packages/data-worker/apibp/apibp.py
 
+      # 4. Executa TODOS os extractores (macro + mortgage + futuros)
+      - name: Run Data Worker
+        run: python ./packages/data-worker/update_all.py
+
+      # 5. Faz commit/push apenas se houve alterações nos ficheiros de dados
       - name: Commit and push if data changed
         run: |
           git config --global user.name "Ativos.pt Data Bot"

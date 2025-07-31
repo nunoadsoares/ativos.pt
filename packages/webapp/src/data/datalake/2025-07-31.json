@@ -1,0 +1,48 @@
+{
+    "data_snapshot": "2025-07-31T01:27:06.724309",
+    "fonte": "BPstat (Banco de Portugal)",
+    "indicadores": {
+        "inflacao_ipc": {
+            "label": "Inflação (IPC)",
+            "valor": 2.4,
+            "unidade": "Percentagem",
+            "data_referencia": "2025-06-30"
+        },
+        "euribor_12m": {
+            "label": "Taxa Euribor a 12 meses",
+            "valor": 1.89,
+            "unidade": "Percentagem",
+            "data_referencia": "2025-06-30"
+        },
+        "precos_habitacao": {
+            "label": "Preços Habitação (Var. Homóloga)",
+            "valor": 17.0,
+            "unidade": "Percentagem",
+            "data_referencia": "2025-03-31"
+        },
+        "divida_publica": {
+            "label": "Dívida Pública",
+            "valor": -3.08,
+            "unidade": "Percentagem",
+            "data_referencia": "2025-03-31"
+        },
+        "pib": {
+            "label": "PIB (Produto Interno Bruto)",
+            "valor": 0.93,
+            "unidade": "Percentagem",
+            "data_referencia": "2024-12-31"
+        },
+        "desemprego": {
+            "label": "Taxa de Desemprego",
+            "valor": 6.6,
+            "unidade": "Percentagem",
+            "data_referencia": "2025-03-31"
+        },
+        "confianca_consumidores": {
+            "label": "Confiança dos Consumidores",
+            "valor": -16.0,
+            "unidade": "%",
+            "data_referencia": "2025-06-30"
+        }
+    }
+}
