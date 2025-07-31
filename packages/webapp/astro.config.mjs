@@ -1,11 +1,11 @@
 // astro.config.mjs
 import { defineConfig } from 'astro/config';
-import react    from '@astrojs/react';
-import tailwind from '@astrojs/tailwind';
-import sitemap  from '@astrojs/sitemap';
+import react      from '@astrojs/react';
+import tailwind   from '@astrojs/tailwind';
+import sitemap    from '@astrojs/sitemap';
 
 /* ──────────────── Constantes ──────────────── */
-const SITE_URL = 'https://www.ativos.pt';               // domínio final (obrigatório)
+const SITE_URL = 'https://www.ativos.pt';
 const TODAY    = new Date().toISOString().split('T')[0]; // AAAA-MM-DD
 
 /* ─────────────── Configuração ─────────────── */
@@ -18,19 +18,19 @@ export default defineConfig({
 
     /* Sitemap v4 – gera sitemap-index.xml + sub-sitemaps */
     sitemap({
-      changefreq: 'weekly',   // valor por defeito
-      priority:   0.7,        // valor por defeito
+      changefreq: 'weekly', // valor por defeito
+      priority:   0.7,       // valor por defeito
 
-      /** 
-       * `entry` chega como string com URL absoluto (porque `site` está definido).
-       * Basta devolvê-lo com os meta-dados extra que quisermos.
+      /**
+       * `entry` é um objeto que contém o URL e outras propriedades.
+       * Acedemos a `entry.url` para obter o URL correto.
        */
       serialize(entry) {
         return {
-          url:       entry,   // URL correcto
-          lastmod:   TODAY,   // mesma data p/ todas (podes evoluir depois)
+          url:      entry.url, // <-- A CORREÇÃO ESTÁ AQUI
+          lastmod:  TODAY,
           changefreq:'weekly',
-          priority:  0.7,
+          priority: 0.7,
         };
       },
     }),
@@ -40,11 +40,11 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: {
-        'better-sqlite3': false,   // torna-se “falso” no bundle de browser
+        'better-sqlite3': false,
       },
     },
     ssr: {
-      external: ['better-sqlite3'], // continua disponível no build/SSR
+      external: ['better-sqlite3'],
     },
   },
 });
