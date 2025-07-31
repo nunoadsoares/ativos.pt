@@ -2,6 +2,7 @@ name: Update Economic Data
 
 on:
   schedule:
+    # corre todos os dias às 07:00 UTC (08:00 em Portugal continental no inverno, 07:00 no verão)
     - cron: '0 7 * * *'
   workflow_dispatch:
 
@@ -10,26 +11,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GH_PAT }}
+      # 1. Clona o repositório manualmente com GH_PAT (em vez de actions/checkout)
+      - name: Git clone com autenticação via GH_PAT
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git clone https://x-access-token:${GH_PAT}@github.com/nunoadsoares/ativos.pt.git .
+          git config --global user.name "Ativos.pt Data Bot"
+          git config --global user.email "bot@users.noreply.github.com"
 
+      # 2. Passo de debug para confirmar que GH_PAT foi injetado
+      - name: Verificar se GH_PAT está presente
+        run: echo "${{ secrets.GH_PAT != '' && '✅ GH_PAT is set' || '❌ GH_PAT is empty or not found' }}"
+
+      # 3. Prepara o Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # 4. Instala dependências do data-worker
       - name: Install dependencies
         run: pip install -r ./packages/data-worker/requirements.txt
 
+      # 5. Executa TODOS os extractores (macro + mortgage + futuros)
       - name: Run Data Worker
         run: python ./packages/data-worker/update_all.py
 
+      # 6. Faz commit/push apenas se houve alterações nos ficheiros de dados
       - name: Commit and push if data changed
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          git config --global user.name "Ativos.pt Data Bot"
-          git config --global user.email "bot@users.noreply.github.com"
           git add -A
           git diff --staged --quiet || git commit -m "Data: Atualização automática dos indicadores"
-          git push origin HEAD
+          git push https://x-access-token:${GH_PAT}@github.com/nunoadsoares/ativos.pt.git HEAD
