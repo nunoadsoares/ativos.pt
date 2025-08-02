@@ -2,17 +2,16 @@
 import logoLight from '~/assets/logo.png';
 import logoDark  from '~/assets/logo_dark.png';
 
-/* Navegação principal (ordem = prioridade UX) */
+/* Navegação principal com estrutura de dropdown */
 const navLinks = [
-  { href: '/',              label: 'Início'        },
-  { href: '/simuladores',   label: 'Simuladores'   },
-  { href: '/guias-fiscais', label: 'Guias Fiscais' },
-  { href: '/ativos',        label: 'Ativos'        },
-  { href: '/plataformas',   label: 'Corretoras'    }
+  { href: '/ativos', label: 'Ativos' },
+  { href: '/imobiliario', label: 'Imobiliário' },
+  { href: '/simuladores', label: 'Simuladores' },
+  { href: '/plataformas', label: 'Corretoras' }
 ];
 
 /* Para destacar link activo */
-const current = Astro.url.pathname.replace(/\/+$/, ''); // remove trailing /
+const currentPath = Astro.url.pathname.replace(/\/+$/, '');
 ---
 <header id="main-header"
   class="
@@ -25,16 +24,17 @@ const current = Astro.url.pathname.replace(/\/+$/, ''); // remove trailing /
   ">
   <div class="flex items-center justify-between w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     
-    <!-- Logo -->
     <a href="/" class="flex items-center flex-shrink-0">
       <img src={logoLight.src} alt="Ativos.pt" class="h-10 w-auto dark:hidden" />
       <img src={logoDark.src}  alt="Ativos.pt" class="h-10 w-auto hidden dark:block" />
     </a>
 
-    <!-- Desktop nav -->
     <nav class="hidden md:flex md:items-center md:space-x-8">
       {navLinks.map(l => {
-        const isActive = current === l.href.replace(/\/+$/, '');
+        // Lógica de link ativo melhorada para apanhar sub-páginas
+        const isActive = l.href === '/' 
+          ? currentPath === '' 
+          : currentPath === l.href || currentPath.startsWith(l.href + '/');
         const classes  = isActive
           ? 'text-primary font-semibold'
           : 'text-gray-600 dark:text-gray-300 hover:text-primary';
@@ -44,19 +44,12 @@ const current = Astro.url.pathname.replace(/\/+$/, ''); // remove trailing /
       })}
     </nav>
 
-    <!-- Theme toggle + mobile button -->
     <div class="flex items-center md:space-x-2">
-
-      <!-- Tema -->
       <button id="theme-toggle" class="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:ring-2 focus:ring-primary">
         <span class="sr-only">Mudar tema</span>
-        <!-- Lua -->
         <svg id="icon-moon"  class="h-6 w-6 dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-        <!-- Sol -->
         <svg id="icon-sun"   class="h-6 w-6 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364l-1.414-1.414M6.05 6.05L4.636 4.636m14.728 0L18.364 6.05M6.05 17.95l-1.414 1.414M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
       </button>
-
-      <!-- Mobile menu -->
       <button id="menu-btn" class="md:hidden p-2 rounded-md text-gray-400 focus:ring-2 focus:ring-primary">
         <span class="sr-only">Menu</span>
         <svg id="menu-open"  class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -66,7 +59,6 @@ const current = Astro.url.pathname.replace(/\/+$/, ''); // remove trailing /
   </div>
 </header>
 
-<!-- Mobile drawer -->
 <nav id="mobile-drawer" class="md:hidden hidden fixed top-24 left-0 w-full bg-white dark:bg-brand-dark z-40 border-t border-gray-200 dark:border-gray-700">
   <div class="px-4 py-4 space-y-2">
     {navLinks.map(l => (
@@ -77,7 +69,6 @@ const current = Astro.url.pathname.replace(/\/+$/, ''); // remove trailing /
   </div>
 </nav>
 
-<!-- Scripts -->
 <script>
   /* ─ Scroll shrink ─ */
   (() => {
@@ -96,7 +87,7 @@ const current = Astro.url.pathname.replace(/\/+$/, ''); // remove trailing /
   (() => {
     const btn   = document.getElementById('theme-toggle');
     const root  = document.documentElement;
-    const apply = theme => {
+    const apply = (theme: string) => {
       root.classList.toggle('dark', theme === 'dark');
       localStorage.setItem('theme', theme);
     };

@@ -1,63 +1,68 @@
+// packages/webapp/src/components/RatesCompareChart.tsx
 import { useEffect, useState } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 
+// Tipos de dados
 type Point = [string, number];
 interface Series { name: string; data: Point[] }
-
-const FILES = [
-  { code: 'taeg', label: 'TAEG' },
-  { code: 'tan',  label: 'TAN'  }
-];
+interface CondicoesCredito {
+  date: string;
+  tan_variavel?: number;
+  tan_fixa?: number;
+  tan_mista?: number;
+  montante_mediano?: number;
+}
 
 export default function RatesCompareChart() {
   const [series, setSeries] = useState<Series[]>([]);
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [isMobile, setIsMobile] = useState(false);
 
-  // Só acede a window/document no cliente
+  // Efeitos para tema e ecrã (mantêm-se iguais)
   useEffect(() => {
-    const isDarkMode = () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+    const isDarkMode = () => document.documentElement.classList.contains('dark');
     setTheme(isDarkMode() ? 'dark' : 'light');
-
-    const obs = typeof MutationObserver !== 'undefined'
-      ? new MutationObserver(() => setTheme(isDarkMode() ? 'dark' : 'light'))
-      : null;
-    obs?.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-
-    const handleResize = () => {
-      if (typeof window !== 'undefined') {
-        setIsMobile(window.innerWidth <= 768);
-      }
-    };
+    const obs = new MutationObserver(() => setTheme(isDarkMode() ? 'dark' : 'light'));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
     window.addEventListener('resize', handleResize);
-
     return () => {
-      obs?.disconnect();
+      obs.disconnect();
       window.removeEventListener('resize', handleResize);
     };
   }, []);
 
-  // Fetch CSV data
+  // --- LÓGICA DE FETCH ATUALIZADA ---
   useEffect(() => {
-    Promise.all(
-      FILES.map(({ code, label }) =>
-        fetch(`/data/interest_rate_${code}.csv`)
-          .then(r => r.text())
-          .then(txt => {
-            const rows = txt.trim().split('\n').slice(1);
-            const data: Point[] = rows
-              .map(line => line.split(','))
-              .filter(([, v]) => v !== '' && !isNaN(+v))
-              .map(([d, v]) => [d, parseFloat(v)]);
-            return { name: label, data };
-          })
-      )
-    ).then(setSeries);
+    // Promessa para buscar os dados da TAEG (do CSV antigo)
+    const fetchTaeg = fetch('/data/interest_rate_taeg.csv')
+      .then(r => r.text())
+      .then(txt => {
+        const rows = txt.trim().split('\n').slice(1);
+        const data: Point[] = rows
+          .map(line => line.split(','))
+          .filter(([, v]) => v && !isNaN(+v))
+          .map(([d, v]) => [d, parseFloat(v)]);
+        return { name: 'TAEG', data };
+      });
+
+    // Promessa para buscar os dados da TAN (do nosso NOVO JSON)
+    const fetchTan = fetch('/data/credito_habitacao_condicoes.json')
+      .then(r => r.json())
+      .then((jsonData: CondicoesCredito[]) => {
+        const data: Point[] = jsonData
+          .filter(row => row.tan_variavel !== null && typeof row.tan_variavel === 'number')
+          .map(row => [row.date, row.tan_variavel as number]);
+        // Usamos a TAN Variável como referência principal
+        return { name: 'TAN (Variável)', data };
+      });
+
+    // Executa ambas as promessas e junta os resultados
+    Promise.all([fetchTaeg, fetchTan]).then(results => {
+      setSeries(results.filter(s => s.data.length > 0)); // Filtra séries que possam vir vazias
+    });
   }, []);
 
   if (series.length === 0) {
@@ -88,7 +93,7 @@ export default function RatesCompareChart() {
     },
     tooltip: {
       theme,
-      style: { fontSize: '12px' }, // removido padding
+      style: { fontSize: '12px' },
       x: { format: 'yyyy-MM' },
     },
     legend: {
@@ -100,20 +105,6 @@ export default function RatesCompareChart() {
       itemMargin: { horizontal: 12, vertical: 6 },
     },
     grid: { borderColor: gridColor },
-    responsive: [
-      {
-        breakpoint: 768,
-        options: {
-          chart: { toolbar: { offsetY: 20 } },
-          legend: {
-            position: 'bottom',
-            offsetY: 10,
-            fontSize: '13px',
-            itemMargin: { horizontal: 12, vertical: 6 },
-          },
-        },
-      },
-    ],
   };
 
   return (

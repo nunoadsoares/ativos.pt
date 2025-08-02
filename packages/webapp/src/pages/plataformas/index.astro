@@ -24,8 +24,8 @@ const itemListSchema = {
 };
 ---
 <BaseLayout
-  title="Plataformas de Investimento"
-  description="Análise e comparação das melhores corretoras e plataformas para investir em Portugal."
+  title="Plataformas de Investimento e Corretoras em Portugal"
+  description="Análise e comparação das melhores corretoras e plataformas para investir em Portugal. Use as nossas ferramentas para escolher a melhor opção para si."
 >
   <Fragment slot="head">
     <script type="application/ld+json" is:inline set:html={JSON.stringify(itemListSchema)} />
@@ -34,21 +34,49 @@ const itemListSchema = {
   <main class="bg-gray-50 dark:bg-gray-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
       
-      <div class="text-center mb-12">
+      <div class="text-center mb-16">
         <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">
           Plataformas de Investimento
         </h1>
         <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
-          Encontre a corretora ideal para o seu perfil. Analisamos as melhores opções disponíveis em Portugal.
+          Encontre a corretora ideal para o seu perfil. Analisamos e comparamos as melhores opções disponíveis em Portugal.
         </p>
       </div>
 
+      <!-- NOVA SECÇÃO DE FERRAMENTAS EM DESTAQUE -->
+      <section class="mb-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Card Comparador de Corretoras -->
+        <a href="/plataformas/comparar" class="group block bg-white dark:bg-gray-800/60 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/20">
+          <div class="flex items-center gap-4">
+            <div class="flex-shrink-0 h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M12 3v18"/><path d="M3 12h18"/></svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-primary">Comparador de Corretoras</h2>
+          </div>
+          <p class="mt-4 text-gray-600 dark:text-gray-300">
+            Compare lado a lado as características, taxas, regulação e segurança das principais corretoras. A ferramenta essencial para fazer a escolha certa.
+          </p>
+        </a>
+        <!-- Card Simulador de Custos -->
+        <a href="/simuladores/comparador-custos" class="group block bg-white dark:bg-gray-800/60 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/20">
+          <div class="flex items-center gap-4">
+            <div class="flex-shrink-0 h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M12 3v18"/><path d="M17 5.108a5 5 0 0 0-10 0"/><path d="M7 18.892a5 5 0 0 0 10 0"/></svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-primary">Simulador de Custos</h2>
+          </div>
+          <p class="mt-4 text-gray-600 dark:text-gray-300">
+            Descubra quanto vai pagar em comissões. Simule um investimento e veja os custos anuais estimados em cada corretora para o seu perfil.
+          </p>
+        </a>
+      </section>
+
+      <!-- GRELHA DE CORRETORAS -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {todasPlataformas.map((plataforma) => (
-          <div class="group flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 transition-all duration-300 ease-in-out border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="group flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden hover:border-primary dark:hover:border-primary">
             <div class="p-6 flex-grow">
               <div class="flex items-center gap-4 mb-4">
-                {/* ALTERAÇÃO: Tamanho do logo ainda mais pequeno para garantir que a mudança é visível */}
                 <img src={plataforma.data.logo} alt={`Logo ${plataforma.data.nome}`} class="h-10 w-10 rounded-full object-contain bg-white p-1 shadow-md" />
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                   {plataforma.data.nome}
@@ -61,19 +89,19 @@ const itemListSchema = {
             <div class="p-6 pt-0 mt-auto">
               <div class="flex items-center space-x-4">
                  <a 
-                  href={`/plataformas/${plataforma.slug}/`} 
-                  class="w-full text-center px-4 py-2 rounded-md text-sm font-medium text-primary dark:text-gray-300 border border-primary hover:bg-primary/10 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Ler Análise
-                </a>
+                   href={`/plataformas/${plataforma.slug}/`} 
+                   class="w-full text-center px-4 py-2 rounded-md text-sm font-medium text-primary dark:text-gray-300 border border-primary hover:bg-primary/10 dark:hover:bg-gray-700 transition-colors"
+                 >
+                   Ler Análise
+                 </a>
                  <a 
-                  href={plataforma.data.url_afiliado}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  class="w-full text-center px-4 py-2 rounded-md text-sm font-medium text-white bg-primary hover:opacity-90 transition-opacity"
-                >
-                  Abrir Conta
-                </a>
+                   href={plataforma.data.url_afiliado}
+                   target="_blank"
+                   rel="noopener noreferrer nofollow"
+                   class="w-full text-center px-4 py-2 rounded-md text-sm font-medium text-white bg-primary hover:opacity-90 transition-opacity"
+                 >
+                   Abrir Conta
+                 </a>
               </div>
             </div>
           </div>

@@ -3,14 +3,14 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 import CheckboxCard from '~/components/CheckboxCard.astro';
 
-const brokers = await getCollection('plataformas'); // slug + data
+const brokers = await getCollection('plataformas');
 ---
 
 <BaseLayout title="Comparador de Corretoras" description="Compare corretoras: taxas, segurança, fiscalidade e mais.">
   <article class="max-w-4xl mx-auto py-12 px-4">
     <h1 class="text-4xl md:text-6xl font-extrabold text-center mb-12">Comparador de Corretoras</h1>
     <p class="text-center text-gray-500 dark:text-gray-400 mb-8">
-      Escolhe até 4 corretoras para comparar:
+      Escolha até 4 corretoras para comparar lado a lado:
     </p>
 
     <form id="compare-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
@@ -42,7 +42,7 @@ const brokers = await getCollection('plataformas'); // slug + data
       e.preventDefault();
       const checked = [...form.querySelectorAll('input[type="checkbox"]:checked')].map(i => i.value);
       if (checked.length < 2) {
-        alert('Seleciona pelo menos 2 corretoras.');
+        alert('Selecione pelo menos 2 corretoras.');
         return;
       }
       if (checked.length > 4) {
@@ -50,7 +50,9 @@ const brokers = await getCollection('plataformas'); // slug + data
         return;
       }
       const path = checked.sort().join('-vs-');
-      window.location.href = `/comparar/${path}`;
+      
+      // --- CORREÇÃO DO URL ---
+      window.location.href = `/plataformas/comparar/${path}`;
     });
   </script>
 </BaseLayout>

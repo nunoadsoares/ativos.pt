@@ -1,0 +1,57 @@
+---
+// Ficheiro: packages/webapp/src/pages/cambios/comparar.astro
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import CheckboxCard from '~/components/CheckboxCard.astro';
+
+const currencies = [
+  { label: 'Dólar (USD)', value: 'usd' },
+  { label: 'Libra (GBP)', value: 'gbp' },
+  { label: 'Franco Suíço (CHF)', value: 'chf' },
+  { label: 'Dólar Canadiano (CAD)', value: 'cad' },
+  { label: 'Dólar Australiano (AUD)', value: 'aud' },
+  { label: 'Yuan Chinês (CNY)', value: 'cny' },
+  { label: 'Real Brasileiro (BRL)', value: 'brl' },
+];
+const canonical = new URL('/cambios/comparar', Astro.site!).href;
+---
+
+<BaseLayout
+  title="Comparador de Taxas de Câmbio"
+  description="Selecione as moedas que pretende comparar face ao Euro (EUR) e visualize a sua evolução histórica num gráfico dinâmico."
+>
+  <article class="max-w-4xl mx-auto py-12 px-4 text-center">
+    <a href="/cambios" class="flex items-center justify-center gap-2 text-primary font-semibold mb-8 hover:underline">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
+        Voltar ao Observatório
+    </a>
+    <h1 class="text-4xl md:text-6xl font-extrabold mb-4">Comparador de Câmbios</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-10">
+      Selecione 2 ou mais moedas para comparar a sua cotação face ao Euro.
+    </p>
+
+    <form id="exchange-form" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
+      {currencies.map(c => (
+        <CheckboxCard value={c.value} label={c.label} />
+      ))}
+    </form>
+
+    <button
+      id="compare-btn"
+      class="bg-primary text-white font-bold py-3 px-8 rounded-full hover:opacity-90 transition-opacity"
+    >
+      Comparar Moedas
+    </button>
+  </article>
+
+  <script is:inline>
+    const form = document.getElementById('exchange-form');
+    const btn  = document.getElementById('compare-btn');
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      const sel = [...form.querySelectorAll('input[type="checkbox"]:checked')].map(i => i.value);
+      if (sel.length < 2) { alert('Selecione pelo menos 2 moedas para comparar.'); return; }
+      
+      window.location.href = `/cambios/${sel.join('-vs-')}`;
+    });
+  </script>
+</BaseLayout>

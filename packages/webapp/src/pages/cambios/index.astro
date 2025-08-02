@@ -1,0 +1,140 @@
+---
+// Ficheiro: packages/webapp/src/pages/cambios/index.astro
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import ExchangeRatesChart from '~/components/ExchangeRatesChart.tsx';
+
+interface ExchangeRateData {
+  date: string;
+  usd?: number;
+  gbp?: number;
+  chf?: number;
+}
+
+let kpis = {
+  usd: { value: 'N/D', trend: 0 },
+  gbp: { value: 'N/D', trend: 0 },
+  chf: { value: 'N/D', trend: 0 },
+};
+let latestDate = "data indisponível";
+
+try {
+  const data: ExchangeRateData[] = await import('../../../public/data/exchange_rates_monthly.json').then(m => m.default);
+  if (data.length >= 2) {
+    const last = data[data.length - 1];
+    const secondLast = data[data.length - 2];
+    latestDate = new Date(last.date!).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+
+    kpis.usd.value = last.usd?.toFixed(3) ?? 'N/D';
+    kpis.usd.trend = (last.usd ?? 0) - (secondLast.usd ?? 0);
+    
+    kpis.gbp.value = last.gbp?.toFixed(3) ?? 'N/D';
+    kpis.gbp.trend = (last.gbp ?? 0) - (secondLast.gbp ?? 0);
+
+    kpis.chf.value = last.chf?.toFixed(3) ?? 'N/D';
+    kpis.chf.trend = (last.chf ?? 0) - (secondLast.chf ?? 0);
+  }
+} catch (e) {
+  console.error("Falha ao carregar dados de câmbios:", e);
+}
+
+const trendColor = (trend: number) => {
+  if (trend > 0.0001) return 'text-green-600 dark:text-green-400';
+  if (trend < -0.0001) return 'text-red-600 dark:text-red-400';
+  return 'text-gray-500';
+};
+const trendIcon = (trend: number) => {
+    if (trend > 0.0001) return '▲';
+    if (trend < -0.0001) return '▼';
+    return '–';
+}
+
+const title = "Taxas de Câmbio (EUR) | Observatório Ativos.pt";
+const description = `Cotação do Euro face às principais moedas mundiais. Acompanhe a evolução mensal do Dólar (USD), Libra (GBP), Franco Suíço (CHF) e mais. Último valor EUR/USD: ${kpis.usd.value}.`;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+
+const faqSchema = {
+    "@context":"https://schema.org","@type":"FAQPage",
+    "mainEntity":[
+        {"@type":"Question","name":"O que é uma taxa de câmbio?","acceptedAnswer":{"@type":"Answer","text":"Uma taxa de câmbio é o preço de uma moeda expresso noutra moeda. Por exemplo, se a taxa EUR/USD for 1.07, significa que 1 Euro vale 1.07 Dólares Americanos."}},
+        {"@type":"Question","name":"O que significa quando a taxa EUR/USD sobe?","acceptedAnswer":{"@type":"Answer","text":"Quando a taxa EUR/USD sobe, significa que o Euro está a valorizar face ao Dólar. Com 1 Euro, consegue comprar mais Dólares. Isto é favorável para quem viaja da Europa para os EUA, mas pode encarecer as exportações europeias."}},
+        {"@type":"Question","name":"Porque é que as taxas de câmbio mudam?","acceptedAnswer":{"@type":"Answer","text":"As taxas de câmbio flutuam constantemente devido a uma variedade de fatores, incluindo as taxas de juro definidas pelos bancos centrais, a inflação, a estabilidade política e económica de um país, e a procura e oferta nos mercados cambiais."}}
+    ]
+};
+---
+
+<BaseLayout {title} {description} {canonical}>
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+  </Fragment>
+
+  <article class="max-w-6xl mx-auto py-12 px-4 space-y-12">
+    <header class="text-center">
+      <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white">
+        Observatório de Taxas de Câmbio
+      </h1>
+      <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+        A cotação do Euro face às principais moedas mundiais.
+      </p>
+    </header>
+
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+      <div class="p-6 bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h2 class="text-sm font-bold uppercase text-gray-500 tracking-widest">Euro / Dólar (USD)</h2>
+        <p class="text-4xl font-extrabold text-gray-900 dark:text-white my-2">{kpis.usd.value}</p>
+        <p class:list={["text-sm font-semibold", trendColor(kpis.usd.trend)]}>
+          {trendIcon(kpis.usd.trend)} {kpis.usd.trend.toFixed(4)}
+        </p>
+      </div>
+      <div class="p-6 bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h2 class="text-sm font-bold uppercase text-gray-500 tracking-widest">Euro / Libra (GBP)</h2>
+        <p class="text-4xl font-extrabold text-gray-900 dark:text-white my-2">{kpis.gbp.value}</p>
+        <p class:list={["text-sm font-semibold", trendColor(kpis.gbp.trend)]}>
+          {trendIcon(kpis.gbp.trend)} {kpis.gbp.trend.toFixed(4)}
+        </p>
+      </div>
+      <div class="p-6 bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h2 class="text-sm font-bold uppercase text-gray-500 tracking-widest">Euro / Franco Suíço (CHF)</h2>
+        <p class="text-4xl font-extrabold text-gray-900 dark:text-white my-2">{kpis.chf.value}</p>
+        <p class:list={["text-sm font-semibold", trendColor(kpis.chf.trend)]}>
+          {trendIcon(kpis.chf.trend)} {kpis.chf.trend.toFixed(4)}
+        </p>
+      </div>
+      <p class="md:col-span-3 text-xs text-gray-500 dark:text-gray-400 mt-2">Câmbio de fim de mês. Última atualização: {latestDate}</p>
+    </section>
+
+    <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
+      <h2 class="text-2xl font-bold text-center mb-4">Evolução Histórica vs EUR</h2>
+      <ExchangeRatesChart client:only="react" />
+    </section>
+    
+    <section class="text-center">
+      <a href="/cambios/comparar" class="inline-block bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition-transform">
+        Criar Comparação Personalizada
+      </a>
+    </section>
+
+    <section class="pt-8 border-t border-gray-200 dark:border-gray-700">
+      <h2 class="text-3xl font-bold text-center mb-8">Como Interpretar Estes Dados</h2>
+      <div class="max-w-3xl mx-auto space-y-4">
+        <details class="group p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer">
+          <summary class="flex items-center justify-between font-semibold text-lg text-gray-900 dark:text-white">
+            O que é uma taxa de câmbio?
+            <span class="transform transition-transform duration-300 group-open:rotate-180">▼</span>
+          </summary>
+          <p class="mt-4 text-gray-600 dark:text-gray-300">
+            Uma taxa de câmbio é o preço de uma moeda expresso noutra. Por exemplo, se a taxa EUR/USD for 1.07, significa que 1 Euro compra 1.07 Dólares Americanos. Todos os valores mostrados são em relação a 1 Euro.
+          </p>
+        </details>
+        <details class="group p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer">
+          <summary class="flex items-center justify-between font-semibold text-lg text-gray-900 dark:text-white">
+            O que significa quando a taxa sobe ou desce?
+            <span class="transform transition-transform duration-300 group-open:rotate-180">▼</span>
+          </summary>
+          <p class="mt-4 text-gray-600 dark:text-gray-300">
+            Quando a taxa <strong>sobe</strong>, significa que o Euro está a <strong>valorizar</strong> (está mais forte) face a essa moeda. Quando a taxa <strong>desce</strong>, o Euro está a <strong>desvalorizar</strong> (está mais fraco).
+          </p>
+        </details>
+      </div>
+    </section>
+  </article>
+</BaseLayout>

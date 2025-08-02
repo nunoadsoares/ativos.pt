@@ -1,0 +1,62 @@
+---
+// Ficheiro: packages/webapp/src/pages/cambios/[...pares].astro
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import ExchangeRatesChart from '~/components/ExchangeRatesChart.tsx';
+
+// --- LÓGICA PARA GERAR TODAS AS PÁGINAS ---
+export async function getStaticPaths() {
+  // --- CORREÇÃO AQUI: Definir a constante DENTRO da função ---
+  const CODES = ['usd', 'gbp', 'chf', 'cad', 'aud', 'cny', 'brl'];
+  const combinations: string[] = [];
+  
+  // Gera combinações de 2 até ao total de moedas
+  for (let i = 2; i <= CODES.length; i++) {
+    function generate(startIndex: number, combo: string[]) {
+      if (combo.length === i) {
+        combinations.push(combo.join('-vs-'));
+        return;
+      }
+      for (let j = startIndex; j < CODES.length; j++) {
+        combo.push(CODES[j]);
+        generate(j + 1, combo);
+        combo.pop();
+      }
+    }
+    generate(0, []);
+  }
+  return combinations.map(c => ({ params: { pares: c } }));
+}
+
+// --- LÓGICA DA PÁGINA ---
+const { pares } = Astro.params;
+const selectedCurrencies = pares!.split('-vs-');
+
+const currencyNames: Record<string, string> = {
+  usd: 'Dólar (USD)', gbp: 'Libra (GBP)', chf: 'Franco Suíço (CHF)',
+  cad: 'Dólar Canadiano (CAD)', aud: 'Dólar Australiano (AUD)',
+  cny: 'Yuan Chinês (CNY)', brl: 'Real Brasileiro (BRL)',
+};
+
+const pageTitle = `Comparar Câmbio: ${selectedCurrencies.map(c => currencyNames[c]).join(' vs ')}`;
+const pageDescription = `Comparação da cotação do Euro face a ${selectedCurrencies.map(c => currencyNames[c]).join(', ')}. Gráfico com a evolução histórica mensal dos últimos 10 anos.`;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+---
+
+<BaseLayout title={pageTitle} description={pageDescription} canonical={canonical}>
+  <article class="max-w-6xl mx-auto py-12 px-4 space-y-8">
+    <header class="text-center">
+        <a href="/cambios/comparar" class="flex items-center justify-center gap-2 text-primary font-semibold mb-4 hover:underline">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
+            Escolher outras moedas
+        </a>
+      <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white">
+        {pageTitle}
+      </h1>
+    </header>
+
+    <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
+      <h2 class="text-2xl font-bold text-center mb-4">Evolução Histórica vs EUR (Últimos 10 Anos)</h2>
+      <ExchangeRatesChart client:only="react" periods={selectedCurrencies} />
+    </section>
+  </article>
+</BaseLayout>

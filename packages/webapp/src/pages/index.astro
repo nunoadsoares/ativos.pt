@@ -5,63 +5,61 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 
 export const prerender = true;
 
-/* ───────────────────────────────────────────
-    › Coleções
-    ─────────────────────────────────────────── */
-type AtivoEntry      = CollectionEntry<'ativos'>;
-type PlataformaEntry = CollectionEntry<'plataformas'>;
-type GuiaEntry       = CollectionEntry<'fiscais'>;
+// --- DADOS PARA OS KPIS DA HOMEPAGE ---
+let housingKpi = { value: 0 };
+let tanInfo = { value: 'N/D' };
+let exchangeInfo = { value: 'N/D' };
+let riskInfo = { value: 'N/D' };
 
-const [todosAtivos, plataformas, guiasFiscais] = await Promise.all([
-  getCollection('ativos'),
-  getCollection('plataformas'),
-  getCollection('fiscais')
+try {
+  // Carrega todos os JSONs necessários em paralelo
+  const [housing, conditions, exchange, risk] = await Promise.all([
+    import('../../public/data-housing-kpi.json').then(m => m.default),
+    import('../../public/data/credito_habitacao_condicoes.json').then(m => m.default),
+    import('../../public/data/exchange_rates_monthly.json').then(m => m.default),
+    import('../../public/data/map_default_risk.json').then(m => m.default),
+  ]);
+
+  // KPI: Preço Habitação
+  housingKpi.value = housing.value ?? 0;
+
+  // KPI: TAN Variável
+  if (conditions.length > 0) {
+    tanInfo.value = conditions[conditions.length - 1].tan_variavel?.toFixed(2) ?? 'N/D';
+  }
+  
+  // KPI: Câmbio EUR/USD
+  if (exchange.length > 0) {
+      exchangeInfo.value = exchange[exchange.length - 1].usd?.toFixed(3) ?? 'N/D';
+  }
+
+  // KPI: Risco de Crédito Máximo
+  const validRegions = Object.values(risk).filter((r: any) => r && typeof r.value === 'number');
+  if (validRegions.length > 0) {
+    validRegions.sort((a: any, b: any) => b.value - a.value);
+    riskInfo.value = (validRegions[0] as any).value.toFixed(2);
+  }
+
+} catch (e) {
+  console.error("Falha ao carregar KPIs para a homepage:", e);
+}
+
+// --- COLEÇÕES DE CONTEÚDO ---
+const [guiasFiscais, plataformas] = await Promise.all([
+  getCollection('fiscais'),
+  getCollection('plataformas')
 ]);
 
-/* Destaques (6 itens) */
-const ativosDestaque     = todosAtivos.slice(0, 6);
-const plataformasDestaque = plataformas.slice(0, 6);
-const guiasFiscaisDestaque = guiasFiscais.slice(0, 4);
+const guiasFiscaisDestaque = guiasFiscais.slice(0, 3);
+const plataformasDestaque = plataformas.slice(0, 3);
 
-/* ───────────────────────────────────────────
-    › Simuladores (atualizados)
-    ─────────────────────────────────────────── */
 const simuladores = [
-  {
-    slug: 'salario-liquido',
-    titulo: 'Salário Líquido 2025',
-    desc: 'Calcula retenção, SS e deduções mensais.',
-    emoji: '💶'
-  },
-  {
-    slug: 'englobamento-mais-valias',
-    titulo: 'Englobamento de Mais-Valias',
-    desc: 'Compara taxa liberatória vs englobar rendimentos.',
-    emoji: '🧾'
-  },
-  {
-    slug: 'comparador-custos',
-    titulo: 'Comparador de Custos',
-    desc: 'Comissões, câmbios e custódias das corretoras.',
-    emoji: '💸'
-  },
-  {
-    slug: 'mais-valias',
-    titulo: 'Mais-Valias de Ações & ETFs',
-    desc: 'Apura imposto a pagar, com regra FIFO e correção.',
-    emoji: '📈'
-  },
-  {
-    slug: 'yield-arrendamento',
-    titulo: 'Yield de Arrendamento',
-    desc: 'Compara yield bruta vs líquida e simula impostos.',
-    emoji: '🏠'
-  }
+  { slug: 'salario-liquido', titulo: 'Salário Líquido 2025', desc: 'Calcula retenção, SS e deduções.', emoji: '💶' },
+  { slug: 'englobamento-mais-valias', titulo: 'Englobamento de Mais-Valias', desc: 'Compara taxa liberatória vs englobar.', emoji: '🧾' },
+  { slug: 'mais-valias', titulo: 'Mais-Valias de Ações & ETFs', desc: 'Apura imposto a pagar, com regra FIFO.', emoji: '📈' },
 ];
 
-/* ─────────────────────────────────────────── */
-
-/* FAQ JSON-LD (mantido) */
+// --- FAQ SCHEMA RESTAURADO ---
 const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -112,7 +110,7 @@ const faqSchema = {
 
   <main class="bg-gray-50 dark:bg-brand-dark">
 
-    <!-- HERO -->
+    <!-- HERO E DASHBOARD DE KPIS -->
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-20 text-center">
       <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
         Investir em Portugal, <span class="text-primary">com Dados</span>
@@ -121,152 +119,134 @@ const faqSchema = {
         Indicadores chave, simuladores práticos e guias fiscais atualizados. Tome decisões com dados, não palpites.
       </p>
 
-      <div class="mt-10 flex flex-wrap justify-center gap-4">
-        <a href="/comparar" class="bg-primary text-white font-semibold py-3 px-8 rounded-full hover:opacity-90 transition">
-          Comparar Corretoras
+      <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+        <a href="/imobiliario/precos-habitacao" class="block bg-white/70 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition">
+            <h3 class="text-sm font-semibold text-gray-500">Preço Habitação</h3>
+            <p class:list={["text-2xl font-bold mt-1", housingKpi.value > 0 ? "text-red-500" : "text-green-500"]}>
+                {housingKpi.value > 0 ? '+' : ''}{housingKpi.value}%
+            </p>
         </a>
-        <a href="/simuladores" class="bg-white dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-semibold py-3 px-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-          Ver Simuladores
+        <a href="/imobiliario/condicoes-credito" class="block bg-white/70 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition">
+            <h3 class="text-sm font-semibold text-gray-500">TAN Crédito</h3>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{tanInfo.value}%</p>
+        </a>
+        <a href="/cambios" class="block bg-white/70 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition">
+            <h3 class="text-sm font-semibold text-gray-500">EUR / USD</h3>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{exchangeInfo.value}</p>
+        </a>
+        <a href="/imobiliario/risco-incumprimento" class="block bg-white/70 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition">
+            <h3 class="text-sm font-semibold text-gray-500">Risco Máximo</h3>
+            <p class="text-2xl font-bold text-red-500 mt-1">{riskInfo.value}%</p>
         </a>
       </div>
     </section>
     
-    <!-- SIMULADORES -->
+    <!-- OBSERVATÓRIOS E FERRAMENTAS -->
     <section class="bg-white dark:bg-gray-900/40 py-16">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-10">
-          Simuladores & Calculadoras
-        </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {simuladores.map((s) => (
-            <a href={`/simuladores/${s.slug}`} class="block group bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-shadow">
-              <div class="text-4xl mb-4">{s.emoji}</div>
-              <h3 class="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                {s.titulo}
-              </h3>
-              <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{s.desc}</p>
-              <span class="inline-block mt-4 text-primary text-sm font-semibold">Abrir →</span>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-5 gap-12">
+        
+        <div class="lg:col-span-3">
+          <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Observatórios de Mercado</h2>
+          <div class="space-y-6">
+            <a href="/imobiliario" class="block group bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary">Imobiliário</h3>
+              <p class="mt-2 text-gray-600 dark:text-gray-400">Preços, Custo do Crédito (TAN/TAEG), Risco de Incumprimento e mais.</p>
             </a>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <!-- HUB IMOBILIÁRIO - NOVO CTA com estilo de cartão -->
-    <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div class="flex flex-col md:flex-row items-center justify-between gap-8 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-3xl p-8 md:p-14 shadow-xl">
-        <div class="flex items-center gap-6">
-          <div class="flex-shrink-0 w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house text-primary"><path d="M12 22V8.3L19 3 22 5V18H15V13H9V18H2V5L5 3L12 8.3Z" /></svg>
-          </div>
-          <div>
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              O Observatório do Mercado Imobiliário
-            </h2>
-            <p class="text-base text-gray-600 dark:text-gray-300">
-              Acompanhe dados oficiais sobre preços de habitação, custo dos créditos (TAEG/TAN) e risco de incumprimento em Portugal.
-            </p>
+            <a href="/euribor" class="block group bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary">Taxas Euribor</h3>
+              <p class="mt-2 text-gray-600 dark:text-gray-400">A evolução mensal das taxas que definem o seu crédito habitação.</p>
+            </a>
+            <a href="/cambios" class="block group bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary">Taxas de Câmbio</h3>
+              <p class="mt-2 text-gray-600 dark:text-gray-400">A cotação do Euro (EUR) face ao Dólar (USD), Libra (GBP) e outras moedas.</p>
+            </a>
           </div>
         </div>
-        <a
-          href="/imobiliario"
-          class="inline-block text-center font-bold bg-primary text-white rounded-full py-3 px-8 hover:opacity-90 transition transform hover:-translate-y-1"
-        >
-          Ver Indicadores
-        </a>
-      </div>
-    </section>
 
-    <!-- GUIAS FISCAIS -->
-    <section class="bg-gray-100 dark:bg-gray-800/40 py-16">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Guias Fiscais em Destaque</h2>
-          <p class="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Explicações passo a passo sobre tributação de investimentos no IRS — atualizadas para 2025.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-8">
-          {guiasFiscaisDestaque.map((g) => (
-            <a href={`/guias-fiscais/${g.slug}`} class="group block bg-white dark:bg-gray-800/60 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition">
-              <h3 class="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                {g.data.title}
-              </h3>
-              <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{g.data.description}</p>
-              <span class="inline-block mt-4 text-primary text-sm font-semibold">Ler guia →</span>
-            </a>
-          ))}
-        </div>
-
-        <div class="text-center mt-10">
-          <a href="/guias-fiscais" class="inline-block text-primary underline font-semibold">Ver todos os guias →</a>
-        </div>
-      </div>
-    </section>
-
-    <!-- GLOSSÁRIO -->
-    <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Glossário de Ativos</h2>
-        <p class="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-          Entende os principais instrumentos de investimento: riscos, liquidez, prazo e tributação em Portugal.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {ativosDestaque.map((ativo) => (
-          <a href={`/ativos/${ativo.slug}/`} class="group block bg-white dark:bg-gray-800/60 rounded-xl shadow-md hover:shadow-xl transition border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div class="p-6">
-              <h3 class="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                {ativo.data.title}
-              </h3>
-              {ativo.data.subtitle && (
-                <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">{ativo.data.subtitle}</p>
-              )}
+        <div class="lg:col-span-2">
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Simuladores</h2>
+            <div class="space-y-4">
+                {simuladores.map((s) => (
+                    <a href={`/simuladores/${s.slug}`} class="flex items-center gap-4 group bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition">
+                        <div class="text-3xl">{s.emoji}</div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-white group-hover:text-primary">{s.titulo}</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">{s.desc}</p>
+                        </div>
+                    </a>
+                ))}
             </div>
-          </a>
-        ))}
-      </div>
-
-      <div class="text-center mt-10">
-        <a href="/ativos" class="inline-block text-primary underline font-semibold">Ver todos os ativos →</a>
+             <div class="mt-6">
+                <a href="/simuladores" class="text-primary font-semibold hover:underline">Ver todos os simuladores →</a>
+            </div>
+        </div>
       </div>
     </section>
 
-    <!-- CORRETORAS -->
-    <section class="bg-gray-100 dark:bg-gray-800/40 py-16">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Corretoras & Plataformas</h2>
-          <p class="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Análises detalhadas de plataformas de investimento: taxas, regulação e funcionalidades.
+    <!-- NOVA SECÇÃO DE RECURSOS COM DESIGN MELHORADO -->
+    <section class="bg-gray-100 dark:bg-gray-800/40 py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14">
+          <h2 class="text-4xl font-bold text-gray-900 dark:text-white">Recursos para o Investidor</h2>
+          <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Desde guias fiscais detalhados a análises de corretoras, temos a informação de que precisa para investir melhor.
           </p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {plataformasDestaque.map((p) => (
-            <a href={`/plataformas/${p.slug}`} class="group bg-white dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-md hover:shadow-xl transition">
-              <img src={p.data.logo} alt={p.data.nome} class="h-10 w-10 object-contain mb-4" />
-              <h3 class="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                {p.data.nome}
-              </h3>
-              <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{p.data.description}</p>
-              <span class="inline-block mt-4 text-primary text-sm font-semibold">Ver análise →</span>
-            </a>
-          ))}
-        </div>
-
-        <div class="text-center mt-10">
-          <a href="/plataformas" class="inline-block text-primary underline font-semibold">Ver todas as corretoras →</a>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+          <!-- Coluna Esquerda: Corretoras -->
+          <div class="bg-white dark:bg-gray-800/60 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Corretoras & Plataformas</h3>
+            <div class="space-y-4 flex-grow">
+              {plataformasDestaque.map((p) => (
+                  <a href={`/plataformas/${p.slug}`} class="flex items-center gap-4 group p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition">
+                      <img src={p.data.logo} alt={p.data.nome} class="h-10 w-10 object-contain rounded-full bg-white flex-shrink-0" />
+                      <div>
+                          <h4 class="font-bold text-gray-900 dark:text-white group-hover:text-primary">{p.data.nome}</h4>
+                          <p class="text-sm text-gray-600 dark:text-gray-400">{p.data.description}</p>
+                      </div>
+                  </a>
+              ))}
+            </div>
+            <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="/plataformas" class="block text-center font-bold bg-primary text-white rounded-full py-3 px-8 hover:opacity-90 transition transform hover:-translate-y-1">
+                    Ver Todas as Corretoras
+                </a>
+            </div>
+          </div>
+          
+          <!-- Coluna Direita: Guias Fiscais -->
+          <div class="bg-white dark:bg-gray-800/60 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Guias Fiscais Essenciais</h3>
+            <div class="space-y-4 flex-grow">
+             {guiasFiscaisDestaque.map((g) => (
+              <a href={`/guias-fiscais/${g.slug}`} class="flex items-start gap-4 group p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition">
+                <div class="flex-shrink-0 h-10 w-10 mt-1 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-900 dark:text-white group-hover:text-primary">{g.data.title}</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{g.data.description}</p>
+                </div>
+              </a>
+            ))}
+            </div>
+            <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="/guias-fiscais" class="block text-center font-bold bg-primary text-white rounded-full py-3 px-8 hover:opacity-90 transition transform hover:-translate-y-1">
+                    Ver Todos os Guias
+                </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- NEWSLETTER -->
+    <!-- NEWSLETTER RESTAURADA -->
     <section class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
       <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-        Recebe novidades e ferramentas novas
+        Receba novidades e ferramentas novas
       </h2>
       <p class="text-gray-600 dark:text-gray-400 mb-8">
         Enviamos apenas conteúdo útil: novos simuladores, comparações e alertas de oportunidades.
@@ -282,7 +262,7 @@ const faqSchema = {
           Subscrever
         </button>
       </form>
-      <p class="mt-3 text-xs text-gray-400">Sem spam. Podes cancelar quando quiseres.</p>
+      <p class="mt-3 text-xs text-gray-400">Sem spam. Pode cancelar quando quiseres.</p>
     </section>
   </main>
 </BaseLayout>

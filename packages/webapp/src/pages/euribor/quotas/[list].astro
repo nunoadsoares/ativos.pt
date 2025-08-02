@@ -42,7 +42,8 @@ type EuriborInfo = { code: string; label: string; value: string; date: string };
 const seriesInfo: EuriborInfo[] = [];
 for (const code of selectedCodes) {
   const filecode = fileMap[code];
-  const file = new URL(`../../../public/data/euribor_${filecode}_share.csv`, import.meta.url);
+  // O caminho relativo está correto, não precisa de alteração
+  const file = new URL(`../../../../public/data/euribor_${filecode}_share.csv`, import.meta.url);
   const txt  = await fs.readFile(file, 'utf8');
   const rows = txt.trim().split('\n');
   const [d, v] = rows[rows.length-1]?.split(',') ?? [];
@@ -54,8 +55,8 @@ for (const code of selectedCodes) {
   });
 }
 
-// canonical + FAQ
-const canonical = new URL(`/euribor/${list}`, Astro.site!).href;
+// canonical + FAQ (URL CORRIGIDO, como já tinhas)
+const canonical = new URL(`/euribor/quotas/${list}`, Astro.site!).href;
 const faqSchema = {
   "@context":"https://schema.org","@type":"FAQPage",
   "mainEntity":[
@@ -72,8 +73,8 @@ const faqSchema = {
 ---
 
 <BaseLayout
-  title={`Comparador Euribor Crédito à Habitação: ${seriesInfo.map(i => i.label).join(' vs ')}`}
-  description={`Comparação dinâmica das percentagens de novos contratos de crédito à habitação indexados à Euribor para os prazos selecionados: ${seriesInfo.map(i => `${i.label}: ${i.value}% (${i.date})`).join('; ')}`}
+  title={`Comparador Quota Euribor: ${seriesInfo.map(i => i.label).join(' vs ')}`}
+  description={`Comparação da quota de mercado dos novos créditos à habitação indexados à Euribor para os prazos: ${seriesInfo.map(i => `${i.label}: ${i.value}% (${i.date})`).join('; ')}`}
 >
   <Fragment slot="head">
     <link rel="canonical" href={canonical} />
@@ -82,10 +83,9 @@ const faqSchema = {
 
   <article class="max-w-5xl mx-auto py-12 px-4 space-y-8">
     <h1 class="text-4xl md:text-6xl font-extrabold text-center">
-      Comparador Euribor em Crédito à Habitação
+      Quota de Mercado da Euribor
     </h1>
 
-    <!-- Subtítulo prazos dinâmicos -->
     <div class="flex flex-wrap justify-center items-center gap-3 text-lg md:text-2xl font-bold text-primary mt-2 mb-2">
       {seriesInfo.map((s, idx) => (
         <>
@@ -96,7 +96,7 @@ const faqSchema = {
     </div>
 
     <p class="text-center text-lg text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
-      Nesta página é possível comparar a evolução histórica da <b>percentagem de novos contratos de crédito à habitação</b>. No Fundo a percentagem de contratos indexados à Euribor nos prazos selecionados acima.<br/>
+      Nesta página é possível comparar a evolução histórica da <b>percentagem de novos contratos de crédito à habitação</b> indexados a cada prazo da Euribor.<br/>
       <span class="block mt-2 text-base">
         <b>Últimos valores disponíveis:</b>
         {seriesInfo.map((s, i) => (
@@ -123,7 +123,7 @@ const faqSchema = {
     </div>
 
     <div class="text-center">
-      <a href="/euribor" class="text-primary underline">Selecionar outros prazos</a>
+      <a href="/euribor/quotas" class="text-primary underline">Selecionar outros prazos</a>
     </div>
   </article>
 </BaseLayout>
