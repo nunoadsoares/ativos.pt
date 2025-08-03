@@ -4,55 +4,77 @@ import { getCollection } from 'astro:content';
 import CheckboxCard from '~/components/CheckboxCard.astro';
 
 const brokers = await getCollection('plataformas');
+
+// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
+const howToSchema = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "Como Usar o Comparador de Corretoras do Ativos.pt",
+    "description": "Selecione entre 2 a 4 corretoras para comparar lado a lado as suas taxas, regulação, fiscalidade e principais características.",
+    "step": [
+        {
+            "@type": "HowToStep",
+            "name": "Selecionar Corretoras",
+            "text": "Navegue pela lista de corretoras disponíveis e marque as caixas de seleção daquelas que pretende comparar. Pode selecionar entre 2 e 4 corretoras."
+        },
+        {
+            "@type": "HowToStep",
+            "name": "Visualizar a Comparação",
+            "text": "Após fazer a sua seleção, clique no botão 'Comparar'. Será redirecionado para uma página com uma tabela detalhada, comparando todas as características das corretoras escolhidas."
+        }
+    ]
+};
 ---
 
 <BaseLayout title="Comparador de Corretoras" description="Compare corretoras: taxas, segurança, fiscalidade e mais.">
-  <article class="max-w-4xl mx-auto py-12 px-4">
-    <h1 class="text-4xl md:text-6xl font-extrabold text-center mb-12">Comparador de Corretoras</h1>
-    <p class="text-center text-gray-500 dark:text-gray-400 mb-8">
-      Escolha até 4 corretoras para comparar lado a lado:
-    </p>
+    <Fragment slot="head">
+        <meta name="robots" content="noindex,follow" />
+        {/* Adicionado o novo schema HowTo */}
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(howToSchema)} />
+    </Fragment>
 
-    <form id="compare-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-      {brokers.map(b => (
-        <CheckboxCard
-          value={b.slug}
-          label={b.data.nome}
-          logo={b.data.logo}
-        />
-      ))}
-    </form>
+    <article class="max-w-4xl mx-auto py-12 px-4">
+        <h1 class="text-4xl md:text-6xl font-extrabold text-center mb-12">Comparador de Corretoras</h1>
+        <p class="text-center text-gray-500 dark:text-gray-400 mb-8">
+            Escolha até 4 corretoras para comparar lado a lado:
+        </p>
 
-    <div class="text-center">
-      <button id="compare-btn" class="inline-block bg-primary text-white font-bold py-4 px-16 rounded-full text-xl hover:opacity-90 transition-all">
-        Comparar
-      </button>
-    </div>
-  </article>
+        <form id="compare-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+            {brokers.map(b => (
+                <CheckboxCard
+                    value={b.slug}
+                    label={b.data.nome}
+                    logo={b.data.logo}
+                />
+            ))}
+        </form>
 
-  <Fragment slot="head">
-    <meta name="robots" content="noindex,follow" />
-  </Fragment>
+        <div class="text-center">
+            <button id="compare-btn" class="inline-block bg-primary text-white font-bold py-4 px-16 rounded-full text-xl hover:opacity-90 transition-all">
+                Comparar
+            </button>
+        </div>
+    </article>
 
-  <script is:inline>
-    const btn = document.getElementById('compare-btn');
-    const form = document.getElementById('compare-form');
+    <script is:inline>
+        const btn = document.getElementById('compare-btn');
+        const form = document.getElementById('compare-form');
 
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const checked = [...form.querySelectorAll('input[type="checkbox"]:checked')].map(i => i.value);
-      if (checked.length < 2) {
-        alert('Selecione pelo menos 2 corretoras.');
-        return;
-      }
-      if (checked.length > 4) {
-        alert('Máximo 4 corretoras.');
-        return;
-      }
-      const path = checked.sort().join('-vs-');
-      
-      // --- CORREÇÃO DO URL ---
-      window.location.href = `/plataformas/comparar/${path}`;
-    });
-  </script>
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const checked = [...form.querySelectorAll('input[type="checkbox"]:checked')].map(i => i.value);
+            if (checked.length < 2) {
+                alert('Selecione pelo menos 2 corretoras.');
+                return;
+            }
+            if (checked.length > 4) {
+                alert('Máximo 4 corretoras.');
+                return;
+            }
+            const path = checked.sort().join('-vs-');
+            
+            // --- CORREÇÃO DO URL ---
+            window.location.href = `/plataformas/comparar/${path}`;
+        });
+    </script>
 </BaseLayout>

@@ -3,7 +3,8 @@ import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import PontosChave from '~/components/PontosChave.astro';
 import CountryFlag from '~/components/CountryFlag.astro';
-import JsonLD from '~/components/JsonLD.astro';
+// --- ALTERAÇÃO: Importar o novo componente de JSON-LD especializado ---
+import JsonLDReviewPlataforma from '~/components/JsonLDReviewPlataforma.astro';
 
 // 1) Rotas estáticas
 export async function getStaticPaths() {
@@ -27,15 +28,14 @@ const suggestions = all
   .slice(0, 2); // ajusta como quiseres
 ---
 <BaseLayout title={`Análise à ${data.nome}`} description={data.description}>
-  <!-- SEO extra -->
   <Fragment slot="head">
-    <JsonLD entry={entry} />
+    {/* --- ALTERAÇÃO: Usar o novo componente com o schema 'Review' --- */}
+    <JsonLDReviewPlataforma entry={entry} />
   </Fragment>
 
   <div class="bg-gray-50 dark:bg-brand-dark">
     <article class="max-w-4xl mx-auto py-12 sm:py-20 px-4">
 
-      <!-- Cabeçalho -->
       <header class="text-center mb-12">
         <img src={data.logo} alt={`Logo ${data.nome}`} class="h-28 w-28 rounded-full object-contain bg-white p-2 shadow-xl mx-auto mb-6" />
         <p class="text-lg font-semibold text-primary">Análise de Corretora</p>
@@ -44,39 +44,34 @@ const suggestions = all
         </h1>
       </header>
 
-      <!-- Pontos-Chave -->
       <PontosChave pontos={data.pontos_chave} />
 
-      <!-- Conteúdo Principal -->
       <div class="prose prose-lg dark:prose-invert mx-auto mt-16">
         <Content />
       </div>
 
-      <!-- Comparar com -->
       {suggestions.length > 0 && (
         <section class="mt-16 text-sm">
           <h3 class="font-bold mb-3">Comparar com:</h3>
           <ul class="space-y-1">
-            {suggestions.map((s) => {
-              const pair = [currentSlug, s.slug].sort().join('-vs-');
-              return (
-                <li>
-                  <a href={`/comparar/${pair}`} class="underline text-primary">
-                    {data.nome} vs {s.data.nome}
-                  </a>
-                </li>
-              );
-            })}
+            {suggestions.map((s) => (
+              <li>
+                <a 
+                  href={`/plataformas/comparar/${[currentSlug, s.slug].sort().join('-vs-')}`} 
+                  class="underline text-primary hover:opacity-80 transition-opacity"
+                >
+                  {data.nome} vs {s.data.nome}
+                </a>
+              </li>
+            ))}
           </ul>
         </section>
       )}
 
-      <!-- Ficha Técnica -->
       <section class="mt-20">
         <h2 class="text-4xl font-bold text-center mb-10 text-gray-900 dark:text-white">Ficha Técnica</h2>
         <div class="bg-white dark:bg-gray-800/50 p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 text-base">
-            <!-- Info Geral -->
             <div>
               <h3 class="font-bold mb-4 text-xl text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Informação Geral</h3>
               <dl class="space-y-4">
@@ -98,7 +93,6 @@ const suggestions = all
               </dl>
             </div>
 
-            <!-- Taxas -->
             <div>
               <h3 class="font-bold mb-4 text-xl text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Taxas Principais</h3>
               <dl class="space-y-4">
@@ -117,7 +111,6 @@ const suggestions = all
               </dl>
             </div>
 
-            <!-- Fiscal -->
             <div class="md:col-span-2">
               <h3 class="font-bold mb-4 text-xl text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Informação Fiscal (Portugal)</h3>
               <dl class="space-y-4">
@@ -139,7 +132,6 @@ const suggestions = all
         </div>
       </section>
 
-      <!-- CTA -->
       <section class="mt-20 text-center">
         <a href={data.url_afiliado} target="_blank" rel="noopener nofollow" class="inline-block bg-primary text-white font-bold py-4 px-12 rounded-full text-xl hover:opacity-90 transition-all duration-300 transform hover:scale-105">
           Abrir Conta na {data.nome}

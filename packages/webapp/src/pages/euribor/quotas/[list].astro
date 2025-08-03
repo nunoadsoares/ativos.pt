@@ -42,7 +42,6 @@ type EuriborInfo = { code: string; label: string; value: string; date: string };
 const seriesInfo: EuriborInfo[] = [];
 for (const code of selectedCodes) {
   const filecode = fileMap[code];
-  // O caminho relativo está correto, não precisa de alteração
   const file = new URL(`../../../../public/data/euribor_${filecode}_share.csv`, import.meta.url);
   const txt  = await fs.readFile(file, 'utf8');
   const rows = txt.trim().split('\n');
@@ -55,7 +54,6 @@ for (const code of selectedCodes) {
   });
 }
 
-// canonical + FAQ (URL CORRIGIDO, como já tinhas)
 const canonical = new URL(`/euribor/quotas/${list}`, Astro.site!).href;
 const faqSchema = {
   "@context":"https://schema.org","@type":"FAQPage",
@@ -70,6 +68,25 @@ const faqSchema = {
     }
   ]
 };
+
+// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
+const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": `Comparador de Quota de Mercado Euribor: ${seriesInfo.map(i => i.label).join(' vs ')}`,
+    "description": `Série de dados sobre a quota de mercado dos novos créditos à habitação em Portugal, indexados aos seguintes prazos da Euribor: ${seriesInfo.map(i => i.label).join(', ')}.`,
+    "url": canonical,
+    "keywords": [
+        "euribor", "quota de mercado", "crédito habitação", "comparador",
+        ...seriesInfo.map(i => i.label)
+    ],
+    "creator": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "url": Astro.site.href
+    },
+    "variableMeasured": "Percentagem de novos contratos de crédito à habitação por prazo da Euribor."
+};
 ---
 
 <BaseLayout
@@ -79,6 +96,8 @@ const faqSchema = {
   <Fragment slot="head">
     <link rel="canonical" href={canonical} />
     <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+    {/* Adicionado o novo schema de Dataset */}
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
   </Fragment>
 
   <article class="max-w-5xl mx-auto py-12 px-4 space-y-8">

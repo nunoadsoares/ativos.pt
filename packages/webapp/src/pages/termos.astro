@@ -1,0 +1,52 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+
+const title = "Termos e Condições de Utilização | Ativos.pt";
+const description = "Consulte os termos e condições de utilização do website Ativos.pt. Saiba mais sobre as nossas políticas de conteúdo, responsabilidade e propriedade intelectual.";
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+---
+
+<BaseLayout {title} {description} {canonical}>
+    <article class="max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white">
+                Termos e Condições de Utilização
+            </h1>
+            <p class="mt-4 text-lg text-gray-500 dark:text-gray-400">
+                Última atualização: 3 de Agosto de 2025
+            </p>
+        </header>
+
+        <div class="prose dark:prose-invert prose-lg max-w-none prose-h2:font-bold prose-h2:text-2xl prose-a:text-primary hover:prose-a:underline">
+            
+            <h2>1. Introdução</h2>
+            <p>O presente documento estabelece as regras que regulam o acesso e utilização do website https://www.ativos.pt (doravante “Site”). O Site pertence e é operado pelo Ativos.pt, regendo-se a sua utilização por estes Termos de Utilização.</p>
+            <p>O Site destina-se a disponibilizar ao utilizador um conjunto de observatórios de dados, ferramentas, simuladores e guias sobre finanças e investimentos, com o objetivo de o apoiar na tomada de decisões informadas. Estes Termos de Utilização são complementados pela nossa <a href="/politica-privacidade">Política de Privacidade</a>.</p>
+
+            <h2>2. Aceitação dos Termos de Utilização</h2>
+            <p>O Utilizador reconhece que, ao aceder e navegar neste Site, está a aceitar os presentes Termos de Utilização.</p>
+
+            <h2>3. Alteração dos Termos de Utilização</h2>
+            <p>O Ativos.pt reserva-se o direito de, a qualquer momento, sem necessidade de aviso prévio e com efeitos imediatos, alterar, adicionar, atualizar ou eliminar, parcial ou totalmente, os presentes Termos de Utilização. O Utilizador deve consultar periodicamente esta página para confirmar se foram efetuadas quaisquer atualizações. Caso não concorde com alguma das regras, não deve utilizar o Site.</p>
+            
+            <h2>4. Acesso e Utilização do Site</h2>
+            <p>A utilização do Site não está sujeita a registo. O Utilizador deve utilizar o Site de forma responsável, prudente e cuidadosa, não devendo perturbar ou degradar a continuidade, integridade e qualidade dos recursos e funcionalidades do mesmo.</p>
+
+            <h2>5. Direitos de Propriedade Intelectual</h2>
+            <p>O Utilizador reconhece que o Site, a sua estrutura, o conteúdo (textos, imagens, gráficos, etc.), e toda a informação disponibilizada são da titularidade do Ativos.pt ou foram devidamente licenciados a seu favor, estando protegidos por direitos de propriedade intelectual.</p>
+
+            <h2>6. Dados Pessoais</h2>
+            <p>A utilização deste Site pode implicar o fornecimento de dados pessoais, nomeadamente através da subscrição da newsletter ou do envio de um email de contacto. O tratamento desses dados é efetuado nos termos definidos na nossa <a href="/politica-privacidade">Política de Privacidade</a>.</p>
+
+            <h2>7. Responsabilidade e Garantias (Aviso Legal)</h2>
+            <p>O Utilizador reconhece que a utilização que faça do Site é por sua conta e risco. O conteúdo disponibilizado tem um caráter meramente informativo e educacional, não constituindo, em nenhuma circunstância, aconselhamento ou recomendação de investimento, fiscal ou jurídica.</p>
+            <p>O Ativos.pt envida os seus melhores esforços para que a informação disponibilizada, recolhida a partir de fontes oficiais como o BPstat e o INE, seja atual e rigorosa. No entanto, não assume qualquer dever jurídico ou responsabilidade por eventuais erros, omissões ou imprecisões. O Utilizador é o único responsável por qualquer dano ou prejuízo que resulte da utilização da informação obtida através do Site.</p>
+
+            <h2>8. Operacionalidade e Segurança do Site</h2>
+            <p>O Ativos.pt pode suspender, bloquear ou cessar o acesso ao Site por condicionalismos técnicos, legais ou de segurança. Embora envidemos os nossos melhores esforços para que o Site não tenha qualquer tipo de vírus ou outros elementos perigosos, não o podemos garantir integralmente, não nos responsabilizando por quaisquer danos resultantes.</p>
+
+            <h2>9. Validade e Lei Aplicável</h2>
+            <p>Se alguma parte ou disposição destes Termos for considerada não executável ou em conflito com a lei aplicável, a validade das restantes partes não será afetada. Estes Termos de Utilização são regidos pela lei portuguesa e, em caso de litígio, é competente em exclusivo o foro da comarca do Porto, com expressa renúncia a qualquer outro.</p>
+        </div>
+    </article>
+</BaseLayout>

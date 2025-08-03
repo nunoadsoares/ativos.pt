@@ -9,19 +9,36 @@ interface Props {
 const { brokers, canonical } = Astro.props;
 const siteUrl = Astro.site?.href ?? 'https://www.ativos.pt';
 
-const itemList = {
+// Schema final, mais detalhado e pronto para produção.
+// Descreve a página como uma "Página Web" cujo conteúdo principal
+// é uma comparação de vários "Serviços" (as corretoras).
+const schema = {
   "@context": "https://schema.org",
-  "@type": "ItemList",
+  "@type": "WebPage",
   "name": brokers.map(b => b.data.nome).join(' vs '),
   "url": canonical,
-  "itemListElement": brokers.map((b, i) => ({
-    "@type": "ListItem",
-    "position": i + 1,
-    "url": new URL(`/plataformas/${b.slug}`, siteUrl).href,
+  "mainEntity": brokers.map(b => ({
+    "@type": "Service",
+    "serviceType": "Serviço de Corretagem Financeira",
     "name": b.data.nome,
-    "description": b.data.description ?? ''
+    "description": b.data.description ?? '',
+    "url": new URL(`/plataformas/${b.slug}`, siteUrl).href,
+    "provider": {
+      "@type": "Organization",
+      "name": b.data.nome,
+      "foundingDate": b.data.info_geral.ano_fundacao.toString(),
+      "location": {
+        "@type": "Place",
+        "address": b.data.info_geral.sede
+      }
+    },
+    "broker": {
+        "@type": "FinancialInstitution",
+        "name": b.data.nome,
+        "url": new URL(`/plataformas/${b.slug}`, siteUrl).href
+    }
   }))
 };
 ---
 
-<script type="application/ld+json" is:inline set:html={JSON.stringify(itemList)} />
+<script type="application/ld+json" is:inline set:html={JSON.stringify(schema)} />

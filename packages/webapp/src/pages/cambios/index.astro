@@ -60,11 +60,42 @@ const faqSchema = {
         {"@type":"Question","name":"Porque é que as taxas de câmbio mudam?","acceptedAnswer":{"@type":"Answer","text":"As taxas de câmbio flutuam constantemente devido a uma variedade de fatores, incluindo as taxas de juro definidas pelos bancos centrais, a inflação, a estabilidade política e económica de um país, e a procura e oferta nos mercados cambiais."}}
     ]
 };
+
+// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
+const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Observatório de Taxas de Câmbio do Euro (EUR)",
+    "description": "Série de dados históricos mensais sobre as taxas de câmbio do Euro (EUR) face a moedas chave como o Dólar Americano (USD), a Libra Esterlina (GBP) e o Franco Suíço (CHF). Os dados são recolhidos de fontes oficiais para o site Ativos.pt.",
+    "url": new URL('/cambios', Astro.site).href,
+    "keywords": [
+        "taxa de câmbio",
+        "câmbio",
+        "euro",
+        "dólar",
+        "libra",
+        "franco suíço",
+        "EURUSD",
+        "EURGBP",
+        "EURCHF",
+        "moedas",
+        "forex"
+    ],
+    "creator": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "url": Astro.site.href
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "variableMeasured": "O valor de 1 Euro (EUR) expresso em outras moedas (USD, GBP, CHF)."
+};
 ---
 
 <BaseLayout {title} {description} {canonical}>
   <Fragment slot="head">
     <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+    {/* --- NOVA LINHA ADICIONADA AQUI --- */}
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
   </Fragment>
 
   <article class="max-w-6xl mx-auto py-12 px-4 space-y-12">

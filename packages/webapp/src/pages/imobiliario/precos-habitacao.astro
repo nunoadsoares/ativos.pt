@@ -25,10 +25,40 @@ const faqSchema = {
         { "@type":"Question", "name":"O que significa a 'variação homóloga'?", "acceptedAnswer":{"@type":"Answer", "text":"A variação homóloga compara o nível de preços de um período (neste caso, um trimestre) com o mesmo período do ano anterior, indicando a taxa de crescimento anual."}}
     ]
 };
+
+// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
+const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Observatório do Preço da Habitação em Portugal (IPHab)",
+    "description": description,
+    "url": canonical,
+    "keywords": [
+        "preço habitação",
+        "mercado imobiliário",
+        "índice de preços da habitação",
+        "IPHab",
+        "comprar casa",
+        "investimento imobiliário",
+        "portugal"
+    ],
+    "creator": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "url": Astro.site.href
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "variableMeasured": [
+        "Variação Homóloga (Year-over-Year) do Índice de Preços da Habitação.",
+        "Índice de Preços da Habitação (Base 100 = 2015)."
+    ]
+};
 ---
 <BaseLayout {title} {description} {canonical}>
     <Fragment slot="head">
         <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+        {/* --- NOVA LINHA ADICIONADA AQUI --- */}
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
     </Fragment>
 
     <article class="max-w-5xl mx-auto py-12 px-4 space-y-12">
@@ -73,7 +103,7 @@ const faqSchema = {
                 </div>
 
                 {/* Caixa de explicação para a Variação */}
-                 <div class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-md prose dark:prose-invert max-w-none">
+                  <div class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-md prose dark:prose-invert max-w-none">
                     <h3 class="text-xl font-semibold mt-0">A Variação Homóloga (YoY)</h3>
                     <p>O grande indicador no topo da página mostra a <strong>variação homóloga</strong>. Esta é a métrica mais comum para medir a "febre" do mercado. Ela compara o nível de preços de um trimestre com o <strong>mesmo trimestre do ano anterior</strong>. Um valor de <strong>+10%</strong> indica que as casas, em média, ficaram 10% mais caras no espaço de um ano.</p>
                 </div>

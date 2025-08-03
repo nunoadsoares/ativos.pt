@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
+import CreditConditionsChart from '~/components/CreditConditionsChart.tsx';
 
 // --- LÓGICA DE DADOS ATUALIZADA PARA 4 KPIS ---
 
@@ -39,13 +40,11 @@ try {
         const last = data[data.length - 1];
         const date = new Date(last.date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' });
 
-        // KPI para a TAN Variável
         if (last.tan_variavel) {
             tanVariavelInfo.value = last.tan_variavel.toFixed(2);
             tanVariavelInfo.date = date;
         }
 
-        // KPI para a Prestação Mediana
         if (last.prestacao_mediana) {
             prestacaoMedianaInfo.value = last.prestacao_mediana.toFixed(0);
             prestacaoMedianaInfo.date = date;
@@ -59,125 +58,177 @@ const title = "Observatório do Mercado Imobiliário em Portugal | Ativos.pt";
 const description = `Análise completa do mercado imobiliário: preços de habitação, custo do crédito (TAN ${tanVariavelInfo.value}%), prestação mediana (€${prestacaoMedianaInfo.value}) e o mapa do risco de incumprimento.`;
 const canonical = new URL('/imobiliario/', Astro.site).href;
 
-const faqSchema = { /* ... (mantém-se igual) ... */ };
+const faqSchema = {
+    "@context":"https://schema.org","@type":"FAQPage",
+    "mainEntity":[
+        { "@type":"Question", "name":"O que é o Índice de Preços da Habitação (IPHab)?", "acceptedAnswer":{"@type":"Answer", "text":"O IPHab mede a evolução dos preços de transação de todos os imóveis residenciais em Portugal. É o principal indicador da 'febre' do mercado imobiliário." }},
+        { "@type":"Question", "name":"O que é a TAN de um crédito à habitação?", "acceptedAnswer":{"@type":"Answer", "text":"A Taxa Anual Nominal (TAN) é a taxa de juro base do empréstimo. Estes dados mostram a mediana das taxas praticadas nos novos contratos, sendo um bom indicador do custo atual do crédito."}}
+    ]
+};
+
+// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
+const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Observatório do Mercado Imobiliário em Portugal",
+    "description": "Um dashboard com os principais indicadores do mercado imobiliário em Portugal: evolução dos preços da habitação, custo do crédito (TAN), prestação mensal mediana e o mapa do risco de incumprimento. Dados oficiais e atualizados.",
+    "url": canonical,
+    "keywords": [
+        "imobiliário",
+        "mercado imobiliário",
+        "preços casas",
+        "crédito habitação",
+        "risco de incumprimento",
+        "tan",
+        "portugal",
+        "investimento imobiliário"
+    ],
+    "creator": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "url": Astro.site.href
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "hasPart": [
+        {
+            "@type": "Dataset",
+            "name": "Índice de Preços da Habitação",
+            "description": "Evolução dos preços de venda de habitação em Portugal (variação homóloga).",
+            "url": new URL('/imobiliario/precos-habitacao', Astro.site).href
+        },
+        {
+            "@type": "Dataset",
+            "name": "Condições dos Novos Créditos",
+            "description": "Evolução da TAN (fixa vs variável) e da prestação mensal mediana para novos contratos de crédito à habitação.",
+            "url": new URL('/imobiliario/condicoes-credito', Astro.site).href
+        },
+        {
+            "@type": "Dataset",
+            "name": "Mapa do Risco de Incumprimento",
+            "description": "Ranking e mapa das regiões com maior risco de incumprimento no crédito à habitação.",
+            "url": new URL('/imobiliario/risco-incumprimento', Astro.site).href
+        }
+    ]
+};
 ---
 
 <BaseLayout {title} {description} {canonical}>
-  <Fragment slot="head">
-    <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
-  </Fragment>
+    <Fragment slot="head">
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
+    </Fragment>
 
-  <article class="max-w-6xl mx-auto py-12 px-4 space-y-12">
-    <header class="text-center">
-      <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white">
-        Observatório do Mercado Imobiliário
-      </h1>
-      <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-        Os 4 indicadores essenciais para tomar decisões no mercado de habitação em Portugal, com dados oficiais e atualizados.
-      </p>
-    </header>
+    <article class="max-w-6xl mx-auto py-12 px-4 space-y-12">
+        <header class="text-center">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white">
+                Observatório do Mercado Imobiliário
+            </h1>
+            <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                Os 4 indicadores essenciais para tomar decisões no mercado de habitação em Portugal, com dados oficiais e atualizados.
+            </p>
+        </header>
 
-    <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <a href="/imobiliario/precos-habitacao" class="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md transition-all hover:shadow-lg flex flex-col items-center text-center">
-        <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          Preços de Habitação
-        </h2>
-        <p class:list={["mt-2 text-4xl font-extrabold", housingKpi.value > 0 ? 'text-red-500' : 'text-green-500']}>
-          {housingKpi.value > 0 ? '+' : ''}{housingKpi.value}%
-        </p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Variação Homóloga ({housingKpi.date})
-        </p>
-        <span class="mt-4 text-primary group-hover:underline">Explorar</span>
-      </a>
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <a href="/imobiliario/precos-habitacao" class="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md transition-all hover:shadow-lg flex flex-col items-center text-center">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Preços de Habitação
+                </h2>
+                <p class:list={["mt-2 text-4xl font-extrabold", housingKpi.value > 0 ? 'text-red-500' : 'text-green-500']}>
+                    {housingKpi.value > 0 ? '+' : ''}{housingKpi.value}%
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Variação Homóloga ({housingKpi.date})
+                </p>
+                <span class="mt-4 text-primary group-hover:underline">Explorar</span>
+            </a>
 
-      <a href="/imobiliario/condicoes-credito" class="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md transition-all hover:shadow-lg flex flex-col items-center text-center">
-        <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          Custo do Crédito (TAN Variável)
-        </h2>
-        <p class="mt-2 text-4xl font-extrabold text-gray-900 dark:text-white">
-          {tanVariavelInfo.value}%
-        </p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Mediana em Novos Contratos ({tanVariavelInfo.date})
-        </p>
-        <span class="mt-4 text-primary group-hover:underline">Explorar</span>
-      </a>
-      
-      <a href="/imobiliario/condicoes-credito" class="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md transition-all hover:shadow-lg flex flex-col items-center text-center">
-        <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          Prestação Mensal Mediana
-        </h2>
-        <p class="mt-2 text-4xl font-extrabold text-gray-900 dark:text-white">
-          €{prestacaoMedianaInfo.value}
-        </p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Mediana em Novos Contratos ({prestacaoMedianaInfo.date})
-        </p>
-        <span class="mt-4 text-primary group-hover:underline">Explorar</span>
-      </a>
+            <a href="/imobiliario/condicoes-credito" class="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md transition-all hover:shadow-lg flex flex-col items-center text-center">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Custo do Crédito (TAN Variável)
+                </h2>
+                <p class="mt-2 text-4xl font-extrabold text-gray-900 dark:text-white">
+                    {tanVariavelInfo.value}%
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Mediana em Novos Contratos ({tanVariavelInfo.date})
+                </p>
+                <span class="mt-4 text-primary group-hover:underline">Explorar</span>
+            </a>
+            
+            <a href="/imobiliario/condicoes-credito" class="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md transition-all hover:shadow-lg flex flex-col items-center text-center">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Prestação Mensal Mediana
+                </h2>
+                <p class="mt-2 text-4xl font-extrabold text-gray-900 dark:text-white">
+                    €{prestacaoMedianaInfo.value}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Mediana em Novos Contratos ({prestacaoMedianaInfo.date})
+                </p>
+                <span class="mt-4 text-primary group-hover:underline">Explorar</span>
+            </a>
 
-      <a href="/imobiliario/risco-incumprimento" class="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md transition-all hover:shadow-lg flex flex-col items-center text-center">
-        <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          Maior Risco de Crédito
-        </h2>
-        <p class="mt-2 text-4xl font-extrabold text-red-600 dark:text-red-300">
-          {highestRisk.value}%
-        </p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          ({highestRisk.name})
-        </p>
-        <span class="mt-4 text-primary group-hover:underline">Explorar</span>
-      </a>
-    </section>
+            <a href="/imobiliario/risco-incumprimento" class="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md transition-all hover:shadow-lg flex flex-col items-center text-center">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Maior Risco de Crédito
+                </h2>
+                <p class="mt-2 text-4xl font-extrabold text-red-600 dark:text-red-300">
+                    {highestRisk.value}%
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    ({highestRisk.name})
+                </p>
+                <span class="mt-4 text-primary group-hover:underline">Explorar</span>
+            </a>
+        </section>
 
-    <hr class="border-gray-200 dark:border-gray-700 my-12" />
+        <hr class="border-gray-200 dark:border-gray-700 my-12" />
 
-    <section class="text-center">
-      <h2 class="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
-        Explore as Ferramentas em Detalhe
-      </h2>
-      <p class="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-        Cada secção foi desenhada para lhe dar a visão mais clara sobre um aspeto fundamental do mercado, com gráficos interativos e contexto explicativo.
-      </p>
-    </section>
+        <section class="text-center">
+            <h2 class="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
+                Explore as Ferramentas em Detalhe
+            </h2>
+            <p class="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                Cada secção foi desenhada para lhe dar a visão mais clara sobre um aspeto fundamental do mercado, com gráficos interativos e contexto explicativo.
+            </p>
+        </section>
 
-    <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
-      <a href="/imobiliario/precos-habitacao" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-lg transform transition-transform hover:scale-105 hover:shadow-xl">
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-          Observatório do Preço da Habitação
-        </h3>
-        <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-          Acompanhe a evolução dos preços de venda em Portugal com a métrica oficial do INE e Banco de Portugal.
-        </p>
-      </a>
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <a href="/imobiliario/precos-habitacao" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-lg transform transition-transform hover:scale-105 hover:shadow-xl">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+                    Observatório do Preço da Habitação
+                </h3>
+                <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+                    Acompanhe a evolução dos preços de venda em Portugal com a métrica oficial do INE e Banco de Portugal.
+                </p>
+            </a>
 
-      <a href="/imobiliario/taeg-tan" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-lg transform transition-transform hover:scale-105 hover:shadow-xl">
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-          TAEG & TAN: Custo dos Créditos
-        </h3>
-        <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-          Compare a evolução da Taxa Anual de Encargos Efetiva Global com a Taxa Anual Nominal (TAN).
-        </p>
-      </a>
-      
-      <a href="/imobiliario/condicoes-credito" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-lg transform transition-transform hover:scale-105 hover:shadow-xl">
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-          Condições dos Novos Créditos
-        </h3>
-        <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-          Analise a evolução da TAN por modalidade (fixa vs variável) e da prestação mensal mediana.
-        </p>
-      </a>
-      
-      <a href="/imobiliario/risco-incumprimento" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-lg transform transition-transform hover:scale-105 hover:shadow-xl">
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-          Mapa do Risco de Incumprimento
-        </h3>
-        <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-          Consulte o ranking e o mapa das regiões com maior risco de incumprimento no crédito à habitação.
-        </p>
-      </a>
-    </section>
-  </article>
+            <a href="/imobiliario/taeg-tan" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-lg transform transition-transform hover:scale-105 hover:shadow-xl">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+                    TAEG & TAN: Custo dos Créditos
+                </h3>
+                <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+                    Compare a evolução da Taxa Anual de Encargos Efetiva Global com a Taxa Anual Nominal (TAN).
+                </p>
+            </a>
+            
+            <a href="/imobiliario/condicoes-credito" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-lg transform transition-transform hover:scale-105 hover:shadow-xl">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+                    Condições dos Novos Créditos
+                </h3>
+                <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+                    Analise a evolução da TAN por modalidade (fixa vs variável) e da prestação mensal mediana.
+                </p>
+            </a>
+            
+            <a href="/imobiliario/risco-incumprimento" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-lg transform transition-transform hover:scale-105 hover:shadow-xl">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+                    Mapa do Risco de Incumprimento
+                </h3>
+                <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+                    Consulte o ranking e o mapa das regiões com maior risco de incumprimento no crédito à habitação.
+                </p>
+            </a>
+        </section>
+    </article>
 </BaseLayout>

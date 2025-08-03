@@ -8,6 +8,27 @@ const periods = [
   { label: 'Euribor 12M', value: 'quota12m' },
 ];
 const canonical = new URL('/euribor/quotas/', Astro.site!).href;
+
+// --- INÍCIO DA ADIÇÃO: JSON-LD COMO PEDIDO ---
+const howToSchema = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "Como Comparar a Quota de Mercado da Euribor",
+    "description": "Use a ferramenta do Ativos.pt para selecionar diferentes prazos da Euribor e comparar a sua popularidade nos novos contratos de crédito à habitação em Portugal.",
+    "step": [
+        {
+            "@type": "HowToStep",
+            "name": "Selecionar Prazos da Euribor",
+            "text": "Marque as caixas de seleção para os prazos da Euribor (3M, 6M, 12M) que deseja comparar. Pode selecionar de 1 a 3 prazos.",
+            "url": canonical
+        },
+        {
+            "@type": "HowToStep",
+            "name": "Visualizar Comparação",
+            "text": "Clique no botão 'Comparar Quotas' para ver um gráfico dinâmico com a evolução histórica da quota de mercado para os prazos que selecionou."
+        }
+    ]
+};
 ---
 
 <BaseLayout

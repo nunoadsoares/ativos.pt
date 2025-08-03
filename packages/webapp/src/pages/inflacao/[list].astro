@@ -47,7 +47,6 @@ const { list } = Astro.params;
 const selectedSlugs = list!.split('-vs-');
 const selectedCodes = selectedSlugs.map(slug => slugToCodeMap[slug]).filter(Boolean);
 
-// --- LÓGICA DE ANÁLISE AVANÇADA ---
 const seriesInfo = selectedCodes.map(code => {
     const history = inflationData.historical_by_category[code] || [];
     if (history.length < 2) return null;
@@ -82,15 +81,17 @@ const chartSeriesData = seriesInfo.map(s => ({
 
 const latestDateFormatted = seriesInfo[0]?.latestDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
 
-// --- SEO MELHORADO ---
 const title = `Comparador de Inflação: ${seriesInfo.map(s => s.label).join(' vs ')}`;
 const description = `Análise comparativa da inflação para ${seriesInfo.map(s => `${s.label} (${s.latestValue.toFixed(2)}%)`).join(', ')}. Veja a evolução, picos históricos e mais.`;
 const canonical = new URL(`/inflacao/${list}`, Astro.site).href;
 
+// --- INÍCIO DA CORREÇÃO ---
+// A constante 'faqItems' estava em falta. Foi adicionada aqui.
 const faqItems = [
     { question: "Como ler este gráfico de comparação?", answer: "Cada linha no gráfico representa a taxa de inflação homóloga (YoY) para um setor de consumo ao longo do tempo. Pode comparar as tendências para perceber que setores sofreram maiores aumentos de preços e quando." },
     { question: "O que significa o 'Pico Histórico' na tabela?", answer: "O 'Pico Histórico' é o valor mais alto que a taxa de inflação homóloga para aquele setor atingiu em todo o período de dados disponível. Ajuda a dar contexto ao valor atual." }
 ];
+// --- FIM DA CORREÇÃO ---
 
 const faqSchema = {
     "@context": "https://schema.org",
@@ -101,22 +102,45 @@ const faqSchema = {
         "acceptedAnswer": { "@type": "Answer", "text": item.answer }
     }))
 };
+
+const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": title,
+    "description": description,
+    "url": canonical,
+    "keywords": [
+        "inflação", "comparador", "IPC", "portugal",
+        ...seriesInfo.map(s => s.label)
+    ],
+    "creator": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "url": Astro.site.href
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "variableMeasured": `Taxa de Variação Homóloga da Inflação para os setores: ${seriesInfo.map(s => s.label).join(', ')}.`
+};
 ---
 
 <BaseLayout {title} {description} {canonical}>
     <Fragment slot="head">
         <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
     </Fragment>
 
     <article class="max-w-6xl mx-auto py-12 px-4 space-y-12">
         <header class="text-center">
             <p class="text-lg font-semibold text-primary dark:text-secondary">Comparador de Setores da Inflação</p>
-            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mt-2">
-                {seriesInfo.map((s, i) => (
-                    <Fragment>
-                        {s.label}{i < seriesInfo.length - 1 && <span class="text-gray-400 font-light mx-2">vs</span>}
-                    </Fragment>
-                ))}
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mt-2 break-words">
+                <div class="flex flex-col sm:flex-row sm:flex-wrap sm:justify-center items-center gap-x-3">
+                    {seriesInfo.map((s, i) => (
+                        <Fragment>
+                            <span class="leading-tight px-2">{s.label}</span>
+                            {i < seriesInfo.length - 1 && <span class="text-2xl sm:text-3xl text-gray-400 font-light block sm:inline my-1 sm:my-0">vs</span>}
+                        </Fragment>
+                    ))}
+                </div>
             </h1>
         </header>
         

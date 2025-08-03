@@ -4,23 +4,36 @@ import { getCollection } from 'astro:content';
 
 const todasPlataformas = await getCollection('plataformas');
 
-// Schema JSON-LD para a página de listagem (HUB)
+// --- SCHEMA JSON-LD REFINADO ---
 const itemListSchema = {
   "@context": "https://schema.org",
-  "@type": "ItemList",
-  "name": "Plataformas de Investimento em Portugal",
-  "description": "Análise e comparação das melhores corretoras e plataformas para investir em Portugal.",
-  "itemListElement": todasPlataformas.map((plataforma, index) => ({
-    "@type": "ListItem",
-    "position": index + 1,
-    "item": {
-      "@type": "Service",
-      "name": plataforma.data.nome,
-      "description": plataforma.data.description,
-      "url": new URL(`/plataformas/${plataforma.slug}/`, Astro.site).href,
-      "logo": new URL(plataforma.data.logo, Astro.site).href
-    }
-  }))
+  "@type": "WebPage", // Usar WebPage como tipo principal
+  "name": "Plataformas de Investimento e Corretoras em Portugal",
+  "description": "Análise e comparação das melhores corretoras e plataformas para investir em Portugal. Use as nossas ferramentas para escolher a melhor opção para si.",
+  "url": new URL('/plataformas', Astro.site).href,
+  "about": {
+    "@type": "Thing",
+    "name": "Corretora Financeira"
+  },
+  "mainEntity": {
+    "@type": "ItemList",
+    "name": "Lista de Corretoras Analisadas",
+    "itemListElement": todasPlataformas.map((plataforma, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "Service",
+        "name": plataforma.data.nome,
+        "description": plataforma.data.description,
+        "url": new URL(`/plataformas/${plataforma.slug}/`, Astro.site).href,
+        "logo": new URL(plataforma.data.logo, Astro.site).href,
+        "provider": {
+            "@type": "Organization",
+            "name": plataforma.data.nome
+        }
+      }
+    }))
+  }
 };
 ---
 <BaseLayout
@@ -43,9 +56,7 @@ const itemListSchema = {
         </p>
       </div>
 
-      <!-- NOVA SECÇÃO DE FERRAMENTAS EM DESTAQUE -->
       <section class="mb-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Card Comparador de Corretoras -->
         <a href="/plataformas/comparar" class="group block bg-white dark:bg-gray-800/60 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/20">
           <div class="flex items-center gap-4">
             <div class="flex-shrink-0 h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
@@ -57,7 +68,6 @@ const itemListSchema = {
             Compare lado a lado as características, taxas, regulação e segurança das principais corretoras. A ferramenta essencial para fazer a escolha certa.
           </p>
         </a>
-        <!-- Card Simulador de Custos -->
         <a href="/simuladores/comparador-custos" class="group block bg-white dark:bg-gray-800/60 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition-all duration-300 shadow-lg hover:shadow-primary/20">
           <div class="flex items-center gap-4">
             <div class="flex-shrink-0 h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
@@ -71,7 +81,6 @@ const itemListSchema = {
         </a>
       </section>
 
-      <!-- GRELHA DE CORRETORAS -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {todasPlataformas.map((plataforma) => (
           <div class="group flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden hover:border-primary dark:hover:border-primary">
@@ -88,20 +97,20 @@ const itemListSchema = {
             </div>
             <div class="p-6 pt-0 mt-auto">
               <div class="flex items-center space-x-4">
-                 <a 
-                   href={`/plataformas/${plataforma.slug}/`} 
-                   class="w-full text-center px-4 py-2 rounded-md text-sm font-medium text-primary dark:text-gray-300 border border-primary hover:bg-primary/10 dark:hover:bg-gray-700 transition-colors"
-                 >
-                   Ler Análise
-                 </a>
-                 <a 
-                   href={plataforma.data.url_afiliado}
-                   target="_blank"
-                   rel="noopener noreferrer nofollow"
-                   class="w-full text-center px-4 py-2 rounded-md text-sm font-medium text-white bg-primary hover:opacity-90 transition-opacity"
-                 >
-                   Abrir Conta
-                 </a>
+                  <a 
+                    href={`/plataformas/${plataforma.slug}/`} 
+                    class="w-full text-center px-4 py-2 rounded-md text-sm font-medium text-primary dark:text-gray-300 border border-primary hover:bg-primary/10 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Ler Análise
+                  </a>
+                  <a 
+                    href={plataforma.data.url_afiliado}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    class="w-full text-center px-4 py-2 rounded-md text-sm font-medium text-white bg-primary hover:opacity-90 transition-opacity"
+                  >
+                    Abrir Conta
+                  </a>
               </div>
             </div>
           </div>

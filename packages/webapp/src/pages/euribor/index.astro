@@ -15,13 +15,11 @@ try {
     const last = data[data.length - 1];
     const secondLast = data[data.length - 2];
 
-    // Preenche os KPIs
     kpis['12m'] = last['12_meses']?.toFixed(3) ?? 'N/D';
     kpis['6m'] = last['6_meses']?.toFixed(3) ?? 'N/D';
     kpis['3m'] = last['3_meses']?.toFixed(3) ?? 'N/D';
     latestDate = new Date(last.date).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
 
-    // Lógica para o texto dinâmico
     const diff12m = (last['12_meses'] ?? 0) - (secondLast['12_meses'] ?? 0);
     let trendText = '';
     if (diff12m > 0.001) {
@@ -37,65 +35,95 @@ try {
   console.error("Falha ao carregar dados da Euribor para a página principal:", e);
 }
 
-
 // --- SEO ---
 const title = "Taxas Euribor Hoje e Histórico | Observatório Ativos.pt";
 const description = `Observatório completo das taxas Euribor. Consulte o gráfico interativo com a evolução mensal das taxas a 3, 6 e 12 meses e acompanhe o principal indicador do seu crédito à habitação. Último valor (${latestDate}): ${kpis['12m']}% (12M).`;
-const canonical = new URL('/euribor/', Astro.site).href; // O URL base da ferramenta é /euribor/
+const canonical = new URL('/euribor/', Astro.site).href;
+
+// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
+const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Observatório das Taxas Euribor (3, 6 e 12 meses)",
+    "description": `Série de dados históricos mensais sobre as taxas Euribor a 3, 6 e 12 meses, os principais indexantes para o crédito à habitação em Portugal. Último valor para 12 meses: ${kpis['12m']}% em ${latestDate}.`,
+    "url": canonical,
+    "keywords": [
+        "euribor",
+        "taxa euribor",
+        "euribor 12 meses",
+        "euribor 6 meses",
+        "euribor 3 meses",
+        "crédito habitação",
+        "juros",
+        "portugal"
+    ],
+    "creator": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "url": Astro.site.href
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "variableMeasured": "A taxa de juro interbancária da Zona Euro (Euribor) para os prazos de 3, 6 e 12 meses."
+};
 ---
 
 <BaseLayout {title} {description} {canonical}>
-  <article class="max-w-6xl mx-auto py-12 px-4 space-y-12">
-    <header class="text-center">
-      <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white">
-        Observatório das Taxas Euribor
-      </h1>
-      <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-        A evolução mensal das taxas de juro que definem o custo do seu crédito habitação. Ferramenta interativa com dados oficiais do Banco de Portugal.
-      </p>
-    </header>
+    <Fragment slot="head">
+        {/* --- NOVA LINHA ADICIONADA AQUI --- */}
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
+    </Fragment>
 
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-      <div class="p-6 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800/50">
-        <h2 class="text-sm font-bold uppercase text-red-600 dark:text-red-400 tracking-widest">Euribor 12 Meses</h2>
-        <p class="text-4xl font-extrabold text-red-600 dark:text-red-300 mt-2">{kpis['12m']}%</p>
-      </div>
-      <div class="p-6 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800/50">
-        <h2 class="text-sm font-bold uppercase text-orange-600 dark:text-orange-400 tracking-widest">Euribor 6 Meses</h2>
-        <p class="text-4xl font-extrabold text-orange-600 dark:text-orange-300 mt-2">{kpis['6m']}%</p>
-      </div>
-      <div class="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/50">
-        <h2 class="text-sm font-bold uppercase text-blue-600 dark:text-blue-400 tracking-widest">Euribor 3 Meses</h2>
-        <p class="text-4xl font-extrabold text-blue-600 dark:text-blue-300 mt-2">{kpis['3m']}%</p>
-      </div>
-      <p class="md:col-span-3 text-xs text-gray-500 dark:text-gray-400 mt-2">Última atualização: {latestDate}</p>
-    </section>
-    
-    <section class="prose dark:prose-invert max-w-3xl mx-auto text-center text-lg">
-      <p set:html={dynamicAnalysis} />
-    </section>
+    <article class="max-w-6xl mx-auto py-12 px-4 space-y-12">
+        <header class="text-center">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white">
+                Observatório das Taxas Euribor
+            </h1>
+            <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                A evolução mensal das taxas de juro que definem o custo do seu crédito habitação. Ferramenta interativa com dados oficiais do Banco de Portugal.
+            </p>
+        </header>
 
-    <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
-      <h2 class="text-2xl font-bold text-center mb-2">Evolução Histórica das Taxas</h2>
-      <p class="text-gray-600 dark:text-gray-400 text-center mb-6">Clique nas legendas do gráfico para mostrar ou ocultar uma série temporal.</p>
-      
-      <div>
-          <EuriborRatesChart client:only="react" periods={['3_meses', '6_meses', '12_meses']} />
-      </div>
-    </section>
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div class="p-6 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800/50">
+                <h2 class="text-sm font-bold uppercase text-red-600 dark:text-red-400 tracking-widest">Euribor 12 Meses</h2>
+                <p class="text-4xl font-extrabold text-red-600 dark:text-red-300 mt-2">{kpis['12m']}%</p>
+            </div>
+            <div class="p-6 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800/50">
+                <h2 class="text-sm font-bold uppercase text-orange-600 dark:text-orange-400 tracking-widest">Euribor 6 Meses</h2>
+                <p class="text-4xl font-extrabold text-orange-600 dark:text-orange-300 mt-2">{kpis['6m']}%</p>
+            </div>
+            <div class="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/50">
+                <h2 class="text-sm font-bold uppercase text-blue-600 dark:text-blue-400 tracking-widest">Euribor 3 Meses</h2>
+                <p class="text-4xl font-extrabold text-blue-600 dark:text-blue-300 mt-2">{kpis['3m']}%</p>
+            </div>
+            <p class="md:col-span-3 text-xs text-gray-500 dark:text-gray-400 mt-2">Última atualização: {latestDate}</p>
+        </section>
+        
+        <section class="prose dark:prose-invert max-w-3xl mx-auto text-center text-lg">
+            <p set:html={dynamicAnalysis} />
+        </section>
 
-    <section class="pt-8 border-t dark:border-gray-700">
-      <h2 class="text-3xl font-bold text-center mb-8">Ferramentas Relacionadas</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        <a href="/imobiliario" class="block p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-          <h3 class="text-xl font-bold text-primary">Observatório Imobiliário</h3>
-          <p class="mt-2 text-gray-600 dark:text-gray-400">Voltar à visão geral do mercado, com preços, risco e outros indicadores chave.</p>
-        </a>
-        <a href="/euribor/quotas" class="block p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-          <h3 class="text-xl font-bold text-primary">Quota de Mercado da Euribor</h3>
-          <p class="mt-2 text-gray-600 dark:text-gray-400">Compare a percentagem de novos créditos associados a cada prazo da Euribor.</p>
-        </a>
-      </div>
-    </section>
-  </article>
+        <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
+            <h2 class="text-2xl font-bold text-center mb-2">Evolução Histórica das Taxas</h2>
+            <p class="text-gray-600 dark:text-gray-400 text-center mb-6">Clique nas legendas do gráfico para mostrar ou ocultar uma série temporal.</p>
+            
+            <div>
+                <EuriborRatesChart client:only="react" periods={['3_meses', '6_meses', '12_meses']} />
+            </div>
+        </section>
+
+        <section class="pt-8 border-t dark:border-gray-700">
+            <h2 class="text-3xl font-bold text-center mb-8">Ferramentas Relacionadas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                <a href="/imobiliario" class="block p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <h3 class="text-xl font-bold text-primary">Observatório Imobiliário</h3>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">Voltar à visão geral do mercado, com preços, risco e outros indicadores chave.</p>
+                </a>
+                <a href="/euribor/quotas" class="block p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-shadow">
+                    <h3 class="text-xl font-bold text-primary">Quota de Mercado da Euribor</h3>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">Compare a percentagem de novos créditos associados a cada prazo da Euribor.</p>
+                </a>
+            </div>
+        </section>
+    </article>
 </BaseLayout>

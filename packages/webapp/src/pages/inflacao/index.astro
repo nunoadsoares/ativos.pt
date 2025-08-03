@@ -85,6 +85,27 @@ const faqSchema = {
         "acceptedAnswer": { "@type": "Answer", "text": item.answer }
     }))
 };
+
+// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
+const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Observatório da Inflação em Portugal (IPC)",
+    "description": `Série de dados sobre a evolução do Índice de Preços no Consumidor em Portugal. Último valor da taxa homóloga (${latestDate}): ${kpis.yoy}%.`,
+    "url": canonical,
+    "keywords": ["inflação", "IPC", "Portugal", "preços", "economia", "taxa de variação homóloga"],
+    "creator": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "url": Astro.site.href
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "variableMeasured": [
+        "Taxa de Variação Homóloga do Índice de Preços no Consumidor (IPC)",
+        "Taxa de Variação da Média Móvel de 12 Meses do IPC",
+        "Inflação Subjacente (IPC excluindo energia e alimentos não processados)"
+    ]
+};
 ---
 
 <BaseLayout {title} {description} {canonical}>

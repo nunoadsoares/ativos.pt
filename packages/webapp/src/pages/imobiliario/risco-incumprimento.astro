@@ -12,21 +12,17 @@ try {
   const jsonData = await fs.readFile(dataPath, 'utf-8');
   const riskData: Record<string, { value: number | null; type: string }> = JSON.parse(jsonData);
   
-  // 1. Cria uma lista limpa de todas as regiões com dados válidos
   const validRegions = Object.entries(riskData)
-    .filter(([_, data]) => data && data.value !== null)
+    .filter(([, data]) => data && data.value !== null)
     .map(([name, data]) => ({
       name: name.replace(' (NUTS II)', '').replace(' (NUTS III)', ''),
       value: data.value as number,
       type: data.type
     }));
 
-  // 2. Ordena a lista (do maior para o menor risco)
   if (validRegions.length > 0) {
     validRegions.sort((a, b) => b.value - a.value);
     
-    // --- LÓGICA ANTI-DUPLICADOS ADICIONADA AQUI ---
-    // Garante que cada nome de região só aparece uma vez na tabela
     const uniqueRegions = [];
     const seenNames = new Set();
     for (const region of validRegions) {
@@ -37,7 +33,6 @@ try {
     }
     tableData = uniqueRegions;
     
-    // 3. Extrai os KPIs da lista já limpa e ordenada
     kpis.highest = tableData[0];
     kpis.lowest = tableData[tableData.length - 1];
   }
@@ -49,11 +44,58 @@ const title = "Mapa e Ranking do Risco de Incumprimento em Portugal";
 const description = `Análise regional da taxa de incumprimento no crédito à habitação. Veja o mapa e a tabela com as regiões de maior e menor risco. Dados de ${kpis.highest?.name}, ${kpis.lowest?.name} e mais.`;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 
-const faqSchema = { /* ... (schema igual ao anterior) ... */ };
+// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
+const faqSchema = {
+    "@context":"https://schema.org","@type":"FAQPage",
+    "mainEntity":[
+        {
+            "@type":"Question",
+            "name":"O que mede o Risco de Incumprimento?",
+            "acceptedAnswer": {
+                "@type":"Answer",
+                "text":"Este indicador mede a percentagem de devedores que têm pagamentos em atraso no seu crédito. É uma métrica importante para avaliar a saúde financeira das famílias e o risco no mercado imobiliário de uma determinada região."
+            }
+        },
+        {
+            "@type":"Question",
+            "name":"O que é o 'Tipo de Crédito'?",
+            "acceptedAnswer": {
+                "@type":"Answer",
+                "text":"Os dados do Banco de Portugal distinguem entre crédito para Habitação e para Consumo. O nosso mapa mostra os dados de Habitação. Contudo, nem todas as regiões têm os dados atualizados, nessas situações não entram na nossa análise."
+            }
+        }
+    ]
+};
+
+const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Mapa e Ranking do Risco de Incumprimento no Crédito à Habitação em Portugal",
+    "description": `Análise regional da taxa de incumprimento no crédito à habitação em Portugal. Inclui um mapa interativo e um ranking das regiões (NUTS II e NUTS III) com as maiores e menores taxas de empréstimos vencidos. Região com maior risco: ${kpis.highest?.name} (${kpis.highest?.value}%).`,
+    "url": canonical,
+    "keywords": [
+        "risco de incumprimento",
+        "crédito habitação",
+        "dívida",
+        "NPL",
+        "non-performing loan",
+        "mapa de risco",
+        "portugal",
+        "banca"
+    ],
+    "creator": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "url": Astro.site.href
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "spatialCoverage": "Portugal"
+};
 ---
 <BaseLayout {title} {description} {canonical}>
     <Fragment slot="head">
         <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
     </Fragment>
 
     <article class="max-w-5xl mx-auto py-12 px-4 space-y-12">
@@ -135,7 +177,6 @@ const faqSchema = { /* ... (schema igual ao anterior) ... */ };
             </section>
         )}
         
-        {/* --- SECÇÃO EXPLICATIVA RESTAURADA E MELHORADA --- */}
         <section class="pt-8 border-t dark:border-gray-700">
             <h2 class="text-3xl font-bold text-center mb-8">Como Interpretar Estes Dados</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">

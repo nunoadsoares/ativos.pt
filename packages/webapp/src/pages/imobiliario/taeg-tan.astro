@@ -16,7 +16,6 @@ type RateInfo = {
   };
 };
 
-// Objeto para guardar os dados processados de cada fonte
 const seriesData: Record<string, { date: Date; value: number }[]> = {};
 
 // 1. Processar TAEG do CSV (como antes)
@@ -36,7 +35,6 @@ try {
   const jsonUrl = new URL(`../../../public/data/credito_habitacao_condicoes.json`, import.meta.url);
   const jsonContent = await fs.readFile(jsonUrl, 'utf-8');
   const jsonData = JSON.parse(jsonContent);
-  // Usamos a TAN Variável como referência principal
   seriesData['tan'] = jsonData
     .filter((row: any) => row.tan_variavel !== null && typeof row.tan_variavel === 'number')
     .map((row: any) => ({ date: new Date(row.date), value: row.tan_variavel }));
@@ -72,18 +70,58 @@ for (const code of ['taeg', 'tan']) {
   });
 }
 
-// O resto do ficheiro mantém-se igual
 const tableSeries = seriesInfo.filter(s => s.value !== 'Sem Dados');
 const title = 'TAEG & TAN – Novos Créditos à Habitação';
 const description = `Histórico e últimos valores da TAEG (${seriesInfo.find(s=>s.code==='taeg')?.value}% em ${seriesInfo.find(s=>s.code==='taeg')?.date})${seriesInfo.find(s=>s.code==='tan')?.value !== 'Sem Dados' ? ` e da TAN (${seriesInfo.find(s=>s.code==='tan')?.value}% em ${seriesInfo.find(s=>s.code==='tan')?.date})` : ''}.`;
 const canonical = new URL('/imobiliario/taeg-tan', Astro.site).href;
 
-const faqSchema = { /* ... (igual ao anterior) ... */ };
+// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
+const faqSchema = {
+    "@context":"https://schema.org","@type":"FAQPage",
+    "mainEntity":[
+        {
+            "@type":"Question",
+            "name":"Qual a diferença fundamental entre TAN e TAEG?",
+            "acceptedAnswer": {
+                "@type":"Answer",
+                "text":"A TAN representa apenas o custo dos juros do empréstimo. A TAEG é o 'preço' total do crédito, incluindo não só os juros (TAN), mas também todos os outros encargos obrigatórios como comissões, despesas e seguros. A TAEG é a métrica mais importante para comparar propostas de crédito."
+            }
+        },
+        {
+            "@type":"Question",
+            "name":"Porque é que a TAEG é sempre mais alta que a TAN?",
+            "acceptedAnswer": {
+                "@type":"Answer",
+                "text":"A TAEG é sempre superior à TAN porque inclui custos adicionais que a TAN não considera, como comissões de dossier, custos de avaliação do imóvel e prémios de seguros de vida e multirriscos associados ao crédito."
+            }
+        }
+    ]
+};
+
+const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Comparativo TAEG vs. TAN para Novos Créditos à Habitação em Portugal",
+    "description": description,
+    "url": canonical,
+    "keywords": [ "taeg", "tan", "crédito habitação", "taxa de juro", "custo do crédito", "banca", "portugal", "empréstimo" ],
+    "creator": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "url": Astro.site.href
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "variableMeasured": [
+        "Taxa Anual de Encargos Efetiva Global (TAEG) Mediana",
+        "Taxa Anual Nominal (TAN) Mediana - Modalidade Variável"
+    ]
+};
 ---
 
 <BaseLayout {title} {description} {canonical}>
   <Fragment slot="head">
     <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
   </Fragment>
 
   <article class="max-w-5xl mx-auto py-12 px-4 space-y-12">

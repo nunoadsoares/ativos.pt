@@ -5,7 +5,6 @@ import ExchangeRatesChart from '~/components/ExchangeRatesChart.tsx';
 
 // --- LÓGICA PARA GERAR TODAS AS PÁGINAS ---
 export async function getStaticPaths() {
-  // --- CORREÇÃO AQUI: Definir a constante DENTRO da função ---
   const CODES = ['usd', 'gbp', 'chf', 'cad', 'aud', 'cny', 'brl'];
   const combinations: string[] = [];
   
@@ -40,23 +39,47 @@ const currencyNames: Record<string, string> = {
 const pageTitle = `Comparar Câmbio: ${selectedCurrencies.map(c => currencyNames[c]).join(' vs ')}`;
 const pageDescription = `Comparação da cotação do Euro face a ${selectedCurrencies.map(c => currencyNames[c]).join(', ')}. Gráfico com a evolução histórica mensal dos últimos 10 anos.`;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
+
+// --- JSON-LD ADICIONADO ---
+const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": pageTitle,
+    "description": pageDescription,
+    "url": canonical,
+    "keywords": [
+        "taxa de câmbio", "comparador", "euro",
+        ...selectedCurrencies.flatMap(c => [currencyNames[c], c.toUpperCase()])
+    ],
+    "creator": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "url": Astro.site.href
+    },
+    "variableMeasured": `Cotação do Euro (EUR) face a: ${selectedCurrencies.map(c => currencyNames[c]).join(', ')}.`
+};
 ---
 
 <BaseLayout title={pageTitle} description={pageDescription} canonical={canonical}>
-  <article class="max-w-6xl mx-auto py-12 px-4 space-y-8">
-    <header class="text-center">
-        <a href="/cambios/comparar" class="flex items-center justify-center gap-2 text-primary font-semibold mb-4 hover:underline">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
-            Escolher outras moedas
-        </a>
-      <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white">
-        {pageTitle}
-      </h1>
-    </header>
+    <Fragment slot="head">
+        {/* Adicionado o novo schema de Dataset */}
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
+    </Fragment>
 
-    <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
-      <h2 class="text-2xl font-bold text-center mb-4">Evolução Histórica vs EUR (Últimos 10 Anos)</h2>
-      <ExchangeRatesChart client:only="react" periods={selectedCurrencies} />
-    </section>
-  </article>
+    <article class="max-w-6xl mx-auto py-12 px-4 space-y-8">
+        <header class="text-center">
+            <a href="/cambios/comparar" class="flex items-center justify-center gap-2 text-primary font-semibold mb-4 hover:underline">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
+                Escolher outras moedas
+            </a>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white">
+                {pageTitle}
+            </h1>
+        </header>
+
+        <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
+            <h2 class="text-2xl font-bold text-center mb-4">Evolução Histórica vs EUR (Últimos 10 Anos)</h2>
+            <ExchangeRatesChart client:only="react" periods={selectedCurrencies} />
+        </section>
+    </article>
 </BaseLayout>

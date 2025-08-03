@@ -1,0 +1,47 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+
+const title = "Política de Privacidade | Ativos.pt";
+const description = "Consulte a política de privacidade do Ativos.pt. Saiba que dados recolhemos, como os utilizamos e quais os seus direitos enquanto titular dos dados, em conformidade com o RGPD.";
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+---
+
+<BaseLayout {title} {description} {canonical}>
+    <article class="max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white">
+                Política de Privacidade
+            </h1>
+            <p class="mt-4 text-lg text-gray-500 dark:text-gray-400">
+                Última atualização: 3 de Agosto de 2025
+            </p>
+        </header>
+
+        <div class="prose dark:prose-invert prose-lg max-w-none prose-h2:font-bold prose-h2:text-2xl prose-a:text-primary hover:prose-a:underline">
+            <p>O Ativos.pt garante aos visitantes deste Site (“Utilizador”) o respeito pela sua privacidade e a proteção dos seus dados pessoais. A presente Política de Privacidade regula a recolha e o tratamento dos dados pessoais fornecidos, assim como o exercício dos seus direitos, nos termos do Regulamento Geral sobre a Proteção de Dados (RGPD).</p>
+            
+            <h2>1. Responsável pelo Tratamento</h2>
+            <p>O Ativos.pt é a entidade responsável pela recolha e tratamento dos dados pessoais dos Utilizadores para as finalidades abaixo indicadas.</p>
+
+            <h2>2. Dados Recolhidos e Finalidades</h2>
+            <p>O Ativos.pt assume que os dados recolhidos foram inseridos pelo respetivo titular ou que a sua inserção foi autorizada pelo mesmo. Os dados recolhidos são os estritamente necessários para as seguintes finalidades:</p>
+            <ul>
+                <li><strong>Subscrição de Newsletter:</strong> Recolhemos o seu endereço de email, com o seu consentimento explícito, para lhe enviarmos os nossos conteúdos, novas ferramentas e atualizações.</li>
+                <li><strong>Análise de Tráfego:</strong> Recolhemos informações de forma anónima através de cookies (ferramentas de Analytics) para fins estatísticos, como as páginas mais visitadas ou a duração das visitas. Estes dados não permitem a identificação do Utilizador.</li>
+                <li><strong>Contacto:</strong> Se nos contactar via email, recolhemos o seu endereço e nome para podermos dar resposta ao seu pedido.</li>
+            </ul>
+
+            <h2>3. Direitos do Utilizador</h2>
+            <p>O Utilizador tem o direito, a todo o tempo, de aceder, retificar, eliminar os seus dados pessoais, bem como o direito de se opor ao tratamento dos mesmos. Para exercer estes direitos, pode enviar um pedido escrito para o nosso email <a href="mailto:contacto@ativos.pt">contacto@ativos.pt</a>. Tem igualmente o direito de apresentar uma reclamação à Comissão Nacional de Proteção de Dados (CNPD).</p>
+            
+            <h2>4. Período de Conservação dos Dados</h2>
+            <p>Os dados pessoais recolhidos serão conservados apenas durante o período necessário para a prossecução das finalidades para que foram recolhidos. No caso da newsletter, os dados serão mantidos até que o Utilizador retire o seu consentimento.</p>
+
+            <h2>5. Medidas de Segurança</h2>
+            <p>O Ativos.pt desenvolve os seus melhores esforços para proteger os dados pessoais dos Utilizadores contra acessos não autorizados. Utilizamos sistemas de segurança, regras e outros procedimentos para garantir a proteção dos dados e prevenir o acesso não autorizado, uso impróprio, divulgação, perda ou destruição.</p>
+            
+            <h2>6. Política de Cookies</h2>
+            <p>Utilizamos cookies para melhorar a experiência no nosso Site. Cookies são pequenos ficheiros de texto que identificam o seu computador no nosso servidor. Os cookies em si não identificam o utilizador individual, apenas o computador utilizado. O utilizador pode configurar o seu browser para não aceitar cookies, no entanto, tal poderá limitar o acesso a algumas funcionalidades do site. A nossa utilização de cookies está em conformidade com a legislação em vigor.</p>
+        </div>
+    </article>
+</BaseLayout>
