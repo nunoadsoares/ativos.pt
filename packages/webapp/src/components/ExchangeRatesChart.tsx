@@ -48,13 +48,8 @@ export default function ExchangeRatesChart({ periods }: Props) {
     fetch('/data/exchange_rates_monthly.json')
       .then(r => r.json())
       .then((data: ExchangeRateData[]) => {
-
-        // --- OTIMIZAÇÃO DE DESEMPENHO AQUI ---
-        const tenYearsAgo = new Date();
-        tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
-        
-        const filteredData = data.filter(row => new Date(row.date) >= tenYearsAgo);
-        // --- FIM DA OTIMIZAÇÃO ---
+        // --- FILTRO DE 10 ANOS REMOVIDO ---
+        // Agora usa todos os dados recebidos do JSON.
 
         const currenciesToShow = periods || Object.keys(currencyMap);
 
@@ -64,7 +59,7 @@ export default function ExchangeRatesChart({ periods }: Props) {
             if (!currency) return null;
             return {
               name: currency.name,
-              data: filteredData // Usar os dados filtrados
+              data: data // Usar a variável 'data' original
                 .map(row => {
                   const value = row[code as keyof ExchangeRateData];
                   if (value !== null && typeof value === 'number') {
