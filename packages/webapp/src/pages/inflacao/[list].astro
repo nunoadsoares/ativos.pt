@@ -1,0 +1,190 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import InflationSectorsCompareChart from '~/components/inflacao/InflationSectorsCompareChart.tsx';
+import inflationData from '../../../public/data/inflation_summary.json';
+
+const sectorMap: Record<string, string> = {
+    food_drinks: "Alimentação e Bebidas", alcoholic_tobacco: "Bebidas Alcoólicas e Tabaco", clothing_footwear: "Vestuário e Calçado",
+    housing_utilities: "Habitação e Combustíveis", furnishings: "Mobiliário e Equipamentos", health: "Saúde", transport: "Transportes",
+    communications: "Comunicações", recreation_culture: "Lazer e Cultura", education: "Educação", restaurants_hotels: "Restaurantes e Hotéis",
+    misc_goods_services: "Bens e Serviços Diversos"
+};
+const sectorSlugs: Record<string, string> = {
+    food_drinks: "alimentacao-e-bebidas", alcoholic_tobacco: "bebidas-alcoolicas-e-tabaco", clothing_footwear: "vestuario-e-calcado",
+    housing_utilities: "habitacao-e-combustiveis", furnishings: "mobiliario-e-equipamentos", health: "saude", transport: "transportes",
+    communications: "comunicacoes", recreation_culture: "lazer-e-cultura", education: "educacao", restaurants_hotels: "restaurantes-e-hoteis",
+    misc_goods_services: "bens-e-servicos-diversos"
+};
+const slugToCodeMap: Record<string, string> = Object.fromEntries(
+    Object.entries(sectorSlugs).map(([code, slug]) => [slug, code])
+);
+
+export async function getStaticPaths() {
+    const internalSectorSlugs: Record<string, string> = {
+        food_drinks: "alimentacao-e-bebidas", alcoholic_tobacco: "bebidas-alcoolicas-e-tabaco", clothing_footwear: "vestuario-e-calcado",
+        housing_utilities: "habitacao-e-combustiveis", furnishings: "mobiliario-e-equipamentos", health: "saude", transport: "transportes",
+        communications: "comunicacoes", recreation_culture: "lazer-e-cultura", education: "educacao", restaurants_hotels: "restaurantes-e-hoteis",
+        misc_goods_services: "bens-e-servicos-diversos"
+    };
+    const slugs = Object.values(internalSectorSlugs);
+    const paths: { params: { list: string } }[] = [];
+    function generateCombinations(startIndex: number, currentPath: string[]) {
+        if (currentPath.length >= 1 && currentPath.length <= 3) {
+            paths.push({ params: { list: currentPath.join('-vs-') } });
+        }
+        if (currentPath.length === 3) return;
+        for (let i = startIndex; i < slugs.length; i++) {
+            currentPath.push(slugs[i]);
+            generateCombinations(i + 1, currentPath);
+            currentPath.pop();
+        }
+    }
+    generateCombinations(0, []);
+    return paths;
+}
+
+const { list } = Astro.params;
+const selectedSlugs = list!.split('-vs-');
+const selectedCodes = selectedSlugs.map(slug => slugToCodeMap[slug]).filter(Boolean);
+
+// --- LÓGICA DE ANÁLISE AVANÇADA ---
+const seriesInfo = selectedCodes.map(code => {
+    const history = inflationData.historical_by_category[code] || [];
+    if (history.length < 2) return null;
+
+    const last = history[history.length - 1];
+    const secondLast = history[history.length - 2];
+    const values = history.map(p => p[1]);
+    const peak = Math.max(...values);
+    const average = values.reduce((a, b) => a + b, 0) / values.length;
+    const diff = last[1] - secondLast[1];
+
+    let trendArrow = '↔️';
+    if (diff > 0.01) trendArrow = '🔼';
+    if (diff < -0.01) trendArrow = '🔽';
+
+    return {
+        code,
+        label: sectorMap[code],
+        history,
+        latestValue: last[1],
+        latestDate: new Date(last[0]),
+        peakValue: peak,
+        averageValue: average,
+        trendArrow
+    };
+}).filter(Boolean);
+
+const chartSeriesData = seriesInfo.map(s => ({
+    name: s.label,
+    data: s.history
+}));
+
+const latestDateFormatted = seriesInfo[0]?.latestDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+
+// --- SEO MELHORADO ---
+const title = `Comparador de Inflação: ${seriesInfo.map(s => s.label).join(' vs ')}`;
+const description = `Análise comparativa da inflação para ${seriesInfo.map(s => `${s.label} (${s.latestValue.toFixed(2)}%)`).join(', ')}. Veja a evolução, picos históricos e mais.`;
+const canonical = new URL(`/inflacao/${list}`, Astro.site).href;
+
+const faqItems = [
+    { question: "Como ler este gráfico de comparação?", answer: "Cada linha no gráfico representa a taxa de inflação homóloga (YoY) para um setor de consumo ao longo do tempo. Pode comparar as tendências para perceber que setores sofreram maiores aumentos de preços e quando." },
+    { question: "O que significa o 'Pico Histórico' na tabela?", answer: "O 'Pico Histórico' é o valor mais alto que a taxa de inflação homóloga para aquele setor atingiu em todo o período de dados disponível. Ajuda a dar contexto ao valor atual." }
+];
+
+const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqItems.map(item => ({
+        "@type": "Question",
+        "name": item.question,
+        "acceptedAnswer": { "@type": "Answer", "text": item.answer }
+    }))
+};
+---
+
+<BaseLayout {title} {description} {canonical}>
+    <Fragment slot="head">
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+    </Fragment>
+
+    <article class="max-w-6xl mx-auto py-12 px-4 space-y-12">
+        <header class="text-center">
+            <p class="text-lg font-semibold text-primary dark:text-secondary">Comparador de Setores da Inflação</p>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mt-2">
+                {seriesInfo.map((s, i) => (
+                    <Fragment>
+                        {s.label}{i < seriesInfo.length - 1 && <span class="text-gray-400 font-light mx-2">vs</span>}
+                    </Fragment>
+                ))}
+            </h1>
+        </header>
+        
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            {seriesInfo.map(s => (
+                <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <h2 class="text-sm font-bold uppercase text-primary tracking-widest">{s.label}</h2>
+                    <p class="text-4xl font-extrabold text-primary mt-2 flex justify-center items-center gap-2">
+                        {s.latestValue.toFixed(2)}% <span class="text-2xl">{s.trendArrow}</span>
+                    </p>
+                </div>
+            ))}
+             <p class="md:col-span-3 text-xs text-gray-500 dark:text-gray-400 mt-2">Última atualização: {latestDateFormatted}</p>
+        </section>
+
+        <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
+             <div class="min-h-[450px]">
+                <InflationSectorsCompareChart series={chartSeriesData} client:only="react" />
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-2xl font-bold text-center mb-6">Resumo Estatístico</h2>
+            <div class="overflow-x-auto bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th class="px-6 py-3">Setor</th>
+                            <th class="px-6 py-3 text-right">Valor Atual (%)</th>
+                            <th class="px-6 py-3 text-right">Pico Histórico (%)</th>
+                            <th class="px-6 py-3 text-right">Média do Período (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {seriesInfo.map(s => (
+                            <tr class="border-b dark:border-gray-700">
+                                <th class="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{s.label}</th>
+                                <td class="px-6 py-4 text-right font-bold text-primary">{s.latestValue.toFixed(2)}</td>
+                                <td class="px-6 py-4 text-right">{s.peakValue.toFixed(2)}</td>
+                                <td class="px-6 py-4 text-right">{s.averageValue.toFixed(2)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+        <section class="max-w-4xl mx-auto pt-12 border-t dark:border-gray-700">
+            <h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white">Perguntas Frequentes</h2>
+            <div class="mt-8 space-y-4">
+                {faqItems.map(faq => (
+                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border dark:border-gray-700 cursor-pointer">
+                    <summary class="flex items-center justify-between font-medium text-gray-900 dark:text-white list-none">
+                        <span>{faq.question}</span>
+                        <svg class="h-6 w-6 text-gray-500 group-open:rotate-180 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </summary>
+                    <p class="mt-3 text-gray-600 dark:text-gray-300">{faq.answer}</p>
+                </details>
+                ))}
+            </div>
+        </section>
+
+        <div class="text-center">
+            <a href="/inflacao" class="text-primary font-semibold hover:underline">
+                &larr; Voltar ao Observatório Principal
+            </a>
+        </div>
+    </article>
+</BaseLayout>

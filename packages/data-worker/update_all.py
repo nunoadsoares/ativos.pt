@@ -10,6 +10,8 @@ from scripts.preco_casas.update_housing_price_yoy_kpi import main as update_hous
 from scripts.credito_habitacao.get_condicoes_credito import main as update_condicoes_credito
 from scripts.cambios.get_exchange_rates import main as update_exchange_rates
 from scripts.risco_incumprimento.update_default_risk_map_data import main as update_risk_map
+from scripts.inflacao.get_inflation_data import main as fetch_inflation_data
+
 
 # --- Legacy (manter se ainda for usado para outros dados) ---
 from apibp.apibp import main as update_macro
@@ -38,6 +40,9 @@ def main():
     # Caso contrário, pode ser comentado ou removido.
     #print("\n--- A iniciar atualização de indicadores macro (legacy apibp.py) ---")
     #update_macro()
+    
+    print("\n--- A ATUALIZAR DADOS DA INFLAÇÃO ---")
+    fetch_inflation_data()
     
     print("\n✅ Orquestrador 'update_all' concluído com sucesso.")
 

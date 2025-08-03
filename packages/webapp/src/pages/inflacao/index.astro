@@ -1,0 +1,204 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import InflationHistoricalChart from '~/components/inflacao/InflationHistoricalChart.tsx';
+import InflationBreakdownChart from '~/components/inflacao/InflationBreakdownChart.tsx';
+import CheckboxCard from '~/components/CheckboxCard.astro';
+
+import inflationData from '../../../public/data/inflation_summary.json';
+
+// --- LÓGICA PARA KPIS, TEXTO DINÂMICO E SEO ---
+
+let kpis = { yoy: 'N/D', avg12m: 'N/D', core: 'N/D' };
+let latestDate = 'data indisponível';
+let dynamicAnalysis = 'Não foi possível carregar os dados para uma análise detalhada.';
+let trendArrow = '↔️'; 
+let faqItems: { question: string; answer: string }[] = [];
+
+const sectorMap: Record<string, string> = {
+    food_drinks: "Alimentação e Bebidas", alcoholic_tobacco: "Bebidas Alcoólicas e Tabaco", clothing_footwear: "Vestuário e Calçado",
+    housing_utilities: "Habitação e Combustíveis", furnishings: "Mobiliário e Equipamentos", health: "Saúde", transport: "Transportes",
+    communications: "Comunicações", recreation_culture: "Lazer e Cultura", education: "Educação", restaurants_hotels: "Restaurantes e Hotéis",
+    misc_goods_services: "Bens e Serviços Diversos"
+};
+const sectorSlugs: Record<string, string> = {
+    food_drinks: "alimentacao-e-bebidas", alcoholic_tobacco: "bebidas-alcoolicas-e-tabaco", clothing_footwear: "vestuario-e-calcado",
+    housing_utilities: "habitacao-e-combustiveis", furnishings: "mobiliario-e-equipamentos", health: "saude", transport: "transportes",
+    communications: "comunicacoes", recreation_culture: "lazer-e-cultura", education: "educacao", restaurants_hotels: "restaurantes-e-hoteis",
+    misc_goods_services: "bens-e-servicos-diversos"
+};
+const sectorEmojis: Record<string, string> = {
+    food_drinks: "🛒", alcoholic_tobacco: "🍷", clothing_footwear: "👟", housing_utilities: "🏠", furnishings: "🛋️", 
+    health: "⚕️", transport: "🚗", communications: "📱", recreation_culture: "🎭", education: "🎓", 
+    restaurants_hotels: "🏨", misc_goods_services: "🛍️"
+};
+
+try {
+    if (inflationData.historical.yoy && inflationData.historical.yoy.length >= 2) {
+        const headline = inflationData.headline;
+        const historicalYoY = inflationData.historical.yoy;
+        const historicalCore = inflationData.historical.core_yoy;
+
+        const lastYoYValue = historicalYoY[historicalYoY.length - 1][1];
+        const secondLastYoYValue = historicalYoY[historicalYoY.length - 2][1];
+        const lastCoreValue = historicalCore.length > 0 ? historicalCore[historicalCore.length - 1][1] : null;
+        
+        kpis.yoy = lastYoYValue?.toFixed(2) ?? 'N/D';
+        kpis.avg12m = headline['12m_avg']?.value?.toFixed(2) ?? 'N/D';
+        kpis.core = lastCoreValue?.toFixed(2) ?? 'N/D';
+        latestDate = new Date(headline.yoy.date).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+
+        const diffYoY = lastYoYValue - secondLastYoYValue;
+        let trendText = '';
+        if (diffYoY > 0.01) {
+            trendArrow = '🔼';
+            trendText = `refletindo uma <strong>aceleração</strong> face ao valor do mês anterior (${secondLastYoYValue.toFixed(2)}%)`;
+        } else if (diffYoY < -0.01) {
+            trendArrow = '🔽';
+            trendText = `representando um <strong>abrandamento</strong> em relação ao mês anterior (${secondLastYoYValue.toFixed(2)}%)`;
+        } else {
+            trendArrow = '↔️';
+            trendText = `demonstrando <strong>estabilidade</strong> em comparação com o mês anterior (${secondLastYoYValue.toFixed(2)}%)`;
+        }
+        dynamicAnalysis = `A taxa de inflação homóloga (IPC) em Portugal fixou-se em <strong>${kpis.yoy}%</strong> ${trendArrow}, ${trendText}. A inflação subjacente, que exclui os produtos mais voláteis, situou-se nos <strong>${kpis.core}%</strong>.`;
+    }
+
+    faqItems = [
+        { question: "O que é a inflação (IPC)?", answer: "A inflação, medida pelo Índice de Preços no Consumidor (IPC), representa o aumento geral dos preços de um cabaz de bens e serviços representativo do consumo das famílias. Uma taxa de 2% significa que, em média, o que custava 100€ há um ano, custa agora 102€." },
+        { question: "O que significa 'Taxa de Variação Homóloga'?", answer: "A taxa de variação homóloga (YoY) compara o nível de preços de um determinado mês com o mesmo mês do ano anterior. É a medida mais comum para avaliar a inflação, pois elimina os efeitos sazonais." },
+        { question: "O que é a Inflação Subjacente (Core)?", answer: "A inflação subjacente exclui os preços dos produtos mais voláteis, como os alimentares não processados e a energia. Serve para identificar a tendência de fundo da inflação, ignorando choques de preços temporários." }
+    ];
+
+} catch (e) {
+    console.error("Falha ao carregar dados da Inflação para a página:", e);
+}
+
+const title = "Inflação em Portugal Hoje e Histórico | Observatório Ativos.pt";
+const description = `Observatório da inflação (IPC) em Portugal. A taxa homóloga em ${latestDate} foi de ${kpis.yoy}%. Consulte gráficos com a evolução histórica e a repartição por categoria de consumo.`;
+const canonical = new URL('/inflacao/', Astro.site).href;
+
+const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqItems.map(item => ({
+        "@type": "Question",
+        "name": item.question,
+        "acceptedAnswer": { "@type": "Answer", "text": item.answer }
+    }))
+};
+---
+
+<BaseLayout {title} {description} {canonical}>
+    <Fragment slot="head">
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+    </Fragment>
+
+    <article class="max-w-6xl mx-auto py-12 px-4 space-y-12">
+        <header class="text-center">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white">
+                Observatório da Inflação
+            </h1>
+            <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                Análise completa do Índice de Preços no Consumidor (IPC) em Portugal. Dados oficiais, gráficos interativos e explicações simples.
+            </p>
+        </header>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h2 class="text-sm font-bold uppercase text-primary tracking-widest">Inflação Homóloga</h2>
+                <p class="text-4xl font-extrabold text-primary mt-2">{kpis.yoy}%</p>
+            </div>
+            <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h2 class="text-sm font-bold uppercase text-gray-600 dark:text-gray-400 tracking-widest">Inflação Subjacente</h2>
+                <p class="text-4xl font-extrabold text-gray-800 dark:text-gray-200 mt-2">{kpis.core}%</p>
+            </div>
+            <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h2 class="text-sm font-bold uppercase text-gray-600 dark:text-gray-400 tracking-widest">Média 12 Meses</h2>
+                <p class="text-4xl font-extrabold text-gray-800 dark:text-gray-200 mt-2">{kpis.avg12m}%</p>
+            </div>
+            <p class="md:col-span-3 text-xs text-gray-500 dark:text-gray-400 mt-2">Última atualização: {latestDate}</p>
+        </section>
+        
+        <section class="prose dark:prose-invert max-w-3xl mx-auto text-center text-lg">
+            <p set:html={dynamicAnalysis} />
+        </section>
+
+        <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
+            <h2 class="text-2xl font-bold text-center mb-2">Evolução Histórica da Inflação</h2>
+            <p class="text-gray-600 dark:text-gray-400 text-center mb-6">Compare a inflação total com a inflação subjacente.</p>
+            <div class="min-h-[400px]">
+                <InflationHistoricalChart client:only="react" />
+            </div>
+        </section>
+        
+        <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-lg">
+             <h2 class="text-2xl font-bold text-center mb-2">Compare a Inflação Entre Setores</h2>
+             <p class="text-gray-600 dark:text-gray-400 text-center mb-6">Selecione entre 1 a 3 categorias para comparar a sua evolução histórica.</p>
+             <div class="max-w-4xl mx-auto">
+                <form id="sector-comparator-form" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {Object.entries(sectorMap).map(([code, label]) => (
+                        <CheckboxCard value={code} label={`${sectorEmojis[code]} ${label}`} />
+                    ))}
+                </form>
+                <div class="mt-6 flex justify-center">
+                     <button id="compare-btn" type="button" class="px-8 py-3 bg-primary text-white font-bold rounded-lg shadow-md hover:opacity-90 transition-opacity">
+                        Comparar Seleção
+                    </button>
+                </div>
+             </div>
+        </section>
+
+        <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
+            <h2 class="text-2xl font-bold text-center mb-2">Inflação por Categoria de Consumo</h2>
+            <p class="text-gray-600 dark:text-gray-400 text-center mb-6">Taxa de variação homóloga para os principais setores.</p>
+            <div class="min-h-[500px]">
+                <InflationBreakdownChart client:only="react" />
+            </div>
+        </section>
+
+        <section class="max-w-4xl mx-auto pt-12 border-t dark:border-gray-700">
+            <h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white">Perguntas Frequentes</h2>
+            <div class="mt-8 space-y-4">
+                {faqItems.map(faq => (
+                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border dark:border-gray-700 cursor-pointer">
+                    <summary class="flex items-center justify-between font-medium text-gray-900 dark:text-white list-none">
+                        <span>{faq.question}</span>
+                        <svg class="h-6 w-6 text-gray-500 group-open:rotate-180 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </summary>
+                    <p class="mt-3 text-gray-600 dark:text-gray-300">{faq.answer}</p>
+                </details>
+                ))}
+            </div>
+        </section>
+    </article>
+</BaseLayout>
+
+<script is:inline>
+    // Injetar o mapa de slugs diretamente no script para que ele não tenha dependências externas
+    const sectorSlugs = JSON.parse('{"food_drinks":"alimentacao-e-bebidas","alcoholic_tobacco":"bebidas-alcoolicas-e-tabaco","clothing_footwear":"vestuario-e-calcado","housing_utilities":"habitacao-e-combustiveis","furnishings":"mobiliario-e-equipamentos","health":"saude","transport":"transportes","communications":"comunicacoes","recreation_culture":"lazer-e-cultura","education":"educacao","restaurants_hotels":"restaurantes-e-hoteis","misc_goods_services":"bens-e-servicos-diversos"}');
+
+    const form = document.getElementById('sector-comparator-form');
+    const btn = document.getElementById('compare-btn');
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+
+        const checkedInputs = form.querySelectorAll('input[type="checkbox"]:checked');
+        const checkedValues = Array.from(checkedInputs).map(input => input.value);
+
+        if (checkedValues.length < 1) {
+            alert('Por favor, selecione pelo menos 1 setor para analisar.');
+            return;
+        }
+        if (checkedValues.length > 3) {
+            alert('Pode comparar no máximo 3 setores de cada vez.');
+            return;
+        }
+
+        const slugs = checkedValues.map(value => sectorSlugs[value] || value);
+        const path = slugs.join('-vs-');
+        
+        window.location.href = `/inflacao/${path}`;
+    });
+</script>
