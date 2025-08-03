@@ -62,8 +62,8 @@ def fetch_single_series(name: str, series_id: str) -> pd.DataFrame | None:
 
 def main():
     """
-    Busca os dados das taxas de câmbio para as moedas selecionadas, combina-os
-    e guarda num único ficheiro JSON.
+    Busca os dados das taxas de câmbio para as moedas selecionadas, combina-os,
+    filtra para obter apenas o primeiro registo de cada mês e guarda num único ficheiro JSON.
     """
     print("🚀 A iniciar a recolha de dados das Taxas de Câmbio (EUR)...")
     
@@ -89,11 +89,23 @@ def main():
     # Processamento final
     df_combined.sort_index(inplace=True)
     df_combined.ffill(inplace=True)
-    df_combined = df_combined.round(4)
     
+    # --- OTIMIZAÇÃO: LÓGICA PARA OBTER O PRIMEIRO VALOR DE CADA MÊS ---
+    print("\n💡 A otimizar dados: selecionando o primeiro registo de cada mês...")
     df_combined.reset_index(inplace=True)
-    df_combined.rename(columns={'Data': 'date'}, inplace=True)
-    df_combined['date'] = pd.to_datetime(df_combined['date']).dt.strftime('%Y-%m-%d')
+    df_combined['Data'] = pd.to_datetime(df_combined['Data'])
+    # Cria uma coluna com o ano e mês para agrupar
+    df_combined['year_month'] = df_combined['Data'].dt.to_period('M')
+    # Remove duplicados, mantendo apenas a primeira ocorrência de cada mês
+    df_monthly = df_combined.drop_duplicates(subset='year_month', keep='first').copy()
+    # Remove a coluna temporária
+    df_monthly.drop(columns=['year_month'], inplace=True)
+    print(f"  ✅ Dados reduzidos de {len(df_combined)} para {len(df_monthly)} registos.")
+    # --- FIM DA OTIMIZAÇÃO ---
+
+    df_final = df_monthly.round(4)
+    df_final.rename(columns={'Data': 'date'}, inplace=True)
+    df_final['date'] = df_final['date'].dt.strftime('%Y-%m-%d')
     
     print("\n✅ Todas as séries de câmbio foram combinadas e processadas.")
 
@@ -102,7 +114,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, 'exchange_rates_monthly.json')
     
-    df_combined.to_json(output_path, orient='records', indent=2, force_ascii=False)
+    df_final.to_json(output_path, orient='records', indent=2, force_ascii=False)
 
     print(f"✅ Dados das taxas de câmbio guardados com sucesso em: {output_path}")
     return True
