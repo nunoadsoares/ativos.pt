@@ -28,7 +28,6 @@ const howToSchema = {
 
 <BaseLayout title="Comparador de Corretoras" description="Compare corretoras: taxas, segurança, fiscalidade e mais.">
     <Fragment slot="head">
-        <meta name="robots" content="noindex,follow" />
         {/* Adicionado o novo schema HowTo */}
         <script type="application/ld+json" is:inline set:html={JSON.stringify(howToSchema)} />
     </Fragment>
