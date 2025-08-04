@@ -1,0 +1,11 @@
+# Ignora a pasta de dependências locais
+node_modules
+
+# Ignora ficheiros de configuração do Docker, para não se copiarem a si mesmos
+Dockerfile
+.dockerignore
+
+# Ficheiros de sistema e logs
+.git
+.DS_Store
+npm-debug.log

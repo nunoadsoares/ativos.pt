@@ -1,14 +1,23 @@
 version: '3.8'
 
 services:
-  # Definimos o nosso serviço/contentor, que vamos chamar de 'web'
   web:
-    # A receita para construir a imagem é o Dockerfile na pasta atual ('.')
     build: .
-    # O nome que damos à imagem depois de construída
     image: ativos-pt-web
-    # Mapeamos a porta 80 do nosso VPS (host) para a porta 80 do contentor
     ports:
       - "80:80"
-    # Garante que o contentor arranca automaticamente se o servidor reiniciar
+      - "443:443"
     restart: always
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    # Esta linha diz ao Certbot para verificar se precisa de renovar 
+    # o certificado duas vezes por dia, garantindo que nunca expira.
+    command: renew --quiet --wait 30s
