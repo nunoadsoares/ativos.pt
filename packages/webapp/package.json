@@ -12,6 +12,7 @@
   "dependencies": {
     "@astrojs/react": "^4.3.0",
     "@astrojs/tailwind": "^6.0.2",
+    "@iconify-json/heroicons": "^1.2.2",
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.11",
     "@types/react": "^19.1.8",

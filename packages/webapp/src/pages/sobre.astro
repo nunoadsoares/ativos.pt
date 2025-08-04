@@ -1,0 +1,90 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { Icon } from 'astro-icon/components';
+
+// Dados dos valores do projeto. Pode alterar ou adicionar mais.
+const values = [
+  {
+    name: 'Rigor e Fiabilidade',
+    description: 'Os nossos dados são recolhidos a partir de fontes oficiais e reputadas, como o Banco de Portugal, INE e PORDATA, garantindo a máxima precisão.',
+    icon: 'heroicons:chart-bar-square'
+  },
+  {
+    name: 'Acessibilidade Total',
+    description: 'Acreditamos que o acesso a informação financeira de qualidade deve ser universal. Todas as nossas ferramentas são e sempre serão gratuitas e sem necessidade de registo.',
+    icon: 'heroicons:lock-open'
+  },
+  {
+    name: 'Foco no Utilizador',
+    description: 'Desenvolvemos ferramentas intuitivas e fáceis de usar, pensadas para resolver as necessidades reais dos investidores e cidadãos em Portugal.',
+    icon: 'heroicons:user-group'
+  },
+  {
+    name: 'Inovação Contínua',
+    description: 'Estamos constantemente a desenvolver novos observatórios, simuladores e a melhorar as ferramentas existentes com base no feedback da comunidade.',
+    icon: 'heroicons:sparkles'
+  },
+]
+---
+
+<BaseLayout
+  title="Sobre o Ativos.pt | A Nossa Missão"
+  description="Conheça a história, a missão e os valores por detrás do Ativos.pt, o seu dashboard financeiro de referência em Portugal."
+>
+  <main class="bg-gray-50 dark:bg-brand-dark">
+
+    <section class="py-20 sm:py-32">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <p class="text-base font-semibold text-primary">A nossa missão</p>
+        <h1 class="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+          Democratizar o acesso a dados financeiros em Portugal.
+        </h1>
+        <p class="mt-6 max-w-3xl mx-auto text-lg leading-8 text-gray-600 dark:text-gray-300">
+          Muitos dos dados que encontra aqui são públicos, disponibilizados por entidades como o BPstat e o INE. O que distingue o Ativos.pt é a nossa missão de agregar essa informação, muitas vezes complexa e dispersa, e apresentá-la de forma simplificada e intuitiva através de uma interface moderna. Nascemos para transformar dados brutos em conhecimento acionável para todos.
+        </p>
+      </div>
+    </section>
+
+    <section class="py-20 sm:py-32 bg-white dark:bg-gray-900/40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-2xl mx-auto lg:mx-0">
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">Os Nossos Princípios</h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-400">
+            Construímos esta plataforma com base em quatro pilares fundamentais que guiam todo o nosso desenvolvimento.
+          </p>
+        </div>
+        <dl class="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 text-base leading-7 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-4">
+          {values.map((value) => (
+            <div>
+              <dt class="font-semibold text-gray-900 dark:text-white flex items-center gap-x-3">
+                <Icon name={value.icon} class="h-8 w-8 text-primary" />
+                {value.name}
+              </dt>
+              <dd class="mt-4 text-gray-600 dark:text-gray-400">{value.description}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+
+    <section class="py-20 sm:py-32">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">Uma Ferramenta, Uma Comunidade</h2>
+            <p class="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
+                O Ativos.pt é um projeto independente, desenvolvido e mantido por um entusiasta de finanças e tecnologia. A sua evolução é impulsionada pela comunidade e pelo feedback contínuo dos seus utilizadores.
+            </p>
+            
+            <p class="mt-4 text-sm leading-6 text-gray-500 dark:text-gray-400">
+              Para apoiar a manutenção e o desenvolvimento do projeto, algumas das plataformas de investimento apresentadas podem conter links de afiliação. Ao utilizá-los para se registar, não tem qualquer custo adicional e está a ajudar diretamente a que o Ativos.pt continue a crescer e a oferecer mais ferramentas gratuitas.
+            </p>
+
+            <div class="mt-10">
+                <a href="/plataformas" class="rounded-md bg-primary px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    Explore as nossas ferramentas
+                </a>
+            </div>
+        </div>
+    </section>
+
+  </main>
+</BaseLayout>
