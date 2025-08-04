@@ -1,6 +1,12 @@
 version: '3.8'
 
+# ---- Volumes geridos pelo Docker (fora do teu repo) ----
+volumes:
+  certbot-etc:
+  certbot-www:
+
 services:
+  # ---------- NGINX + Webapp ----------
   web:
     build: .
     image: ativos-pt-web
@@ -10,14 +16,15 @@ services:
     restart: always
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      - certbot-etc:/etc/letsencrypt          # certificados
+      - certbot-www:/var/www/certbot           # ACME challenges
 
+  # ---------- Certbot (renovação automática) ----------
   certbot:
     image: certbot/certbot
+    user: "1000:1000"                          # garante ficheiros como owner nuno
     volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    # Esta linha diz ao Certbot para verificar se precisa de renovar 
-    # o certificado duas vezes por dia, garantindo que nunca expira.
+      - certbot-etc:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
     command: renew --quiet --wait 30s
+    restart: unless-stopped                    # reinicia se falhar
