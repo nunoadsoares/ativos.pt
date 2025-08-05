@@ -1,11 +1,14 @@
-# Ignora a pasta de dependências locais
-node_modules
+# Ignorar tudo o que não interessa no build
 
-# Ignora ficheiros de configuração do Docker, para não se copiarem a si mesmos
+node_modules
+certbot
+dist
+.astro
+.vscode
+__pycache__
+*.log
+.git
+.idea
+.DS_Store
 Dockerfile
 .dockerignore
-
-# Ficheiros de sistema e logs
-.git
-.DS_Store
-npm-debug.log
