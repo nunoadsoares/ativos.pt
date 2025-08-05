@@ -15,18 +15,18 @@ const schema = {
   "@context": "https://schema.org",
   "@type": "Review",
   "itemReviewed": {
-    "@type": "FinancialProduct",
+    "@type": "Product",
     "name": data.nome,
     "url": pageUrl,
-    "logo": new URL(data.logo, siteUrl).href,
+    "image": new URL(data.logo, siteUrl).href,
     "brand": {
-        "@type": "Organization",
-        "name": data.nome
+      "@type": "Organization",
+      "name": data.nome
     }
   },
   "reviewRating": {
     "@type": "Rating",
-    "ratingValue": data.rating ?? "4.5", // Podes adicionar um campo 'rating' ao teu frontmatter
+    "ratingValue": data.rating ?? "4.5",
     "bestRating": "5",
     "worstRating": "1"
   },
