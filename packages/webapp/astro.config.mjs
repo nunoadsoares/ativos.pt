@@ -1,58 +1,35 @@
 // astro.config.mjs
-import { defineConfig } from 'astro/config';
-import react from '@astrojs/react';
-import tailwind from '@astrojs/tailwind';
-import sitemap from '@astrojs/sitemap';
-import icon from "astro-icon";
+import { defineConfig } from 'astro/config'
+import react   from '@astrojs/react'
+import tailwind from '@astrojs/tailwind'
+import sitemap from '@astrojs/sitemap'
+import icon    from 'astro-icon'
+import node    from '@astrojs/node'          // ← NOVO
 
-/* ──────────────── Constantes ──────────────── */
-const SITE_URL = 'https://www.ativos.pt';
-const TODAY = new Date().toISOString().split('T')[0]; // AAAA-MM-DD
+/* ─────────── Constantes ─────────── */
+const SITE_URL = 'https://www.ativos.pt'
+const TODAY    = new Date().toISOString().split('T')[0] // AAAA-MM-DD
 
-/* ─────────────── Configuração ─────────────── */
+/* ───────── Configuração ────────── */
 export default defineConfig({
   site: SITE_URL,
-
-  // *** ALTERAÇÃO PRINCIPAL AQUI ***
-  // Ativa o modo de renderização no servidor (SSR).
-  // Isto permite que os teus endpoints de API (/api/data/*) funcionem dinamicamente,
-  // resolvendo o erro 'GetStaticPathsRequired' de forma global.
-  output: 'server',
+  output: 'server',                          // já existia
+  adapter: node({ mode: 'standalone' }),     // ← NOVO
 
   integrations: [
     react(),
     tailwind(),
     icon(),
-
-    /* Sitemap v4 – gera sitemap-index.xml + sub-sitemaps */
     sitemap({
-      changefreq: 'weekly', // valor por defeito
-      priority: 0.7,      // valor por defeito
-
-      /**
-       * `entry` é um objeto que contém o URL e outras propriedades.
-       * Acedemos a `entry.url` para obter o URL correto.
-       */
+      changefreq: 'weekly',
+      priority: 0.7,
       serialize(entry) {
-        return {
-          url: entry.url,
-          lastmod: TODAY,
-          changefreq: 'weekly',
-          priority: 0.7,
-        };
-      },
-    }),
+        return { url: entry.url, lastmod: TODAY, changefreq: 'weekly', priority: 0.7 }
+      }
+    })
   ],
 
-  /* ─────────────── Extra Vite (ignorar better-sqlite3 no bundle) ─────────────── */
   vite: {
-    resolve: {
-      alias: {
-        'better-sqlite3': false,
-      },
-    },
-    ssr: {
-      external: ['better-sqlite3'],
-    },
-  },
-});
+    ssr:     { external: ['better-sqlite3'] }
+  }
+})

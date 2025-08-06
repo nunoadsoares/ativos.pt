@@ -1,15 +1,11 @@
 ---
-// Ficheiro: packages/webapp/src/pages/cambios/index.astro
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import ExchangeRatesChart from '~/components/ExchangeRatesChart.tsx';
+import { getIndicator, getSeries } from '~/lib/db';
 
-interface ExchangeRateData {
-  date: string;
-  usd?: number;
-  gbp?: number;
-  chf?: number;
-}
+export const prerender = true;
 
+// --- LÓGICA DE DADOS REFEITA PARA USAR A BASE DE DADOS ---
 let kpis = {
   usd: { value: 'N/D', trend: 0 },
   gbp: { value: 'N/D', trend: 0 },
@@ -18,23 +14,37 @@ let kpis = {
 let latestDate = "data indisponível";
 
 try {
-  const data: ExchangeRateData[] = await import('../../../public/data/exchange_rates_monthly.json').then(m => m.default);
-  if (data.length >= 2) {
-    const last = data[data.length - 1];
-    const secondLast = data[data.length - 2];
-    latestDate = new Date(last.date!).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+  // Busca os indicadores e as séries históricas da base de dados
+  const usdIndicator = getIndicator('latest_exchange_rate_eur_usd');
+  const gbpIndicator = getIndicator('latest_exchange_rate_eur_gbp');
+  const chfIndicator = getIndicator('latest_exchange_rate_eur_chf');
 
-    kpis.usd.value = last.usd?.toFixed(3) ?? 'N/D';
-    kpis.usd.trend = (last.usd ?? 0) - (secondLast.usd ?? 0);
-    
-    kpis.gbp.value = last.gbp?.toFixed(3) ?? 'N/D';
-    kpis.gbp.trend = (last.gbp ?? 0) - (secondLast.gbp ?? 0);
+  const usdHistory = getSeries('exchange_rate_eur_usd');
+  const gbpHistory = getSeries('exchange_rate_eur_gbp');
+  const chfHistory = getSeries('exchange_rate_eur_chf');
 
-    kpis.chf.value = last.chf?.toFixed(3) ?? 'N/D';
-    kpis.chf.trend = (last.chf ?? 0) - (secondLast.chf ?? 0);
+  // Processa os dados do USD
+  if (usdIndicator && usdHistory.length >= 2) {
+    kpis.usd.value = usdIndicator.value.toFixed(3);
+    kpis.usd.trend = usdIndicator.value - usdHistory[usdHistory.length - 2].value;
   }
+  // Processa os dados da GBP
+  if (gbpIndicator && gbpHistory.length >= 2) {
+    kpis.gbp.value = gbpIndicator.value.toFixed(3);
+    kpis.gbp.trend = gbpIndicator.value - gbpHistory[gbpHistory.length - 2].value;
+  }
+  // Processa os dados do CHF
+  if (chfIndicator && chfHistory.length >= 2) {
+    kpis.chf.value = chfIndicator.value.toFixed(3);
+    kpis.chf.trend = chfIndicator.value - chfHistory[chfHistory.length - 2].value;
+  }
+
+  if (usdIndicator) {
+    latestDate = new Date(usdIndicator.reference_date).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+  }
+
 } catch (e) {
-  console.error("Falha ao carregar dados de câmbios:", e);
+  console.error("Falha ao carregar dados de câmbios da base de dados:", e);
 }
 
 const trendColor = (trend: number) => {
@@ -48,53 +58,18 @@ const trendIcon = (trend: number) => {
     return '–';
 }
 
+// --- SEO (Preservado e com dados corretos) ---
 const title = "Taxas de Câmbio (EUR) | Observatório Ativos.pt";
 const description = `Cotação do Euro face às principais moedas mundiais. Acompanhe a evolução mensal do Dólar (USD), Libra (GBP), Franco Suíço (CHF) e mais. Último valor EUR/USD: ${kpis.usd.value}.`;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 
-const faqSchema = {
-    "@context":"https://schema.org","@type":"FAQPage",
-    "mainEntity":[
-        {"@type":"Question","name":"O que é uma taxa de câmbio?","acceptedAnswer":{"@type":"Answer","text":"Uma taxa de câmbio é o preço de uma moeda expresso noutra moeda. Por exemplo, se a taxa EUR/USD for 1.07, significa que 1 Euro vale 1.07 Dólares Americanos."}},
-        {"@type":"Question","name":"O que significa quando a taxa EUR/USD sobe?","acceptedAnswer":{"@type":"Answer","text":"Quando a taxa EUR/USD sobe, significa que o Euro está a valorizar face ao Dólar. Com 1 Euro, consegue comprar mais Dólares. Isto é favorável para quem viaja da Europa para os EUA, mas pode encarecer as exportações europeias."}},
-        {"@type":"Question","name":"Porque é que as taxas de câmbio mudam?","acceptedAnswer":{"@type":"Answer","text":"As taxas de câmbio flutuam constantemente devido a uma variedade de fatores, incluindo as taxas de juro definidas pelos bancos centrais, a inflação, a estabilidade política e económica de um país, e a procura e oferta nos mercados cambiais."}}
-    ]
-};
-
-// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
-const datasetSchema = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
-    "name": "Observatório de Taxas de Câmbio do Euro (EUR)",
-    "description": "Série de dados históricos mensais sobre as taxas de câmbio do Euro (EUR) face a moedas chave como o Dólar Americano (USD), a Libra Esterlina (GBP) e o Franco Suíço (CHF). Os dados são recolhidos de fontes oficiais para o site Ativos.pt.",
-    "url": new URL('/cambios', Astro.site).href,
-    "keywords": [
-        "taxa de câmbio",
-        "câmbio",
-        "euro",
-        "dólar",
-        "libra",
-        "franco suíço",
-        "EURUSD",
-        "EURGBP",
-        "EURCHF",
-        "moedas",
-        "forex"
-    ],
-    "creator": {
-        "@type": "Organization",
-        "name": "Ativos.pt",
-        "url": Astro.site.href
-    },
-    "license": "https://creativecommons.org/licenses/by/4.0/",
-    "variableMeasured": "O valor de 1 Euro (EUR) expresso em outras moedas (USD, GBP, CHF)."
-};
+const faqSchema = { "@context":"https://schema.org","@type":"FAQPage", "mainEntity":[ {"@type":"Question","name":"O que é uma taxa de câmbio?","acceptedAnswer":{"@type":"Answer","text":"Uma taxa de câmbio é o preço de uma moeda expresso noutra moeda. Por exemplo, se a taxa EUR/USD for 1.07, significa que 1 Euro vale 1.07 Dólares Americanos."}}, {"@type":"Question","name":"O que significa quando a taxa EUR/USD sobe?","acceptedAnswer":{"@type":"Answer","text":"Quando a taxa EUR/USD sobe, significa que o Euro está a valorizar face ao Dólar. Com 1 Euro, consegue comprar mais Dólares. Isto é favorável para quem viaja da Europa para os EUA, mas pode encarecer as exportações europeias."}}, {"@type":"Question","name":"Porque é que as taxas de câmbio mudam?","acceptedAnswer":{"@type":"Answer","text":"As taxas de câmbio flutuam constantemente devido a uma variedade de fatores, incluindo as taxas de juro definidas pelos bancos centrais, a inflação, a estabilidade política e económica de um país, e a procura e oferta nos mercados cambiais."}} ] };
+const datasetSchema = { "@context": "https://schema.org", "@type": "Dataset", "name": "Observatório de Taxas de Câmbio do Euro (EUR)", "description": "Série de dados históricos mensais sobre as taxas de câmbio do Euro (EUR) face a moedas chave como o Dólar Americano (USD), a Libra Esterlina (GBP) e o Franco Suíço (CHF). Os dados são recolhidos de fontes oficiais para o site Ativos.pt.", "url": new URL('/cambios', Astro.site).href, "keywords": [ "taxa de câmbio", "câmbio", "euro", "dólar", "libra", "franco suíço", "EURUSD", "EURGBP", "EURCHF", "moedas", "forex" ], "creator": { "@type": "Organization", "name": "Ativos.pt", "url": Astro.site!.href }, "license": "https://creativecommons.org/licenses/by/4.0/", "variableMeasured": "O valor de 1 Euro (EUR) expresso em outras moedas (USD, GBP, CHF)." };
 ---
 
 <BaseLayout {title} {description} {canonical}>
   <Fragment slot="head">
     <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
-    {/* --- NOVA LINHA ADICIONADA AQUI --- */}
     <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
   </Fragment>
 

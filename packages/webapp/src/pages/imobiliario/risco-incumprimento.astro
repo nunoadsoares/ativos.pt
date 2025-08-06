@@ -1,28 +1,32 @@
 ---
-import { promises as fs } from 'fs';
-import path from 'path';
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import DefaultRiskMap from '~/components/DefaultRiskMap.tsx';
+import Database from 'better-sqlite3';
+import path from 'path';
 
-let kpis = { highest: null, lowest: null };
-let tableData = [];
+export const prerender = true;
+
+// --- LÓGICA DE DADOS REFEITA PARA USAR A BASE DE DADOS ---
+let kpis = { highest: null as any, lowest: null as any };
+let tableData: { name: string; value: number; type: string }[] = [];
 
 try {
-  const dataPath = path.resolve(process.cwd(), 'public/data/map_default_risk.json');
-  const jsonData = await fs.readFile(dataPath, 'utf-8');
-  const riskData: Record<string, { value: number | null; type: string }> = JSON.parse(jsonData);
+  // Conecta diretamente à BD para buscar TODOS os indicadores de risco
+  const dbPath = path.join(process.cwd(), 'public', 'datahub.db');
+  const db = new Database(dbPath, { readonly: true });
+  const allIndicators = db.prepare("SELECT * FROM key_indicators WHERE indicator_key LIKE 'risk_incumprimento_bportugal_%'").all() as any[];
   
-  const validRegions = Object.entries(riskData)
-    .filter(([, data]) => data && data.value !== null)
-    .map(([name, data]) => ({
-      name: name.replace(' (NUTS II)', '').replace(' (NUTS III)', ''),
-      value: data.value as number,
-      type: data.type
+  const validRegions = allIndicators
+    .map(indicator => ({
+      name: indicator.label.replace('Risco Incumprimento: ', '').replace(' (NUTS II)', '').replace(' (NUTS III)', ''),
+      value: indicator.value,
+      type: 'Habitação' // O tipo é sempre Habitação, como no script
     }));
 
   if (validRegions.length > 0) {
     validRegions.sort((a, b) => b.value - a.value);
     
+    // Remove duplicados mantendo o nome limpo
     const uniqueRegions = [];
     const seenNames = new Set();
     for (const region of validRegions) {
@@ -37,60 +41,16 @@ try {
     kpis.lowest = tableData[tableData.length - 1];
   }
 } catch (e) {
-  console.error("Erro ao ler ou processar o ficheiro de dados do mapa:", e);
+  console.error("Erro ao ler ou processar os dados de risco da base de dados:", e);
 }
 
+// --- SEO (Preservado e com dados corretos) ---
 const title = "Mapa e Ranking do Risco de Incumprimento em Portugal";
 const description = `Análise regional da taxa de incumprimento no crédito à habitação. Veja o mapa e a tabela com as regiões de maior e menor risco. Dados de ${kpis.highest?.name}, ${kpis.lowest?.name} e mais.`;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 
-// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
-const faqSchema = {
-    "@context":"https://schema.org","@type":"FAQPage",
-    "mainEntity":[
-        {
-            "@type":"Question",
-            "name":"O que mede o Risco de Incumprimento?",
-            "acceptedAnswer": {
-                "@type":"Answer",
-                "text":"Este indicador mede a percentagem de devedores que têm pagamentos em atraso no seu crédito. É uma métrica importante para avaliar a saúde financeira das famílias e o risco no mercado imobiliário de uma determinada região."
-            }
-        },
-        {
-            "@type":"Question",
-            "name":"O que é o 'Tipo de Crédito'?",
-            "acceptedAnswer": {
-                "@type":"Answer",
-                "text":"Os dados do Banco de Portugal distinguem entre crédito para Habitação e para Consumo. O nosso mapa mostra os dados de Habitação. Contudo, nem todas as regiões têm os dados atualizados, nessas situações não entram na nossa análise."
-            }
-        }
-    ]
-};
-
-const datasetSchema = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
-    "name": "Mapa e Ranking do Risco de Incumprimento no Crédito à Habitação em Portugal",
-    "description": `Análise regional da taxa de incumprimento no crédito à habitação em Portugal. Inclui um mapa interativo e um ranking das regiões (NUTS II e NUTS III) com as maiores e menores taxas de empréstimos vencidos. Região com maior risco: ${kpis.highest?.name} (${kpis.highest?.value}%).`,
-    "url": canonical,
-    "keywords": [
-        "risco de incumprimento",
-        "crédito habitação",
-        "dívida",
-        "NPL",
-        "non-performing loan",
-        "mapa de risco",
-        "portugal",
-        "banca"
-    ],
-    "creator": {
-        "@type": "Organization",
-        "name": "Ativos.pt",
-        "url": Astro.site.href
-    },
-    "license": "https://creativecommons.org/licenses/by/4.0/",
-    "spatialCoverage": "Portugal"
-};
+const faqSchema = { "@context":"https://schema.org","@type":"FAQPage", "mainEntity":[ { "@type":"Question", "name":"O que mede o Risco de Incumprimento?", "acceptedAnswer": { "@type":"Answer", "text":"Este indicador mede a percentagem de devedores que têm pagamentos em atraso no seu crédito. É uma métrica importante para avaliar a saúde financeira das famílias e o risco no mercado imobiliário de uma determinada região." } }, { "@type":"Question", "name":"O que é o 'Tipo de Crédito'?", "acceptedAnswer": { "@type":"Answer", "text":"Os dados do Banco de Portugal distinguem entre crédito para Habitação e para Consumo. O nosso mapa mostra os dados de Habitação. Contudo, nem todas as regiões têm os dados atualizados, nessas situações não entram na nossa análise." } } ] };
+const datasetSchema = { "@context": "https://schema.org", "@type": "Dataset", "name": "Mapa e Ranking do Risco de Incumprimento no Crédito à Habitação em Portugal", "description": `Análise regional da taxa de incumprimento no crédito à habitação em Portugal. Inclui um mapa interativo e um ranking das regiões (NUTS II e NUTS III) com as maiores e menores taxas de empréstimos vencidos. Região com maior risco: ${kpis.highest?.name} (${kpis.highest?.value}%).`, "url": canonical, "keywords": [ "risco de incumprimento", "crédito habitação", "dívida", "NPL", "non-performing loan", "mapa de risco", "portugal", "banca" ], "creator": { "@type": "Organization", "name": "Ativos.pt", "url": Astro.site!.href }, "license": "https://creativecommons.org/licenses/by/4.0/", "spatialCoverage": "Portugal" };
 ---
 <BaseLayout {title} {description} {canonical}>
     <Fragment slot="head">
