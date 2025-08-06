@@ -4,32 +4,34 @@ import pandas as pd
 import requests
 from pyjstat import pyjstat
 import os
+import sqlite3
+import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
 
-# --- Configuração Baseada na Tua Descoberta ---
+# --- Configuração da Base de Dados ---
+DB_PATH = os.path.join(
+    os.path.dirname(__file__), '..', '..', '..', 'webapp', 'public', 'datahub.db'
+)
+
+# --- Configuração da API BPstat ---
 API_BASE_URL = "https://bpstat.bportugal.pt/data/v1"
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 }
 
-# --- LISTA DE MOEDAS EXPANDIDA ---
-# IDs exatos encontrados no código fonte do site BPstat
 SERIES_IDS = {
-    'usd': '12531971', # Dólar Americano
-    'gbp': '12531970', # Libra Esterlina
-    'chf': '12531968', # Franco Suíço
-    'cad': '12532011', # Dólar Canadiano
-    'aud': '12531935', # Dólar Australiano
-    'cny': '12531938', # Yuan Chinês
-    'brl': '12532019'  # Real Brasileiro
+    'usd': '12531971', 'gbp': '12531970', 'chf': '12531968', 'cad': '12532011',
+    'aud': '12531935', 'cny': '12531938', 'brl': '12532019'
+}
+
+CURRENCY_LABELS = {
+    'usd': 'Dólar Americano', 'gbp': 'Libra Esterlina', 'chf': 'Franco Suíço',
+    'cad': 'Dólar Canadiano', 'aud': 'Dólar Australiano', 'cny': 'Yuan Chinês', 'brl': 'Real Brasileiro'
 }
 
 def fetch_single_series(name: str, series_id: str) -> pd.DataFrame | None:
-    """
-    Busca os dados de uma única série cambial seguindo o fluxo de 2 passos.
-    """
+    """Busca os dados de uma única série cambial."""
     try:
-        # Passo 1: Obter metadados da série
         meta_url = f"{API_BASE_URL}/series/?lang=PT&series_ids={series_id}"
         print(f"  [Passo 1: Metadados {name.upper()}] URL: {meta_url}")
         meta_response = requests.get(meta_url, headers=HEADERS, timeout=60)
@@ -43,9 +45,7 @@ def fetch_single_series(name: str, series_id: str) -> pd.DataFrame | None:
         metadata = series_info[0]
         domain_id = metadata["domain_ids"][0]
         dataset_id = metadata["dataset_id"]
-        print(f"  [Info {name.upper()}] Domain: {domain_id}, Dataset: {dataset_id}")
 
-        # Passo 2: Obter os dados da série
         data_url = f"{API_BASE_URL}/domains/{domain_id}/datasets/{dataset_id}/?lang=PT&series_ids={series_id}"
         print(f"  [Passo 2: Dados {name.upper()}] URL: {data_url}")
         
@@ -60,48 +60,89 @@ def fetch_single_series(name: str, series_id: str) -> pd.DataFrame | None:
         print(f"❌ Falha ao buscar a série {name} (ID: {series_id}). Erro: {e}")
         return None
 
+def save_historical_series(conn, df_final):
+    """Guarda todas as séries históricas na tabela historical_series."""
+    print("\n💾 A guardar séries históricas na base de dados...")
+    cur = conn.cursor()
+    
+    df_melted = df_final.melt(id_vars=['date'], var_name='currency_code', value_name='value')
+    
+    total_rows_inserted = 0
+    for currency_code in df_final.columns.drop('date'):
+        series_key = f"exchange_rate_eur_{currency_code}"
+        df_currency = df_melted[df_melted['currency_code'] == currency_code]
+        
+        rows_to_insert = [
+            (series_key, row['date'], row['value'])
+            for _, row in df_currency.iterrows() if pd.notna(row['value'])
+        ]
+        
+        cur.executemany("INSERT OR REPLACE INTO historical_series (series_key, date, value) VALUES (?, ?, ?)", rows_to_insert)
+        
+        print(f"  [DEBUG] Inseridas/Atualizadas {len(rows_to_insert)} linhas para a série '{series_key}'.")
+        total_rows_inserted += len(rows_to_insert)
+    
+    print(f"✅ {total_rows_inserted} registos históricos guardados com sucesso.")
+
+def update_key_indicators(conn, df_final):
+    """Atualiza a tabela key_indicators com o valor mais recente de cada moeda."""
+    print("\n🔑 A atualizar os indicadores chave (últimos valores)...")
+    cur = conn.cursor()
+    
+    latest_data = df_final.iloc[-1]
+    reference_date = latest_data['date']
+    updated_at = dt.datetime.utcnow().isoformat()
+    
+    rows_updated = 0
+    for currency_code, value in latest_data.drop('date').items():
+        if pd.isna(value):
+            continue
+        
+        key = f"latest_exchange_rate_eur_{currency_code}"
+        label = f"EUR / {currency_code.upper()} ({CURRENCY_LABELS.get(currency_code, currency_code.upper())})"
+        unit = currency_code.upper()
+        
+        cur.execute("INSERT OR REPLACE INTO key_indicators (indicator_key, label, value, unit, reference_date, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (key, label, value, unit, reference_date, updated_at))
+        
+        print(f"  [DEBUG] Indicador '{key}' atualizado para o valor {value}.")
+        rows_updated += 1
+    
+    print(f"✅ {rows_updated} indicadores chave atualizados com sucesso.")
+
 def main():
-    """
-    Busca os dados das taxas de câmbio para as moedas selecionadas, combina-os,
-    filtra para obter apenas o primeiro registo de cada mês e guarda num único ficheiro JSON.
-    """
+    """Busca e armazena os dados das taxas de câmbio na base de dados SQLite."""
     print("🚀 A iniciar a recolha de dados das Taxas de Câmbio (EUR)...")
     
     all_series_dfs = []
-
-    # Aumentar o número de workers para ir buscar mais moedas em paralelo
     with ThreadPoolExecutor(max_workers=len(SERIES_IDS)) as executor:
-        future_to_series = {executor.submit(fetch_single_series, name, s_id): name for name, s_id in SERIES_IDS.items()}
-        for future in future_to_series:
-            df_series = future.result()
-            if df_series is not None:
-                all_series_dfs.append(df_series)
+        results = executor.map(fetch_single_series, SERIES_IDS.keys(), SERIES_IDS.values())
+        for df_result in results:
+            if df_result is not None:
+                all_series_dfs.append(df_result)
 
-    if len(all_series_dfs) < len(SERIES_IDS):
-        print(f"⚠️ Atenção: Apenas {len(all_series_dfs)} de {len(SERIES_IDS)} séries foram obtidas com sucesso.")
-    
     if not all_series_dfs:
         print("❌ Nenhuma série foi obtida com sucesso. A abortar.")
         return False
         
     df_combined = pd.concat(all_series_dfs, axis=1)
-    
-    # Processamento final
     df_combined.sort_index(inplace=True)
     df_combined.ffill(inplace=True)
     
-    # --- OTIMIZAÇÃO: LÓGICA PARA OBTER O PRIMEIRO VALOR DE CADA MÊS ---
     print("\n💡 A otimizar dados: selecionando o primeiro registo de cada mês...")
     df_combined.reset_index(inplace=True)
     df_combined['Data'] = pd.to_datetime(df_combined['Data'])
-    # Cria uma coluna com o ano e mês para agrupar
+    
+    # *** LINHAS CORRIGIDAS AQUI (VOLTAMOS À ABORDAGEM MAIS SEGURA) ***
+    # 1. Cria uma coluna temporária com o ano e mês para agrupar
     df_combined['year_month'] = df_combined['Data'].dt.to_period('M')
-    # Remove duplicados, mantendo apenas a primeira ocorrência de cada mês
+    # 2. Remove duplicados, mantendo apenas a primeira ocorrência de cada mês, usando o NOME da coluna
     df_monthly = df_combined.drop_duplicates(subset='year_month', keep='first').copy()
-    # Remove a coluna temporária
+    # 3. Remove a coluna temporária
     df_monthly.drop(columns=['year_month'], inplace=True)
+    # *** FIM DA CORREÇÃO ***
+    
     print(f"  ✅ Dados reduzidos de {len(df_combined)} para {len(df_monthly)} registos.")
-    # --- FIM DA OTIMIZAÇÃO ---
 
     df_final = df_monthly.round(4)
     df_final.rename(columns={'Data': 'date'}, inplace=True)
@@ -109,14 +150,20 @@ def main():
     
     print("\n✅ Todas as séries de câmbio foram combinadas e processadas.")
 
-    # Guardar os dados no local correto
-    output_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'webapp', 'public', 'data')
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, 'exchange_rates_monthly.json')
+    try:
+        conn = sqlite3.connect(DB_PATH, isolation_level=None)
+        cur = conn.cursor()
+        cur.execute("PRAGMA journal_mode = WAL;")
+        save_historical_series(conn, df_final)
+        update_key_indicators(conn, df_final)
+    except sqlite3.Error as e:
+        print(f"❌ Erro na base de dados: {e}")
+        return False
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
     
-    df_final.to_json(output_path, orient='records', indent=2, force_ascii=False)
-
-    print(f"✅ Dados das taxas de câmbio guardados com sucesso em: {output_path}")
+    print("\n🎉 Processo concluído com sucesso!")
     return True
 
 if __name__ == "__main__":

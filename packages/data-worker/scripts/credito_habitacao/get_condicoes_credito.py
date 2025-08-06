@@ -4,15 +4,21 @@ import pandas as pd
 import requests
 from pyjstat import pyjstat
 import os
+import sqlite3
+import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
 
-# --- Configuração Baseada na Tua Descoberta ---
+# --- Configuração da Base de Dados ---
+DB_PATH = os.path.join(
+    os.path.dirname(__file__), '..', '..', '..', 'webapp', 'public', 'datahub.db'
+)
+
+# --- Configuração da API BPstat ---
 API_BASE_URL = "https://bpstat.bportugal.pt/data/v1"
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 }
 
-# IDs exatos encontrados no código fonte do site BPstat
 SERIES_IDS = {
     'tan_variavel': '12710779',
     'tan_fixa': '12710780',
@@ -20,12 +26,16 @@ SERIES_IDS = {
     'prestacao_mediana': '12710744'
 }
 
+SERIES_LABELS = {
+    'tan_variavel': 'TAN Variável Crédito Habitação',
+    'tan_fixa': 'TAN Fixa Crédito Habitação',
+    'tan_mista': 'TAN Mista Crédito Habitação',
+    'prestacao_mediana': 'Prestação Mediana Crédito Habitação'
+}
+
 def fetch_single_series(name: str, series_id: str) -> pd.DataFrame | None:
-    """
-    Busca os dados de uma única série seguindo o fluxo de 2 passos da documentação oficial.
-    """
+    """Busca os dados de uma única série."""
     try:
-        # --- PASSO 1: Obter metadados da série ---
         meta_url = f"{API_BASE_URL}/series/?lang=PT&series_ids={series_id}"
         print(f"  [Passo 1: Metadados {name}] URL: {meta_url}")
         meta_response = requests.get(meta_url, headers=HEADERS, timeout=60)
@@ -39,9 +49,7 @@ def fetch_single_series(name: str, series_id: str) -> pd.DataFrame | None:
         metadata = series_info[0]
         domain_id = metadata["domain_ids"][0]
         dataset_id = metadata["dataset_id"]
-        print(f"  [Info {name}] Domain: {domain_id}, Dataset: {dataset_id}")
 
-        # --- PASSO 2: Obter os dados da série ---
         data_url = f"{API_BASE_URL}/domains/{domain_id}/datasets/{dataset_id}/?lang=PT&series_ids={series_id}"
         print(f"  [Passo 2: Dados {name}] URL: {data_url}")
         
@@ -56,33 +64,71 @@ def fetch_single_series(name: str, series_id: str) -> pd.DataFrame | None:
         print(f"❌ Falha ao buscar a série {name} (ID: {series_id}). Erro: {e}")
         return None
 
+def save_to_database(conn, df_final):
+    """Guarda os dados processados nas tabelas historical_series e key_indicators."""
+    print("\n💾 A guardar dados na base de dados...")
+    cur = conn.cursor()
+    
+    # --- Guardar Séries Históricas ---
+    df_melted = df_final.melt(id_vars=['date'], var_name='series_code', value_name='value')
+    total_rows_inserted = 0
+    
+    for code in df_final.columns.drop('date'):
+        series_key = f"credito_habitacao_bportugal_{code}_monthly"
+        df_series = df_melted[df_melted['series_code'] == code]
+        
+        rows_to_insert = [
+            (series_key, row['date'], row['value'])
+            for _, row in df_series.iterrows() if pd.notna(row['value'])
+        ]
+        
+        cur.executemany("INSERT OR REPLACE INTO historical_series (series_key, date, value) VALUES (?, ?, ?)", rows_to_insert)
+        print(f"  [DEBUG] Inseridas/Atualizadas {len(rows_to_insert)} linhas para a série '{series_key}'.")
+        total_rows_inserted += len(rows_to_insert)
+    
+    print(f"✅ {total_rows_inserted} registos históricos guardados com sucesso.")
+
+    # --- Guardar Indicadores Chave (últimos valores) ---
+    print("\n🔑 A atualizar os indicadores chave...")
+    latest_data = df_final.iloc[-1]
+    reference_date = latest_data['date']
+    updated_at = dt.datetime.utcnow().isoformat()
+    rows_updated = 0
+    
+    for code, value in latest_data.drop('date').items():
+        if pd.isna(value):
+            continue
+        
+        key = f"latest_credito_habitacao_{code}"
+        label = SERIES_LABELS.get(code, code)
+        unit = '%' if 'tan' in code else 'EUR'
+        
+        cur.execute("INSERT OR REPLACE INTO key_indicators (indicator_key, label, value, unit, reference_date, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (key, label, value, unit, reference_date, updated_at))
+        print(f"  [DEBUG] Indicador '{key}' atualizado para o valor {value}.")
+        rows_updated += 1
+        
+    print(f"✅ {rows_updated} indicadores chave atualizados com sucesso.")
+
 def main():
-    """
-    Busca os dados das condições de crédito (TANs e Prestação) usando os
-    series_ids corretos, combina-os e guarda num único ficheiro JSON.
-    """
-    print("🚀 A iniciar a recolha de dados das Condições de Crédito (Método Definitivo)...")
+    """Orquestrador principal para buscar e guardar os dados."""
+    print("🚀 A iniciar a recolha de dados das Condições de Crédito Habitação...")
     
     all_series_dfs = []
+    with ThreadPoolExecutor(max_workers=len(SERIES_IDS)) as executor:
+        results = executor.map(fetch_single_series, SERIES_IDS.keys(), SERIES_IDS.values())
+        for df_result in results:
+            if df_result is not None:
+                all_series_dfs.append(df_result)
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        future_to_series = {executor.submit(fetch_single_series, name, s_id): name for name, s_id in SERIES_IDS.items()}
-        for future in future_to_series:
-            df_series = future.result()
-            if df_series is not None:
-                all_series_dfs.append(df_series)
-
-    if len(all_series_dfs) != len(SERIES_IDS):
-        print("❌ Nem todas as séries foram obtidas com sucesso. A abortar.")
+    if not all_series_dfs:
+        print("❌ Nenhuma série foi obtida com sucesso. A abortar.")
         return False
         
     df_combined = pd.concat(all_series_dfs, axis=1)
-    
-    # Processamento final
     df_combined.sort_index(inplace=True)
     df_combined.ffill(inplace=True)
     
-    # Arredondar taxas para 3 casas decimais e prestação para 2
     for col in df_combined.columns:
         if 'tan' in col:
             df_combined[col] = df_combined[col].round(3)
@@ -93,16 +139,21 @@ def main():
     df_combined.rename(columns={'Data': 'date'}, inplace=True)
     df_combined['date'] = pd.to_datetime(df_combined['date']).dt.strftime('%Y-%m-%d')
     
-    print("\n✅ Todas as séries foram combinadas e processadas com sucesso.")
+    print("\n✅ Todas as séries foram combinadas e processadas.")
 
-    # Guardar os dados no local correto
-    output_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'webapp', 'public', 'data')
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, 'credito_habitacao_condicoes.json')
+    try:
+        conn = sqlite3.connect(DB_PATH, isolation_level=None)
+        cur = conn.cursor()
+        cur.execute("PRAGMA journal_mode = WAL;")
+        save_to_database(conn, df_combined)
+    except sqlite3.Error as e:
+        print(f"❌ Erro na base de dados: {e}")
+        return False
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
     
-    df_combined.to_json(output_path, orient='records', indent=2, force_ascii=False)
-
-    print(f"✅ Dados das condições de crédito guardados com sucesso em: {output_path}")
+    print("\n🎉 Processo concluído com sucesso!")
     return True
 
 if __name__ == "__main__":

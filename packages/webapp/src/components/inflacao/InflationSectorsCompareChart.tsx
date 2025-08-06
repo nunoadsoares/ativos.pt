@@ -2,7 +2,7 @@ import { useEffect, useState, type FC } from 'react';
 import ApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 
-// ALTERAÇÃO: O componente agora recebe os dados prontos a usar via props
+// O componente agora recebe os dados prontos a usar via props
 interface SeriesData {
     name: string;
     data: [number, number][];
@@ -16,7 +16,6 @@ const InflationSectorsCompareChart: FC<Props> = ({ series }) => {
     const [theme, setTheme] = useState<'dark' | 'light'>('light');
     const [isMobile, setIsMobile] = useState(false);
 
-    // Efeito para detetar tema dark/light e tamanho do ecrã
     useEffect(() => {
         const isDark = () => document.documentElement.classList.contains('dark');
         setTheme(isDark() ? 'dark' : 'light');

@@ -1,115 +1,65 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
-import CreditConditionsChart from '~/components/CreditConditionsChart.tsx';
+import { getIndicator } from '~/lib/db';
+import Database from 'better-sqlite3';
+import path from 'path';
 
-// --- LÓGICA DE DADOS ATUALIZADA PARA 4 KPIS ---
+// --- LÓGICA DE DADOS CORRIGIDA ---
 
-// 1. Preços da Habitação (mantém-se)
-let housingKpi = { value: 0, date: '' };
-try {
-  const data = await import('../../../public/data-housing-kpi.json');
-  housingKpi.value = data.value ?? 0;
-  housingKpi.date = data.reference_date
-    ? new Date(data.reference_date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' })
-    : '';
-} catch (e) {}
+const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleString('pt-PT', { month: 'long', year: 'numeric' });
+};
 
-// 2. Risco de Incumprimento (mantém-se)
+// 1. Preços da Habitação (Chave corrigida para 'precos_habitacao_var')
+const housingIndicator = getIndicator('precos_habitacao_var');
+const housingKpi = {
+    value: housingIndicator?.value ?? 0,
+    date: formatDate(housingIndicator?.reference_date)
+};
+
+// 2. Risco de Incumprimento (Lógica corrigida para ler da BD)
 let highestRisk = { value: 'N/D', name: 'N/D' };
 try {
-  const riskModule = await import('../../../public/data/map_default_risk.json');
-  const riskData = riskModule.default || riskModule;
-  const validRegions = Object.entries(riskData)
-    .filter(([, data]) => typeof data === 'object' && data !== null && typeof data.value === 'number')
-    .map(([name, data]) => ({ name: name, value: data.value as number }));
+  const dbPath = path.join(process.cwd(), 'public', 'datahub.db');
+  const db = new Database(dbPath, { readonly: true });
+  const allIndicators = db.prepare('SELECT * FROM key_indicators').all() as any[];
+  
+  const riskIndicators = allIndicators
+    .filter(i => i.indicator_key.startsWith('risk_incumprimento_bportugal_'))
+    .map(i => ({ name: i.label.replace('Risco Incumprimento: ', ''), value: i.value }));
 
-  if (validRegions.length > 0) {
-    validRegions.sort((a, b) => b.value - a.value);
-    const topRisk = validRegions[0];
+  if (riskIndicators.length > 0) {
+    riskIndicators.sort((a, b) => b.value - a.value);
+    const topRisk = riskIndicators[0];
     highestRisk.value = topRisk.value.toFixed(2);
     highestRisk.name = topRisk.name.replace(' (NUTS II)', '').replace(' (NUTS III)', '');
   }
-} catch (e) {}
+} catch (e) {
+    console.error("Falha ao processar indicadores de risco da BD:", e);
+}
 
-// 3. NOVOS KPIs (TAN Variável e Prestação Mediana) do nosso novo ficheiro
-let tanVariavelInfo = { value: 'N/D', date: '' };
-let prestacaoMedianaInfo = { value: 'N/D', date: '' };
-try {
-    const data: any[] = await import('../../../public/data/credito_habitacao_condicoes.json').then(m => m.default);
-    if (data.length > 0) {
-        const last = data[data.length - 1];
-        const date = new Date(last.date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' });
+// 3. TAN Variável (Chave confirmada)
+const tanIndicator = getIndicator('latest_credito_habitacao_tan_variavel');
+const tanVariavelInfo = {
+    value: tanIndicator?.value?.toFixed(2) ?? 'N/D',
+    date: formatDate(tanIndicator?.reference_date)
+};
 
-        if (last.tan_variavel) {
-            tanVariavelInfo.value = last.tan_variavel.toFixed(2);
-            tanVariavelInfo.date = date;
-        }
+// 4. Prestação Mediana (Chave confirmada)
+const prestacaoIndicator = getIndicator('latest_credito_habitacao_prestacao_mediana');
+const prestacaoMedianaInfo = {
+    value: prestacaoIndicator?.value?.toFixed(0) ?? 'N/D',
+    date: formatDate(prestacaoIndicator?.reference_date)
+};
 
-        if (last.prestacao_mediana) {
-            prestacaoMedianaInfo.value = last.prestacao_mediana.toFixed(0);
-            prestacaoMedianaInfo.date = date;
-        }
-    }
-} catch (e) {}
-
-
-// --- SEO ATUALIZADO ---
+// --- SEO (Preservado e agora com dados corretos) ---
 const title = "Observatório do Mercado Imobiliário em Portugal | Ativos.pt";
 const description = `Análise completa do mercado imobiliário: preços de habitação, custo do crédito (TAN ${tanVariavelInfo.value}%), prestação mediana (€${prestacaoMedianaInfo.value}) e o mapa do risco de incumprimento.`;
 const canonical = new URL('/imobiliario/', Astro.site).href;
 
-const faqSchema = {
-    "@context":"https://schema.org","@type":"FAQPage",
-    "mainEntity":[
-        { "@type":"Question", "name":"O que é o Índice de Preços da Habitação (IPHab)?", "acceptedAnswer":{"@type":"Answer", "text":"O IPHab mede a evolução dos preços de transação de todos os imóveis residenciais em Portugal. É o principal indicador da 'febre' do mercado imobiliário." }},
-        { "@type":"Question", "name":"O que é a TAN de um crédito à habitação?", "acceptedAnswer":{"@type":"Answer", "text":"A Taxa Anual Nominal (TAN) é a taxa de juro base do empréstimo. Estes dados mostram a mediana das taxas praticadas nos novos contratos, sendo um bom indicador do custo atual do crédito."}}
-    ]
-};
-
-// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
-const datasetSchema = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
-    "name": "Observatório do Mercado Imobiliário em Portugal",
-    "description": "Um dashboard com os principais indicadores do mercado imobiliário em Portugal: evolução dos preços da habitação, custo do crédito (TAN), prestação mensal mediana e o mapa do risco de incumprimento. Dados oficiais e atualizados.",
-    "url": canonical,
-    "keywords": [
-        "imobiliário",
-        "mercado imobiliário",
-        "preços casas",
-        "crédito habitação",
-        "risco de incumprimento",
-        "tan",
-        "portugal",
-        "investimento imobiliário"
-    ],
-    "creator": {
-        "@type": "Organization",
-        "name": "Ativos.pt",
-        "url": Astro.site.href
-    },
-    "license": "https://creativecommons.org/licenses/by/4.0/",
-    "hasPart": [
-        {
-            "@type": "Dataset",
-            "name": "Índice de Preços da Habitação",
-            "description": "Evolução dos preços de venda de habitação em Portugal (variação homóloga).",
-            "url": new URL('/imobiliario/precos-habitacao', Astro.site).href
-        },
-        {
-            "@type": "Dataset",
-            "name": "Condições dos Novos Créditos",
-            "description": "Evolução da TAN (fixa vs variável) e da prestação mensal mediana para novos contratos de crédito à habitação.",
-            "url": new URL('/imobiliario/condicoes-credito', Astro.site).href
-        },
-        {
-            "@type": "Dataset",
-            "name": "Mapa do Risco de Incumprimento",
-            "description": "Ranking e mapa das regiões com maior risco de incumprimento no crédito à habitação.",
-            "url": new URL('/imobiliario/risco-incumprimento', Astro.site).href
-        }
-    ]
-};
+const faqSchema = { "@context":"https://schema.org","@type":"FAQPage", "mainEntity":[ { "@type":"Question", "name":"O que é o Índice de Preços da Habitação (IPHab)?", "acceptedAnswer":{"@type":"Answer", "text":"O IPHab mede a evolução dos preços de transação de todos os imóveis residenciais em Portugal. É o principal indicador da 'febre' do mercado imobiliário." }}, { "@type":"Question", "name":"O que é a TAN de um crédito à habitação?", "acceptedAnswer":{"@type":"Answer", "text":"A Taxa Anual Nominal (TAN) é a taxa de juro base do empréstimo. Estes dados mostram a mediana das taxas praticadas nos novos contratos, sendo um bom indicador do custo atual do crédito."}} ] };
+const datasetSchema = { "@context": "https://schema.org", "@type": "Dataset", "name": "Observatório do Mercado Imobiliário em Portugal", "description": "Um dashboard com os principais indicadores do mercado imobiliário em Portugal: evolução dos preços da habitação, custo do crédito (TAN), prestação mensal mediana e o mapa do risco de incumprimento. Dados oficiais e atualizados.", "url": canonical, "keywords": ["imobiliário", "mercado imobiliário", "preços casas", "crédito habitação", "risco de incumprimento", "tan", "portugal", "investimento imobiliário"], "creator": { "@type": "Organization", "name": "Ativos.pt", "url": Astro.site!.href }, "license": "https://creativecommons.org/licenses/by/4.0/", "hasPart": [ { "@type": "Dataset", "name": "Índice de Preços da Habitação", "description": "Evolução dos preços de venda de habitação em Portugal (variação homóloga).", "url": new URL('/imobiliario/precos-habitacao', Astro.site).href }, { "@type": "Dataset", "name": "Condições dos Novos Créditos", "description": "Evolução da TAN (fixa vs variável) e da prestação mensal mediana para novos contratos de crédito à habitação.", "url": new URL('/imobiliario/condicoes-credito', Astro.site).href }, { "@type": "Dataset", "name": "Mapa do Risco de Incumprimento", "description": "Ranking e mapa das regiões com maior risco de incumprimento no crédito à habitação.", "url": new URL('/imobiliario/risco-incumprimento', Astro.site).href } ] };
 ---
 
 <BaseLayout {title} {description} {canonical}>

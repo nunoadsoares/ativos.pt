@@ -3,15 +3,16 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import InflationHistoricalChart from '~/components/inflacao/InflationHistoricalChart.tsx';
 import InflationBreakdownChart from '~/components/inflacao/InflationBreakdownChart.tsx';
 import CheckboxCard from '~/components/CheckboxCard.astro';
+import { getIndicator, getSeries } from '~/lib/db';
 
-import inflationData from '../../../public/data/inflation_summary.json';
+export const prerender = true;
 
-// --- LÓGICA PARA KPIS, TEXTO DINÂMICO E SEO ---
+// --- LÓGICA DE DADOS REFEITA PARA USAR A BASE DE DADOS ---
 
 let kpis = { yoy: 'N/D', avg12m: 'N/D', core: 'N/D' };
 let latestDate = 'data indisponível';
 let dynamicAnalysis = 'Não foi possível carregar os dados para uma análise detalhada.';
-let trendArrow = '↔️'; 
+let trendArrow = '↔️';
 let faqItems: { question: string; answer: string }[] = [];
 
 const sectorMap: Record<string, string> = {
@@ -33,19 +34,19 @@ const sectorEmojis: Record<string, string> = {
 };
 
 try {
-    if (inflationData.historical.yoy && inflationData.historical.yoy.length >= 2) {
-        const headline = inflationData.headline;
-        const historicalYoY = inflationData.historical.yoy;
-        const historicalCore = inflationData.historical.core_yoy;
+    const yoyIndicator = getIndicator('latest_inflation_bportugal_headline_yoy_monthly');
+    const avg12mIndicator = getIndicator('latest_inflation_bportugal_headline_12m_avg_monthly');
+    const coreIndicator = getIndicator('latest_inflation_bportugal_core_yoy_monthly');
+    const historicalYoY = getSeries('inflation_bportugal_headline_yoy_monthly');
 
-        const lastYoYValue = historicalYoY[historicalYoY.length - 1][1];
-        const secondLastYoYValue = historicalYoY[historicalYoY.length - 2][1];
-        const lastCoreValue = historicalCore.length > 0 ? historicalCore[historicalCore.length - 1][1] : null;
-        
+    if (yoyIndicator && avg12mIndicator && coreIndicator && historicalYoY.length >= 2) {
+        const lastYoYValue = yoyIndicator.value;
+        const secondLastYoYValue = historicalYoY[historicalYoY.length - 2].value;
+
         kpis.yoy = lastYoYValue?.toFixed(2) ?? 'N/D';
-        kpis.avg12m = headline['12m_avg']?.value?.toFixed(2) ?? 'N/D';
-        kpis.core = lastCoreValue?.toFixed(2) ?? 'N/D';
-        latestDate = new Date(headline.yoy.date).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+        kpis.avg12m = avg12mIndicator.value?.toFixed(2) ?? 'N/D';
+        kpis.core = coreIndicator.value?.toFixed(2) ?? 'N/D';
+        latestDate = new Date(yoyIndicator.reference_date).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
 
         const diffYoY = lastYoYValue - secondLastYoYValue;
         let trendText = '';
@@ -86,7 +87,6 @@ const faqSchema = {
     }))
 };
 
-// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
 const datasetSchema = {
     "@context": "https://schema.org",
     "@type": "Dataset",
@@ -97,7 +97,7 @@ const datasetSchema = {
     "creator": {
         "@type": "Organization",
         "name": "Ativos.pt",
-        "url": Astro.site.href
+        "url": Astro.site!.href
     },
     "license": "https://creativecommons.org/licenses/by/4.0/",
     "variableMeasured": [
@@ -111,6 +111,7 @@ const datasetSchema = {
 <BaseLayout {title} {description} {canonical}>
     <Fragment slot="head">
         <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
     </Fragment>
 
     <article class="max-w-6xl mx-auto py-12 px-4 space-y-12">
@@ -155,16 +156,16 @@ const datasetSchema = {
              <h2 class="text-2xl font-bold text-center mb-2">Compare a Inflação Entre Setores</h2>
              <p class="text-gray-600 dark:text-gray-400 text-center mb-6">Selecione entre 1 a 3 categorias para comparar a sua evolução histórica.</p>
              <div class="max-w-4xl mx-auto">
-                <form id="sector-comparator-form" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {Object.entries(sectorMap).map(([code, label]) => (
-                        <CheckboxCard value={code} label={`${sectorEmojis[code]} ${label}`} />
-                    ))}
-                </form>
-                <div class="mt-6 flex justify-center">
-                     <button id="compare-btn" type="button" class="px-8 py-3 bg-primary text-white font-bold rounded-lg shadow-md hover:opacity-90 transition-opacity">
-                        Comparar Seleção
-                    </button>
-                </div>
+                 <form id="sector-comparator-form" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                     {Object.entries(sectorMap).map(([code, label]) => (
+                         <CheckboxCard value={code} label={`${sectorEmojis[code]} ${label}`} />
+                     ))}
+                 </form>
+                 <div class="mt-6 flex justify-center">
+                      <button id="compare-btn" type="button" class="px-8 py-3 bg-primary text-white font-bold rounded-lg shadow-md hover:opacity-90 transition-opacity">
+                          Comparar Seleção
+                      </button>
+                 </div>
              </div>
         </section>
 

@@ -1,86 +1,35 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import CreditConditionsChart from '~/components/CreditConditionsChart.tsx';
+import { getIndicator } from '~/lib/db';
 
-interface CondicoesData {
-  date: string;
-  tan_variavel?: number;
-  tan_fixa?: number;
-  tan_mista?: number;
-  prestacao_mediana?: number;
-}
+// --- LÓGICA DE DADOS REFEITA PARA USAR A BASE DE DADOS ---
+const tanFixaIndicator = getIndicator('latest_credito_habitacao_tan_fixa');
+const tanVariavelIndicator = getIndicator('latest_credito_habitacao_tan_variavel');
+const prestacaoIndicator = getIndicator('latest_credito_habitacao_prestacao_mediana');
 
-let latestData: Partial<CondicoesData> = {};
-let latestDate = "data indisponível";
+const latestData = {
+    tan_fixa: tanFixaIndicator?.value,
+    tan_variavel: tanVariavelIndicator?.value,
+    prestacao_mediana: prestacaoIndicator?.value
+};
 
-try {
-  const data: CondicoesData[] = await import('../../../public/data/credito_habitacao_condicoes.json').then(m => m.default);
-  if (data.length > 0) {
-    latestData = data[data.length - 1];
-    latestDate = new Date(latestData.date!).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
-  }
-} catch (e) {
-  console.error("Falha ao carregar dados das condições de crédito:", e);
-}
+const latestDate = tanVariavelIndicator?.reference_date 
+    ? new Date(tanVariavelIndicator.reference_date).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
+    : "data indisponível";
 
+// --- SEO (Preservado e agora com dados corretos) ---
 const title = "Condições do Crédito Habitação em Portugal | Observatório";
 const description = `Análise às condições atuais do crédito à habitação: TAN Fixa (${latestData.tan_fixa?.toFixed(2)}%), TAN Variável (${latestData.tan_variavel?.toFixed(2)}%) e Prestação Mensal Mediana (€${latestData.prestacao_mediana?.toFixed(0)}).`;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 
-const faqSchema = {
-  "@context":"https://schema.org","@type":"FAQPage",
-  "mainEntity":[
-    {
-      "@type":"Question","name":"O que é a TAN (Taxa Anual Nominal)?",
-      "acceptedAnswer":{"@type":"Answer","text":"A TAN é a taxa de juro base do seu empréstimo, ou seja, o custo do dinheiro que o banco lhe empresta. Não inclui seguros, comissões ou outros encargos. Este gráfico mostra a mediana das TAN praticadas em novos contratos de crédito em cada mês."}
-    },
-    {
-      "@type":"Question","name":"Qual a diferença entre Taxa Fixa e Taxa Variável?",
-      "acceptedAnswer":{"@type":"Answer","text":"A Taxa Fixa mantém-se inalterada durante um período definido (ou mesmo todo o contrato), oferecendo previsibilidade na prestação. A Taxa Variável está indexada à Euribor, o que significa que a sua prestação mensal será revista (e poderá subir ou descer) a cada 3, 6 ou 12 meses, acompanhando as flutuações do mercado."}
-    },
-    {
-      "@type":"Question","name":"O que significa a Prestação Mensal Mediana?",
-      "acceptedAnswer":{"@type":"Answer","text":"A mediana é o valor 'do meio'. Se ordenarmos todas as prestações mensais dos novos contratos de crédito à habitação num determinado mês, a mediana é o valor que se encontra exatamente no centro dessa lista. Representa o que um 'típico' novo mutuário está a pagar mensalmente em Portugal."}
-    }
-  ]
-};
-
-// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
-const datasetSchema = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
-    "name": "Observatório das Condições do Crédito à Habitação em Portugal",
-    "description": `Dados mensais sobre as condições de novos créditos à habitação. Últimos valores de ${latestDate}: TAN Fixa ${latestData.tan_fixa?.toFixed(2)}%, TAN Variável ${latestData.tan_variavel?.toFixed(2)}%, Prestação Mediana €${latestData.prestacao_mediana?.toFixed(0)}.`,
-    "url": canonical,
-    "keywords": [
-        "crédito habitação",
-        "taxa de juro",
-        "tan",
-        "taxa fixa",
-        "taxa variável",
-        "prestação mensal",
-        "imobiliário",
-        "banca",
-        "portugal"
-    ],
-    "creator": {
-        "@type": "Organization",
-        "name": "Ativos.pt",
-        "url": Astro.site.href
-    },
-    "license": "https://creativecommons.org/licenses/by/4.0/",
-    "variableMeasured": [
-        "Taxa Anual Nominal (TAN) Mediana - Modalidade Fixa",
-        "Taxa Anual Nominal (TAN) Mediana - Modalidade Variável",
-        "Prestação Mensal Mediana em Euros (€)"
-    ]
-};
+const faqSchema = { "@context":"https://schema.org","@type":"FAQPage","mainEntity":[ { "@type":"Question","name":"O que é a TAN (Taxa Anual Nominal)?", "acceptedAnswer":{"@type":"Answer","text":"A TAN é a taxa de juro base do seu empréstimo, ou seja, o custo do dinheiro que o banco lhe empresta. Não inclui seguros, comissões ou outros encargos. Este gráfico mostra a mediana das TAN praticadas em novos contratos de crédito em cada mês."} }, { "@type":"Question","name":"Qual a diferença entre Taxa Fixa e Taxa Variável?", "acceptedAnswer":{"@type":"Answer","text":"A Taxa Fixa mantém-se inalterada durante um período definido (ou mesmo todo o contrato), oferecendo previsibilidade na prestação. A Taxa Variável está indexada à Euribor, o que significa que a sua prestação mensal será revista (e poderá subir ou descer) a cada 3, 6 ou 12 meses, acompanhando as flutuações do mercado."} }, { "@type":"Question","name":"O que significa a Prestação Mensal Mediana?", "acceptedAnswer":{"@type":"Answer","text":"A mediana é o valor 'do meio'. Se ordenarmos todas as prestações mensais dos novos contratos de crédito à habitação num determinado mês, a mediana é o valor que se encontra exatamente no centro dessa lista. Representa o que um 'típico' novo mutuário está a pagar mensalmente em Portugal."} } ] };
+const datasetSchema = { "@context": "https://schema.org", "@type": "Dataset", "name": "Observatório das Condições do Crédito à Habitação em Portugal", "description": `Dados mensais sobre as condições de novos créditos à habitação. Últimos valores de ${latestDate}: TAN Fixa ${latestData.tan_fixa?.toFixed(2)}%, TAN Variável ${latestData.tan_variavel?.toFixed(2)}%, Prestação Mediana €${latestData.prestacao_mediana?.toFixed(0)}.`, "url": canonical, "keywords": [ "crédito habitação", "taxa de juro", "tan", "taxa fixa", "taxa variável", "prestação mensal", "imobiliário", "banca", "portugal" ], "creator": { "@type": "Organization", "name": "Ativos.pt", "url": Astro.site!.href }, "license": "https://creativecommons.org/licenses/by/4.0/", "variableMeasured": [ "Taxa Anual Nominal (TAN) Mediana - Modalidade Fixa", "Taxa Anual Nominal (TAN) Mediana - Modalidade Variável", "Prestação Mensal Mediana em Euros (€)" ] };
 ---
 
 <BaseLayout {title} {description} {canonical}>
     <Fragment slot="head">
         <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
-        {/* --- NOVA LINHA ADICIONADA AQUI --- */}
         <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
     </Fragment>
 
@@ -119,9 +68,9 @@ const datasetSchema = {
         <section class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
             <h2 class="text-2xl font-bold text-center mb-4">Evolução Mensal</h2>
             <CreditConditionsChart client:only="react" />
-               <p class="mt-4 text-xs text-gray-500 dark:text-gray-400 italic text-center">
-                 Fonte dos dados: Banco de Portugal (BPstat). A TAN (Taxa Anual Nominal) representa a mediana das taxas em novos contratos. A prestação representa a mediana do valor mensal a pagar.
-               </p>
+            <p class="mt-4 text-xs text-gray-500 dark:text-gray-400 italic text-center">
+                Fonte dos dados: Banco de Portugal (BPstat). A TAN (Taxa Anual Nominal) representa a mediana das taxas em novos contratos. A prestação representa a mediana do valor mensal a pagar.
+            </p>
         </section>
 
         <section class="pt-8 border-t border-gray-200 dark:border-gray-700">

@@ -4,7 +4,7 @@ import ApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 
 // --- Tipos e Constantes ---
-type Point = [string, number];
+type Point = [number, number]; // [timestamp, value]
 interface SeriesData {
   total: Point[];
   new: Point[];
@@ -12,11 +12,8 @@ interface SeriesData {
 }
 type View = keyof SeriesData;
 
-const SERIES_FILES: Record<View, string> = {
-  total: '/data/house_price_index_total.csv',
-  new: '/data/house_price_index_new.csv',
-  existing: '/data/house_price_index_existing.csv',
-};
+interface ApiPoint { date: string, value: number };
+type ApiData = Record<View, ApiPoint[]>;
 
 const SERIES_LABELS: Record<View, string> = {
   total: 'o total do mercado',
@@ -41,21 +38,18 @@ export default function HousingPriceChart() {
   }, []);
 
   useEffect(() => {
-    async function fetchData() {
-      const allDataPromises = Object.entries(SERIES_FILES).map(async ([key, path]) => {
-        const response = await fetch(path);
-        const text = await response.text();
-        const rows = text.trim().split('\n').slice(1);
-        const data: Point[] = rows
-          .map(l => l.split(','))
-          .filter(([, v]) => v && !isNaN(+v))
-          .map(([d, v]) => [d, parseFloat(v)]);
-        return [key, data] as [View, Point[]];
-      });
-      const allData = await Promise.all(allDataPromises);
-      setSeriesData(Object.fromEntries(allData) as unknown as SeriesData);
-    }
-    fetchData().catch(console.error);
+    fetch('/api/data/housingPriceIndexChart')
+      .then(res => res.json())
+      .then((data: ApiData) => {
+        // Transforma os dados da API (com datas em string) para o formato que o gráfico precisa (com timestamps)
+        const formattedData: SeriesData = {
+            total: data.total.map(p => [new Date(p.date).getTime(), p.value]),
+            new: data.new.map(p => [new Date(p.date).getTime(), p.value]),
+            existing: data.existing.map(p => [new Date(p.date).getTime(), p.value]),
+        };
+        setSeriesData(formattedData);
+      })
+      .catch(console.error);
   }, []);
   
   // --- Cálculos e Texto Dinâmico ---
@@ -103,19 +97,20 @@ export default function HousingPriceChart() {
   const gridColor = theme === 'dark' ? '#4b5563' : '#e5e7eb';
   
   const options: ApexOptions = {
-    chart: { id: 'housing-price-index', toolbar: { show: true }, zoom: { enabled: true } },
+    chart: { id: 'housing-price-index', toolbar: { show: true }, zoom: { enabled: true }, background: 'transparent' },
     stroke: { width: 2.5, curve: 'smooth' },
     xaxis: { type: 'datetime', labels: { style: { colors: labelColor, fontWeight: 500 } }, axisBorder: { color: gridColor }, axisTicks: { color: gridColor }},
     yaxis: { labels: { formatter: (v: number) => v.toFixed(0), style: { colors: labelColor, fontWeight: 500 }}},
     tooltip: { theme, x: { format: 'dd MMM yyyy' } },
     grid: { borderColor: gridColor },
     dataLabels: { enabled: false },
+    colors: ['#6366f1'], // Cor unificada para o gráfico
   };
 
   return (
     <div>
       <div className="flex flex-wrap justify-center items-center gap-2 mb-4">
-        {(Object.keys(SERIES_FILES) as View[]).map(view => (
+        {(Object.keys(SERIES_LABELS) as View[]).map(view => (
           <button
             key={view}
             onClick={() => setActiveView(view)}
@@ -126,7 +121,6 @@ export default function HousingPriceChart() {
         ))}
       </div>
 
-      {/* NOVO: Sumário Dinâmico */}
       {dynamicSummary && (
         <div className="mt-6 p-4 border-l-4 border-primary-500 bg-primary-50 dark:bg-primary-900/20 rounded-r-lg">
           <p className="text-gray-700 dark:text-gray-300">

@@ -1,11 +1,15 @@
 ---
-import fs from 'node:fs/promises';
+// packages/webapp/src/pages/euribor/quotas/[list].astro
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import EuriborCompareChart from '~/components/EuriborCompareChart.tsx';
+import { getIndicator } from '~/lib/db';
 
-// 1) Gera todos os combos de 1 a 3 prazos
+// Resolve o aviso [WARN] e garante que as páginas são geradas estaticamente
+export const prerender = true;
+
+// Gera todos os combos usando os teus nomes de URL corretos
 export async function getStaticPaths() {
-  const codes = ['quota3m','quota6m','quota12m'];
+  const codes = ['quota3m', 'quota6m', 'quota12m'];
   const lists: string[] = [];
   function bt(i: number, path: string[]) {
     if (path.length >= 1 && path.length <= 3) {
@@ -14,7 +18,7 @@ export async function getStaticPaths() {
     if (path.length === 3) return;
     for (let j = i; j < codes.length; j++) {
       path.push(codes[j]);
-      bt(j+1, path);
+      bt(j + 1, path);
       path.pop();
     }
   }
@@ -22,39 +26,42 @@ export async function getStaticPaths() {
   return lists.map(l => ({ params: { list: l } }));
 }
 
-const { list } = Astro.params as { list: string };
-const selectedCodes = list.split('-vs-');
+const { list } = Astro.params;
+const selectedCodes = list!.split('-vs-');
 
-// 2) Últimos valores: [{label, code, valor, data}]
 const eurLabels: Record<string, string> = {
   quota3m: "Euribor 3M",
   quota6m: "Euribor 6M",
-  quota12m: "Euribor 1 Ano",
-};
-const fileMap: Record<string, string> = {
-  quota3m: "3m",
-  quota6m: "6m",
-  quota12m: "1y",
+  quota12m: "Euribor 12M",
 };
 
+// Mapa para traduzir o código do URL para o código usado na BD e no componente
+const codeMap: Record<string, '3m' | '6m' | '12m'> = {
+  quota3m: "3m",
+  quota6m: "6m",
+  quota12m: "12m",
+};
+
+// LÓGICA DE BUSCA DE DADOS A PARTIR DA BASE DE DADOS
 type EuriborInfo = { code: string; label: string; value: string; date: string };
 
 const seriesInfo: EuriborInfo[] = [];
 for (const code of selectedCodes) {
-  const filecode = fileMap[code];
-  const file = new URL(`../../../../public/data/euribor_${filecode}_share.csv`, import.meta.url);
-  const txt  = await fs.readFile(file, 'utf8');
-  const rows = txt.trim().split('\n');
-  const [d, v] = rows[rows.length-1]?.split(',') ?? [];
+  const dbCode = codeMap[code];
+  const indicatorKey = `latest_euribor_quota_${dbCode}`;
+  const indicatorData = getIndicator(indicatorKey);
+
   seriesInfo.push({
-    code,
+    code: code,
     label: eurLabels[code],
-    value: v && !isNaN(+v) ? Number(v).toFixed(1) : "–",
-    date: d ? new Date(d).toLocaleString('pt-PT', { month: 'long', year: 'numeric' }) : "",
+    value: indicatorData ? indicatorData.value.toFixed(1) : "–",
+    date: indicatorData ? new Date(indicatorData.reference_date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' }) : "",
   });
 }
 
 const canonical = new URL(`/euribor/quotas/${list}`, Astro.site!).href;
+
+// --- CÓDIGO JSON-LD RESTAURADO ---
 const faqSchema = {
   "@context":"https://schema.org","@type":"FAQPage",
   "mainEntity":[
@@ -69,7 +76,6 @@ const faqSchema = {
   ]
 };
 
-// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
 const datasetSchema = {
     "@context": "https://schema.org",
     "@type": "Dataset",
@@ -83,7 +89,7 @@ const datasetSchema = {
     "creator": {
         "@type": "Organization",
         "name": "Ativos.pt",
-        "url": Astro.site.href
+        "url": Astro.site!.href
     },
     "variableMeasured": "Percentagem de novos contratos de crédito à habitação por prazo da Euribor."
 };
@@ -95,8 +101,8 @@ const datasetSchema = {
 >
   <Fragment slot="head">
     <link rel="canonical" href={canonical} />
+    {/* SCRIPTS JSON-LD RESTAURADOS E FUNCIONAIS */}
     <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
-    {/* Adicionado o novo schema de Dataset */}
     <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
   </Fragment>
 
@@ -134,7 +140,7 @@ const datasetSchema = {
     <div class="border rounded-lg p-4 bg-white dark:bg-gray-800">
       <EuriborCompareChart
         client:only="react"
-        periods={seriesInfo.map(s => fileMap[s.code])}
+        periods={selectedCodes.map(code => codeMap[code])}
       />
       <div class="mt-2 text-xs text-gray-400 italic text-center">
         Fonte: Banco de Portugal, <a href="https://bpstat.bportugal.pt/" target="_blank" rel="noopener" class="underline hover:text-primary">BPstat</a>

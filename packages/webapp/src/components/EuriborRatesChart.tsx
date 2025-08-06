@@ -1,15 +1,11 @@
 // packages/webapp/src/components/EuriborRatesChart.tsx
 import { useEffect, useState, useMemo } from 'react';
 import ApexChart from 'react-apexcharts';
-// --- CORREÇÃO AQUI: Usar 'import type' ---
 import type { ApexOptions } from 'apexcharts';
 
-// Definimos os tipos de dados que esperamos do nosso JSON
-interface RateData {
-  date: string;
-  '3_meses'?: number;
-  '6_meses'?: number;
-  '12_meses'?: number;
+// Tipos de dados da nossa API
+interface ApiData {
+  [period: string]: { date: string; value: number }[];
 }
 
 interface Series {
@@ -26,7 +22,6 @@ export default function EuriborRatesChart({ periods }: Props) {
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [isMobile, setIsMobile] = useState(false);
 
-  // Efeito para detetar tema (dark/light) e tamanho do ecrã
   useEffect(() => {
     const isDark = () => document.documentElement.classList.contains('dark');
     setTheme(isDark() ? 'dark' : 'light');
@@ -43,27 +38,25 @@ export default function EuriborRatesChart({ periods }: Props) {
     };
   }, []);
 
-  // Efeito para ir buscar e processar os dados do nosso novo JSON
   useEffect(() => {
-    fetch('/data/euribor_rates_monthly.json')
+    // Busca os dados das TAXAS usando a nova dataKey
+    fetch('/api/data/euriborRatesChart')
       .then(r => r.json())
-      .then((data: RateData[]) => {
-        const newSeries = periods.map(p => ({
-          name: `Euribor ${p.replace('_', ' ').replace('meses', 'M')}`,
-          data: data
-            .map(row => {
-              if (row[p] !== null && typeof row[p] === 'number') {
-                return [new Date(row.date).getTime(), row[p] as number];
-              }
-              return null;
-            })
-            .filter((point): point is [number, number] => point !== null),
-        }));
+      .then((data: ApiData) => {
+        const newSeries = periods.map(p => {
+          const seriesData = data[p];
+          if (!seriesData) return null;
+
+          return {
+            name: `Euribor ${p.replace('_', ' ').replace('meses', 'M')}`,
+            data: seriesData.map(row => [new Date(row.date).getTime(), row.value ?? 0]),
+          };
+        }).filter((s): s is Series => s !== null);
+        
         setSeries(newSeries);
       });
   }, [periods]);
 
-  // Opções do gráfico, otimizadas para taxas de juro
   const chartOptions: ApexOptions = useMemo(() => {
     const labelColor = theme === 'dark' ? '#e5e7eb' : '#374151';
     const gridColor = theme === 'dark' ? '#4b5563' : '#e5e7eb';
@@ -89,6 +82,10 @@ export default function EuriborRatesChart({ periods }: Props) {
           formatter: (v: number) => `${v?.toFixed(2)}%`,
           style: { colors: labelColor, fontWeight: 500 },
         },
+        title: {
+            text: 'Taxa (%)',
+            style: { color: labelColor }
+        }
       },
       tooltip: {
         theme,
@@ -111,9 +108,9 @@ export default function EuriborRatesChart({ periods }: Props) {
     };
   }, [theme, isMobile]);
 
-  if (!series.length) {
+  if (!series.length && periods.length > 0) {
     return <div className="text-center p-8">A carregar dados do gráfico...</div>;
   }
 
-  return <ApexChart type="line" series={series} options={chartOptions} />;
+  return <ApexChart type="line" series={series} options={chartOptions} height={isMobile ? 350 : 450} />;
 }

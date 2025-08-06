@@ -3,14 +3,14 @@ import { useEffect, useState, useMemo } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 
-// Tipos de dados do nosso JSON
-interface ExchangeRateData {
-  date: string;
-  usd?: number; gbp?: number; chf?: number; cad?: number; aud?: number; cny?: number; brl?: number;
+// Tipos de dados da nossa API
+// A API retorna um objeto onde cada chave é um código de moeda
+interface ApiData {
+  [currencyCode: string]: { date: string; value: number }[];
 }
 interface Series { name: string; data: [number, number][] }
 
-// Mapeamento de códigos para nomes e cores
+// Mapeamento de códigos para nomes e cores (Isto não muda)
 const currencyMap = {
   usd: { name: 'Dólar (USD)', color: '#16a34a' },
   gbp: { name: 'Libra (GBP)', color: '#2563eb' },
@@ -30,96 +30,111 @@ export default function ExchangeRatesChart({ periods }: Props) {
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [isMobile, setIsMobile] = useState(false);
 
+  // Este hook para detetar o tema e o tamanho do ecrã não precisa de mudar.
   useEffect(() => {
     const isDarkMode = () => document.documentElement.classList.contains('dark');
     setTheme(isDarkMode() ? 'dark' : 'light');
-    const obs = new MutationObserver(() => setTheme(isDarkMode() ? 'dark' : 'light'));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+
+    const observer = new MutationObserver(() => {
+      setTheme(isDarkMode() ? 'dark' : 'light');
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
     handleResize();
     window.addEventListener('resize', handleResize);
+
     return () => {
-      obs.disconnect();
+      observer.disconnect();
       window.removeEventListener('resize', handleResize);
     };
   }, []);
 
+  // Este hook busca os dados.
   useEffect(() => {
-    fetch('/data/exchange_rates_monthly.json')
-      .then(r => r.json())
-      .then((data: ExchangeRateData[]) => {
-        // --- FILTRO DE 10 ANOS REMOVIDO ---
-        // Agora usa todos os dados recebidos do JSON.
-
+    // ESTA É A ÚNICA LINHA QUE MUDA PARA SE ADAPTAR À NOSSA ARQUITETURA FINAL
+    fetch('/api/data/exchangeRatesChart')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data: ApiData) => {
         const currenciesToShow = periods || Object.keys(currencyMap);
 
         const newSeries = currenciesToShow
           .map(code => {
-            const currency = currencyMap[code as keyof typeof currencyMap];
-            if (!currency) return null;
+            const currencyInfo = currencyMap[code as keyof typeof currencyMap];
+            const currencyData = data[code as keyof ApiData];
+            
+            if (!currencyInfo || !currencyData) {
+                console.warn(`Dados ou mapeamento não encontrados para a moeda: ${code}`);
+                return null;
+            }
+
             return {
-              name: currency.name,
-              data: data // Usar a variável 'data' original
-                .map(row => {
-                  const value = row[code as keyof ExchangeRateData];
-                  if (value !== null && typeof value === 'number') {
-                    return [new Date(row.date).getTime(), value];
-                  }
-                  return null;
-                })
-                .filter((point): point is [number, number] => point !== null),
+              name: currencyInfo.name,
+              data: currencyData.map(row => {
+                return [new Date(row.date).getTime(), row.value];
+              }),
             };
           })
           .filter((s): s is Series => s !== null);
+          
         setSeries(newSeries);
-      });
+      })
+      .catch(error => console.error("Falha ao carregar dados do gráfico de câmbios:", error));
   }, [periods]);
 
+  // As opções do gráfico também não precisam de mudar.
   const chartOptions: ApexOptions = useMemo(() => {
     const labelColor = theme === 'dark' ? '#e5e7eb' : '#374151';
     const gridColor = theme === 'dark' ? '#4b5563' : '#e5e7eb';
-    const colors = (periods || Object.keys(currencyMap)).map(code => currencyMap[code as keyof typeof currencyMap].color);
+    const colors = (periods || Object.keys(currencyMap))
+      .map(code => currencyMap[code as keyof typeof currencyMap]?.color)
+      .filter(Boolean) as string[];
 
     return {
       chart: {
         height: 500,
         type: 'line',
         zoom: { enabled: true, type: 'x' },
-        toolbar: { show: true, tools: { download: false } },
+        toolbar: { show: true, tools: { download: false, pan: true, reset: true, zoom: true, zoomin: true, zoomout: true } },
         background: 'transparent',
       },
-      stroke: { width: 2, curve: 'smooth' },
+      stroke: {
+        width: 2,
+        curve: 'smooth'
+      },
       xaxis: {
         type: 'datetime',
-        labels: { style: { colors: labelColor } },
+        labels: { style: { colors: labelColor, }, },
       },
       yaxis: {
-        labels: {
-          formatter: (val) => val.toFixed(2),
-          style: { colors: labelColor },
-        },
-        title: {
-          text: '1 Euro equivale a...',
-          style: { color: labelColor },
-        }
+        labels: { formatter: (val) => val.toFixed(2), style: { colors: labelColor, }, },
+        title: { text: '1 Euro equivale a...', style: { color: labelColor, fontWeight: 'normal',}, }
       },
       tooltip: {
         theme,
-        x: { format: 'dd MMM yyyy' },
-        y: { formatter: (val) => val.toFixed(4) },
+        x: { format: 'dd MMM yyyy', },
+        y: { formatter: (val) => val.toFixed(4), },
       },
       legend: {
         position: 'top',
         horizontalAlign: 'left',
         fontSize: '14px',
-        labels: { colors: labelColor },
+        labels: { colors: labelColor, },
         itemMargin: { horizontal: 10, vertical: 5 },
-        markers: {
-            radius: 6,
-        },
-        onItemClick: {
-            toggleDataSeries: true
-        },
+        markers: { radius: 6, },
+        onItemClick: { toggleDataSeries: true },
       },
       grid: {
         borderColor: gridColor,
@@ -129,8 +144,9 @@ export default function ExchangeRatesChart({ periods }: Props) {
     };
   }, [theme, isMobile, periods]);
 
+  // A renderização final também não muda.
   if (!series.length) {
-    return <div className="text-center p-8">A carregar dados do gráfico...</div>;
+    return <div className="flex h-96 items-center justify-center text-center p-8">A carregar dados do gráfico...</div>;
   }
 
   return <ReactApexChart options={chartOptions} series={series} type="line" height={500} />;

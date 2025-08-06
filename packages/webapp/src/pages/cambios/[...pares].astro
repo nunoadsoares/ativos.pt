@@ -3,6 +3,11 @@
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import ExchangeRatesChart from '~/components/ExchangeRatesChart.tsx';
 
+// Força o Astro a usar a tua função getStaticPaths para gerar
+// todas as combinações como ficheiros HTML estáticos no build.
+// Isto resolve o aviso [WARN] e melhora a performance e SEO.
+export const prerender = true;
+
 // --- LÓGICA PARA GERAR TODAS AS PÁGINAS ---
 export async function getStaticPaths() {
   const CODES = ['usd', 'gbp', 'chf', 'cad', 'aud', 'cny', 'brl'];
@@ -54,7 +59,7 @@ const datasetSchema = {
     "creator": {
         "@type": "Organization",
         "name": "Ativos.pt",
-        "url": Astro.site.href
+        "url": Astro.site!.href
     },
     "variableMeasured": `Cotação do Euro (EUR) face a: ${selectedCurrencies.map(c => currencyNames[c]).join(', ')}.`
 };

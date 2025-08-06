@@ -2,10 +2,11 @@ import { useEffect, useState, type FC } from 'react';
 import ApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 
-type HistoricalData = {
-    yoy: [number, number][];
-    core_yoy: [number, number][];
-};
+// Tipos de dados da nossa API
+interface ApiData {
+    yoy: { date: string, value: number }[];
+    core_yoy: { date: string, value: number }[];
+}
 
 const InflationHistoricalChart: FC = () => {
     const [series, setSeries] = useState<ApexAxisChartSeries>([]);
@@ -30,13 +31,16 @@ const InflationHistoricalChart: FC = () => {
     }, []);
 
     useEffect(() => {
-        fetch('/data/inflation_summary.json')
+        // Busca os dados da nossa API centralizada
+        fetch('/api/data/inflationHistoricalChart')
             .then(res => res.json())
-            .then(data => {
-                const historical: HistoricalData = data.historical;
+            .then((data: ApiData) => {
+                // Transforma os dados da API para o formato que o gráfico espera
+                const formatData = (d: { date: string, value: number }[]) => d.map(p => [new Date(p.date).getTime(), p.value]);
+                
                 setSeries([
-                    { name: 'Inflação Homóloga', data: historical.yoy },
-                    { name: 'Inflação Subjacente', data: historical.core_yoy },
+                    { name: 'Inflação Homóloga', data: formatData(data.yoy) },
+                    { name: 'Inflação Subjacente', data: formatData(data.core_yoy) },
                 ]);
                 setLoading(false);
             })
@@ -74,9 +78,8 @@ const InflationHistoricalChart: FC = () => {
         tooltip: { theme, style: { fontSize: '12px' }, x: { format: 'MMM yyyy' } },
         legend: {
             position: 'top',
-            // --- CORREÇÃO: Alinhar a legenda à esquerda para não sobrepor a toolbar ---
             horizontalAlign: 'left',
-            offsetX: 10, // Pequeno espaçamento da margem
+            offsetX: 10,
             fontSize: '14px',
             labels: { colors: labelColor },
             itemMargin: { horizontal: 16 }

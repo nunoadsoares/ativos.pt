@@ -1,23 +1,18 @@
-# packages/data-worker/apibp/update_housing_price_yoy_kpi.py
-#!/usr/bin/env python3
-"""
-Extrai o último valor da Variação Homóloga do Preço da Habitação
-e grava na base de dados datahub.db.
-"""
-from pathlib import Path
+# packages/data-worker/scripts/preco_casas/update_housing_price_yoy_kpi.py
 import pandas as pd
 from pyjstat import pyjstat
+import os
 import sqlite3
-import datetime
+import datetime as dt
 
 # --- Configuração ---
-DOMAIN_ID  = 39
-DATASET_ID = "b8cc662879c9f7b0f3faf89c7871fc38" # Dataset com a VARIAÇÃO HOMÓLOGA
+DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'webapp', 'public', 'datahub.db')
+DOMAIN_ID = 39
+DATASET_ID = "b8cc662879c9f7b0f3faf89c7871fc38"
 BPSTAT_API_URL = "https://bpstat.bportugal.pt/data/v1"
-DB_PATH = Path(__file__).parents[3] / "webapp" / "public" / "datahub.db"
 
 TARGET_INFO = {
-    "key": "precos_habitacao_var",
+    "key": "house_price_yoy_bportugal_total_quarterly", # Chave padronizada
     "label": "Preços Habitação (Var. Homóloga)", 
     "filters": {"Indicadores": "Preços de habitação", "Métrica": "Taxa de variação homóloga"}
 }
@@ -26,6 +21,8 @@ def main():
     """Função principal para extrair e gravar o KPI."""
     label = TARGET_INFO['label']
     print(f"-> A processar (KPI): {label}")
+    
+    conn = None # Inicializar a conexão
     try:
         url = f"{BPSTAT_API_URL}/domains/{DOMAIN_ID}/datasets/{DATASET_ID}/?lang=PT"
         dataset = pyjstat.Dataset.read(url, timeout=45)
@@ -45,17 +42,19 @@ def main():
         
         print(f"   ✅ Valor encontrado: {valor} (Data: {data_referencia})")
         
-        # Guardar na Base de Dados
-        conn = sqlite3.connect(DB_PATH)
+        # Guardar na Base de Dados com o nosso padrão
+        conn = sqlite3.connect(DB_PATH, isolation_level=None)
         cursor = conn.cursor()
-        cursor.execute("REPLACE INTO key_indicators (indicator_key, label, value, unit, reference_date, updated_at) VALUES (?, ?, ?, ?, ?, ?)", 
-                       (TARGET_INFO["key"], TARGET_INFO["label"], round(valor, 2), '%', data_referencia, datetime.datetime.now().isoformat()))
-        conn.commit()
-        conn.close()
+        cursor.execute("PRAGMA journal_mode = WAL;")
+        cursor.execute("INSERT OR REPLACE INTO key_indicators (indicator_key, label, value, unit, reference_date, updated_at) VALUES (?, ?, ?, ?, ?, ?)", 
+                       (TARGET_INFO["key"], TARGET_INFO["label"], round(valor, 2), '%', data_referencia, dt.datetime.utcnow().isoformat()))
         print(f"   [SQLite] ✅ KPI '{TARGET_INFO['key']}' guardado.")
 
     except Exception as e:
         print(f"   ❌ Erro ao processar o KPI '{label}': {e}")
+    finally:
+        if conn:
+            conn.close()
 
 if __name__ == "__main__":
     main()

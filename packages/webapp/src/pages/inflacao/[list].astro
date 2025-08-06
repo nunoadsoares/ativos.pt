@@ -1,7 +1,9 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import InflationSectorsCompareChart from '~/components/inflacao/InflationSectorsCompareChart.tsx';
-import inflationData from '../../../public/data/inflation_summary.json';
+import { getIndicator, getSeries } from '~/lib/db';
+
+export const prerender = true;
 
 const sectorMap: Record<string, string> = {
     food_drinks: "Alimentação e Bebidas", alcoholic_tobacco: "Bebidas Alcoólicas e Tabaco", clothing_footwear: "Vestuário e Calçado",
@@ -15,9 +17,7 @@ const sectorSlugs: Record<string, string> = {
     communications: "comunicacoes", recreation_culture: "lazer-e-cultura", education: "educacao", restaurants_hotels: "restaurantes-e-hoteis",
     misc_goods_services: "bens-e-servicos-diversos"
 };
-const slugToCodeMap: Record<string, string> = Object.fromEntries(
-    Object.entries(sectorSlugs).map(([code, slug]) => [slug, code])
-);
+const slugToCodeMap: Record<string, string> = Object.fromEntries(Object.entries(sectorSlugs).map(([code, slug]) => [slug, code]));
 
 export async function getStaticPaths() {
     const internalSectorSlugs: Record<string, string> = {
@@ -28,6 +28,7 @@ export async function getStaticPaths() {
     };
     const slugs = Object.values(internalSectorSlugs);
     const paths: { params: { list: string } }[] = [];
+    
     function generateCombinations(startIndex: number, currentPath: string[]) {
         if (currentPath.length >= 1 && currentPath.length <= 3) {
             paths.push({ params: { list: currentPath.join('-vs-') } });
@@ -48,15 +49,18 @@ const selectedSlugs = list!.split('-vs-');
 const selectedCodes = selectedSlugs.map(slug => slugToCodeMap[slug]).filter(Boolean);
 
 const seriesInfo = selectedCodes.map(code => {
-    const history = inflationData.historical_by_category[code] || [];
-    if (history.length < 2) return null;
+    const historicalKey = `inflation_bportugal_category_yoy_${code}_monthly`;
+    const indicatorKey = `latest_inflation_bportugal_category_yoy_${code}_monthly`;
+    
+    const history = getSeries(historicalKey);
+    const indicator = getIndicator(indicatorKey);
 
-    const last = history[history.length - 1];
-    const secondLast = history[history.length - 2];
-    const values = history.map(p => p[1]);
+    if (!indicator || history.length < 2) return null;
+
+    const values = history.map(p => p.value);
     const peak = Math.max(...values);
     const average = values.reduce((a, b) => a + b, 0) / values.length;
-    const diff = last[1] - secondLast[1];
+    const diff = indicator.value - history[history.length - 2].value;
 
     let trendArrow = '↔️';
     if (diff > 0.01) trendArrow = '🔼';
@@ -64,15 +68,16 @@ const seriesInfo = selectedCodes.map(code => {
 
     return {
         code,
-        label: sectorMap[code],
-        history,
-        latestValue: last[1],
-        latestDate: new Date(last[0]),
+        // *** CORREÇÃO AQUI: Usar o sectorMap para traduzir o nome ***
+        label: sectorMap[code] || indicator.label, // Usa a tradução; se falhar, usa o da BD
+        history: history.map(p => [new Date(p.date).getTime(), p.value]),
+        latestValue: indicator.value,
+        latestDate: new Date(indicator.reference_date),
         peakValue: peak,
         averageValue: average,
         trendArrow
     };
-}).filter(Boolean);
+}).filter((s): s is NonNullable<typeof s> => s !== null);
 
 const chartSeriesData = seriesInfo.map(s => ({
     name: s.label,
@@ -85,42 +90,13 @@ const title = `Comparador de Inflação: ${seriesInfo.map(s => s.label).join(' v
 const description = `Análise comparativa da inflação para ${seriesInfo.map(s => `${s.label} (${s.latestValue.toFixed(2)}%)`).join(', ')}. Veja a evolução, picos históricos e mais.`;
 const canonical = new URL(`/inflacao/${list}`, Astro.site).href;
 
-// --- INÍCIO DA CORREÇÃO ---
-// A constante 'faqItems' estava em falta. Foi adicionada aqui.
 const faqItems = [
     { question: "Como ler este gráfico de comparação?", answer: "Cada linha no gráfico representa a taxa de inflação homóloga (YoY) para um setor de consumo ao longo do tempo. Pode comparar as tendências para perceber que setores sofreram maiores aumentos de preços e quando." },
     { question: "O que significa o 'Pico Histórico' na tabela?", answer: "O 'Pico Histórico' é o valor mais alto que a taxa de inflação homóloga para aquele setor atingiu em todo o período de dados disponível. Ajuda a dar contexto ao valor atual." }
 ];
-// --- FIM DA CORREÇÃO ---
 
-const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": faqItems.map(item => ({
-        "@type": "Question",
-        "name": item.question,
-        "acceptedAnswer": { "@type": "Answer", "text": item.answer }
-    }))
-};
-
-const datasetSchema = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
-    "name": title,
-    "description": description,
-    "url": canonical,
-    "keywords": [
-        "inflação", "comparador", "IPC", "portugal",
-        ...seriesInfo.map(s => s.label)
-    ],
-    "creator": {
-        "@type": "Organization",
-        "name": "Ativos.pt",
-        "url": Astro.site.href
-    },
-    "license": "https://creativecommons.org/licenses/by/4.0/",
-    "variableMeasured": `Taxa de Variação Homóloga da Inflação para os setores: ${seriesInfo.map(s => s.label).join(', ')}.`
-};
+const faqSchema = { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": faqItems.map(item => ({ "@type": "Question", "name": item.question, "acceptedAnswer": { "@type": "Answer", "text": item.answer } }))};
+const datasetSchema = { "@context": "https://schema.org", "@type": "Dataset", "name": title, "description": description, "url": canonical, "keywords": ["inflação", "comparador", "IPC", "portugal", ...seriesInfo.map(s => s.label)], "creator": { "@type": "Organization", "name": "Ativos.pt", "url": Astro.site!.href }, "license": "https://creativecommons.org/licenses/by/4.0/", "variableMeasured": `Taxa de Variação Homóloga da Inflação para os setores: ${seriesInfo.map(s => s.label).join(', ')}.`};
 ---
 
 <BaseLayout {title} {description} {canonical}>

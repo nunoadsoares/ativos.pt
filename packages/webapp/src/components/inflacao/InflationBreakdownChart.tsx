@@ -2,7 +2,9 @@ import { useEffect, useState, type FC } from 'react';
 import ApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 
-type BreakdownData = Record<string, number>;
+// Tipos de dados da nossa API (um indicador completo)
+interface Indicator { value: number; /* outros campos... */ };
+type ApiData = Record<string, Indicator | null>;
 
 const categoryNames: { [key: string]: string } = {
     food_drinks: "Alimentação e Bebidas", alcoholic_tobacco: "Bebidas Alcoólicas e Tabaco", clothing_footwear: "Vestuário e Calçado",
@@ -16,7 +18,6 @@ const InflationBreakdownChart: FC = () => {
     const [categories, setCategories] = useState<string[]>([]);
     const [theme, setTheme] = useState<'dark' | 'light'>('light');
     const [loading, setLoading] = useState(true);
-    // --- REINTRODUZIDO: Estado para detetar se é um ecrã móvel ---
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -25,7 +26,6 @@ const InflationBreakdownChart: FC = () => {
         const obs = new MutationObserver(() => setTheme(isDark() ? 'dark' : 'light'));
         obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
-        // --- REINTRODUZIDO: Lógica para verificar o tamanho do ecrã ---
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
         checkMobile();
         window.addEventListener('resize', checkMobile);
@@ -37,14 +37,18 @@ const InflationBreakdownChart: FC = () => {
     }, []);
 
     useEffect(() => {
-        fetch('/data/inflation_summary.json')
+        // Busca os dados do grupo de indicadores da nossa API
+        fetch('/api/data/inflationBreakdownIndicators')
             .then(res => res.json())
-            .then(data => {
-                const breakdown: BreakdownData = data.breakdown_yoy;
-                const sortedData = Object.entries(breakdown).sort(([, a], [, b]) => a - b);
+            .then((data: ApiData) => {
+                const breakdown = Object.entries(data)
+                    .map(([key, indicator]) => ({ key, value: indicator?.value ?? 0 }))
+                    .filter(item => item.value !== 0);
                 
-                setCategories(sortedData.map(([key]) => categoryNames[key] || key));
-                setSeries([{ name: 'Inflação Homóloga', data: sortedData.map(([, value]) => value) }]);
+                const sortedData = breakdown.sort((a, b) => a.value - b.value);
+                
+                setCategories(sortedData.map(item => categoryNames[item.key] || item.key));
+                setSeries([{ name: 'Inflação Homóloga', data: sortedData.map(item => item.value) }]);
                 setLoading(false);
             })
             .catch(err => {
@@ -66,18 +70,16 @@ const InflationBreakdownChart: FC = () => {
         colors: [(ctx: { w: any; dataPointIndex: number }) => {
             return (ctx.w.globals.series[0][ctx.dataPointIndex] < 0) ? '#ef4444' : '#10b981';
         }],
-        // --- ALTERAÇÃO: Esconder os números (labels) do eixo X APENAS EM MOBILE ---
         xaxis: {
             categories: categories,
             labels: { 
-                show: !isMobile, // Só mostra as labels se NÃO for mobile
+                show: !isMobile,
                 formatter: (val: string) => parseFloat(val).toFixed(1) + '%', 
                 style: { colors: labelColor, fontWeight: 500 } 
             },
             axisBorder: { show: false }, 
             axisTicks: { show: false },
         },
-        // Garantir que as labels do eixo Y (categorias) estão sempre visíveis
         yaxis: { 
             labels: { 
                 show: true,

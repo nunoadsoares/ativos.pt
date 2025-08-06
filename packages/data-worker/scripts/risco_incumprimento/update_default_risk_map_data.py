@@ -1,31 +1,22 @@
-#!/usr/bin/env python3
-"""
-Extrai a percentagem mais recente de devedores com empréstimos vencidos
-para HABITAÇÃO, por região, e grava o ficheiro JSON para o mapa.
-"""
-from pathlib import Path
+# packages/data-worker/scripts/risco_incumprimento/update_default_risk_map_data.py
 import pandas as pd
 from pyjstat import pyjstat
-import json
+import os
+import sqlite3
+import datetime as dt
 import math
 
 # --- Configuração ---
-DOMAIN_ID  = 188
+DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'webapp', 'public', 'datahub.db')
+DOMAIN_ID = 188
 DATASET_ID = "961306c1ed49daf795a53dc5fea4a04b"
 BPSTAT_API_URL = "https://bpstat.bportugal.pt/data/v1"
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-OUT_FILE = PROJECT_ROOT / "webapp" / "public" / "data" / "map_default_risk.json"
 
-# Nomes das colunas
+# Colunas e Filtros
 COL_FINALIDADE = 'Finalidade'
 COL_SECTOR = 'Setor institucional de contraparte'
 COL_REGIAO = 'Território de contraparte'
 COL_METRICA = 'Métrica'
-
-# Mapeamento NUTS III para NUTS II para a lógica de fallback
-NUTS3_TO_NUTS2_PARENT = {
-    "Grande Lisboa (NUTS III)": "Grande Lisboa (NUTS II)",
-}
 
 def fetch_full_dataset() -> pd.DataFrame:
     """Busca o dataset completo da API."""
@@ -37,11 +28,11 @@ def fetch_full_dataset() -> pd.DataFrame:
     return df
 
 def main():
+    """Extrai os dados de risco por região e guarda como indicadores individuais na base de dados."""
     try:
         df = fetch_full_dataset()
         if df.empty: raise ValueError("DataFrame vazio.")
         
-        # 1. Filtra APENAS para dados de Habitação e Famílias
         hab_df = df[
             (df[COL_FINALIDADE].str.contains("Habitação", na=False, regex=False)) &
             (df[COL_SECTOR].str.contains("Famílias", na=False, regex=False)) &
@@ -53,37 +44,38 @@ def main():
             
         print(f"   ✅ Encontrados {len(hab_df)} registos de Habitação.")
 
-        # 2. Para cada região, encontra o valor mais recente
         latest_df = hab_df.loc[hab_df.groupby(COL_REGIAO)['Data'].idxmax()]
-        risk_data = pd.Series(latest_df.value.values, index=latest_df[COL_REGIAO]).to_dict()
         
-        # 3. Limpa os dados, convertendo NaN para None
-        risk_data_clean = {
-            key: round(val, 2) if pd.notna(val) and math.isfinite(val) else None
-            for key, val in risk_data.items()
-        }
+        conn = sqlite3.connect(DB_PATH, isolation_level=None)
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA journal_mode = WAL;")
 
-        # 4. Aplica a lógica de fallback NUTS III -> NUTS II
-        print("-> A aplicar lógica de fallback (apenas para Habitação)...")
-        final_data = risk_data_clean.copy()
-        for nuts3_region, nuts2_parent in NUTS3_TO_NUTS2_PARENT.items():
-            if nuts3_region in final_data and final_data[nuts3_region] is None:
-                if nuts2_parent in final_data and final_data[nuts2_parent] is not None:
-                    print(f"   -> Fallback aplicado: {nuts3_region} usará o valor de {nuts2_parent}")
-                    final_data[nuts3_region] = final_data[nuts2_parent]
+        indicators_saved = 0
+        for _, row in latest_df.iterrows():
+            region_name = row[COL_REGIAO]
+            value = row['value']
+            
+            if pd.isna(value) or not math.isfinite(value):
+                continue
 
-        # 5. Adiciona o 'type' para o frontend
-        final_data_with_type = {
-            key: {"value": val, "type": "Habitação" if val is not None else "Sem dados"}
-            for key, val in final_data.items()
-        }
+            # Gera uma chave limpa para a base de dados (ex: 'norte_nuts_ii')
+            clean_region_key = region_name.lower().replace(' ', '_').replace('(', '').replace(')', '')
+            
+            indicator_key = f"risk_incumprimento_bportugal_{clean_region_key}"
+            label = f"Risco Incumprimento: {region_name}"
+            unit = '%'
+            reference_date = pd.to_datetime(row['Data']).strftime('%Y-%m-%d')
+            updated_at = dt.datetime.utcnow().isoformat()
 
-        # 6. Grava o ficheiro JSON final
-        OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(OUT_FILE, 'w', encoding='utf-8') as f:
-            json.dump(final_data_with_type, f, ensure_ascii=False, indent=2)
+            cursor.execute("INSERT OR REPLACE INTO key_indicators (indicator_key, label, value, unit, reference_date, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                           (indicator_key, label, round(value, 2), unit, reference_date, updated_at))
+            print(f"   [SQLite] ✅ Indicador '{indicator_key}' guardado.")
+            indicators_saved += 1
+        
+        if conn:
+            conn.close()
 
-        print(f"\n✅ Mapa de Risco final (apenas Habitação) gravado com {len(final_data_with_type)} regiões em {OUT_FILE.name}")
+        print(f"\n✅ Mapa de Risco final gravado com {indicators_saved} indicadores na base de dados.")
 
     except Exception as e:
         print(f"❌ Erro fatal no script do mapa de risco: {e}")

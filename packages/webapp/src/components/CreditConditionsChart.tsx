@@ -3,13 +3,9 @@ import { useEffect, useState, useMemo } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 
-// Tipos de dados do nosso JSON
-interface CondicoesCredito {
-  date: string;
-  tan_variavel?: number;
-  tan_fixa?: number;
-  tan_mista?: number;
-  prestacao_mediana?: number;
+// Tipos de dados da nossa API
+interface ApiData {
+  [seriesCode: string]: { date: string; value: number }[];
 }
 
 interface Series {
@@ -38,25 +34,27 @@ export default function CreditConditionsChart() {
   }, []);
 
   useEffect(() => {
-    fetch('/data/credito_habitacao_condicoes.json')
+    fetch('/api/data/creditConditionsChart')
       .then(r => r.json())
-      .then((data: CondicoesCredito[]) => {
-        const tanVariavel: Series = {
-          name: 'TAN Variável',
-          type: 'line',
-          data: data.map(d => [new Date(d.date).getTime(), d.tan_variavel ?? 0])
+      .then((data: ApiData) => {
+
+        const createSeries = (code: string, name: string, type: 'line' | 'column'): Series | null => {
+            const seriesData = data[code];
+            if (!seriesData) return null;
+            return {
+                name: name,
+                type: type,
+                data: seriesData.map(d => [new Date(d.date).getTime(), d.value ?? 0])
+            };
         };
-        const tanFixa: Series = {
-          name: 'TAN Fixa',
-          type: 'line',
-          data: data.map(d => [new Date(d.date).getTime(), d.tan_fixa ?? 0])
-        };
-        const prestacao: Series = {
-            name: 'Prestação Mediana',
-            type: 'column',
-            data: data.map(d => [new Date(d.date).getTime(), d.prestacao_mediana ?? 0])
-        }
-        setSeries([tanVariavel, tanFixa, prestacao]);
+
+        const tanVariavel = createSeries('tan_variavel', 'TAN Variável', 'line');
+        const tanFixa = createSeries('tan_fixa', 'TAN Fixa', 'line');
+        const prestacao = createSeries('prestacao_mediana', 'Prestação Mediana', 'column');
+
+        const finalSeries = [tanVariavel, tanFixa, prestacao].filter((s): s is Series => s !== null);
+        
+        setSeries(finalSeries);
       });
   }, []);
 
@@ -69,7 +67,7 @@ export default function CreditConditionsChart() {
         height: 450,
         type: 'line',
         stacked: false,
-        toolbar: { show: true },
+        toolbar: { show: true, tools: { download: false } },
         background: 'transparent',
       },
       stroke: { width: [3, 3, 0], curve: 'smooth' },
@@ -90,7 +88,7 @@ export default function CreditConditionsChart() {
         },
         {
           seriesName: 'TAN Fixa',
-          show: false, // Esconde o eixo Y duplicado para TAN
+          show: false,
         },
         {
           seriesName: 'Prestação Mediana',
@@ -111,10 +109,10 @@ export default function CreditConditionsChart() {
         x: { format: 'MMM yyyy' },
         y: {
           formatter: function (val, { seriesIndex }) {
-            if (seriesIndex < 2) { // TAN
+            if (seriesIndex < 2) {
               return `${val.toFixed(3)}%`;
             }
-            return `€${val.toFixed(2)}`; // Prestação
+            return `€${val.toFixed(2)}`;
           },
         },
       },
@@ -124,12 +122,12 @@ export default function CreditConditionsChart() {
         labels: { colors: labelColor },
       },
       grid: { borderColor: gridColor, strokeDashArray: 3 },
-      colors: ['#3b82f6', '#ef4444', '#10b981'], // Azul para Var, Vermelho para Fixa, Verde para Prestação
+      colors: ['#3b82f6', '#ef4444', '#10b981'],
     };
   }, [theme, isMobile]);
 
   if (!series.length) {
-    return <div className="text-center p-8">A carregar dados...</div>;
+    return <div className="flex h-96 items-center justify-center text-center p-8">A carregar dados do gráfico...</div>;
   }
 
   return <ReactApexChart options={chartOptions} series={series} type="line" height={450} />;

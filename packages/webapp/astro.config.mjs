@@ -3,7 +3,6 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwind from '@astrojs/tailwind';
 import sitemap from '@astrojs/sitemap';
-// ADICIONE ESTA LINHA
 import icon from "astro-icon";
 
 /* ──────────────── Constantes ──────────────── */
@@ -14,10 +13,15 @@ const TODAY = new Date().toISOString().split('T')[0]; // AAAA-MM-DD
 export default defineConfig({
   site: SITE_URL,
 
+  // *** ALTERAÇÃO PRINCIPAL AQUI ***
+  // Ativa o modo de renderização no servidor (SSR).
+  // Isto permite que os teus endpoints de API (/api/data/*) funcionem dinamicamente,
+  // resolvendo o erro 'GetStaticPathsRequired' de forma global.
+  output: 'server',
+
   integrations: [
     react(),
     tailwind(),
-    // ADICIONE ESTA LINHA
     icon(),
 
     /* Sitemap v4 – gera sitemap-index.xml + sub-sitemaps */
@@ -31,7 +35,7 @@ export default defineConfig({
        */
       serialize(entry) {
         return {
-          url: entry.url, // <-- A CORREÇÃO ESTÁ AQUI
+          url: entry.url,
           lastmod: TODAY,
           changefreq: 'weekly',
           priority: 0.7,

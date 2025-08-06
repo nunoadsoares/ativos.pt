@@ -2,18 +2,12 @@
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 import Sparkline from '~/components/Sparkline.tsx';
-import fs from 'node:fs/promises';
 import { Icon } from 'astro-icon/components';
+import { getIndicator, getSeries } from '~/lib/db';
 
 export const prerender = true;
 
-// --- Dados estáticos ---
-import housingKpiData from '../../public/data-housing-kpi.json';
-import conditionsData from '../../public/data/credito_habitacao_condicoes.json';
-import exchangeData from '../../public/data/exchange_rates_monthly.json';
-import inflationData from '../../public/data/inflation_summary.json';
-
-// --- KPI setup ---
+// --- LÓGICA DE DADOS REFEITA PARA USAR A BASE DE DADOS ---
 let kpis = {
   housing:   { value: 0, trend: [] as number[], color: '#ef4444' },
   tan:       { value: 'N/D', trend: [] as number[]       },
@@ -21,50 +15,50 @@ let kpis = {
   inflation: { value: 'N/D', trend: [] as number[]       }
 };
 
-async function parseCsvHistory(path: string): Promise<[number,number][]> {
-  try {
-    const url = new URL(path, import.meta.url);
-    const txt = await fs.readFile(url, 'utf-8');
-    return txt
-      .trim().split('\n').slice(1)
-      .map(l => l.split(','))
-      .filter(([,v]) => v && !isNaN(+v))
-      .map(([d,v]) => [new Date(d).getTime(), parseFloat(v)]);
-  } catch {
-    return [];
-  }
-}
-
 try {
-  // Habitação
-  const h = await parseCsvHistory('../../public/data/house_price_index_total.csv');
-  kpis.housing.value = housingKpiData.value ?? 0;
-  kpis.housing.trend = h.slice(-12).map(p => p[1]);
-  kpis.housing.color = kpis.housing.value > 0 ? '#ef4444' : '#22c55e';
-
-  // TAN
-  if (conditionsData.length > 0) {
-    const last = conditionsData.at(-1)!;
-    kpis.tan.value = last.tan_variavel?.toFixed(2) ?? 'N/D';
-    kpis.tan.trend = conditionsData.slice(-12).map(d => d.tan_variavel);
+  // 1. Habitação
+  const housingIndicator = getIndicator('precos_habitacao_var');
+  const housingHistory = getSeries('house_price_index_bportugal_total_quarterly');
+  if (housingIndicator) {
+    kpis.housing.value = housingIndicator.value;
+    kpis.housing.color = housingIndicator.value > 0 ? '#ef4444' : '#22c55e';
+  }
+  if (housingHistory) {
+    kpis.housing.trend = housingHistory.slice(-12).map(p => p.value);
   }
 
-  // EUR/USD
-  if (exchangeData.length > 0) {
-    const last = exchangeData.at(-1)!;
-    kpis.exchange.value = last.usd?.toFixed(3) ?? 'N/D';
-    kpis.exchange.trend = exchangeData.slice(-12).map(d => d.usd);
+  // 2. TAN (Crédito Habitação)
+  const tanIndicator = getIndicator('latest_credito_habitacao_tan_variavel');
+  const tanHistory = getSeries('credito_habitacao_bportugal_tan_variavel_monthly');
+  if (tanIndicator) {
+    kpis.tan.value = tanIndicator.value.toFixed(2);
+  }
+  if (tanHistory) {
+    kpis.tan.trend = tanHistory.slice(-12).map(p => p.value);
   }
 
-  // Inflação (sem seta)
-  const yoy = inflationData.historical.yoy;
-  if (yoy.length >= 2) {
-    const a = yoy.at(-1)![1];
-    kpis.inflation.value = a.toFixed(2);
-    kpis.inflation.trend = yoy.slice(-12).map(p => p[1]);
+  // 3. Câmbio EUR/USD
+  const exchangeIndicator = getIndicator('latest_exchange_rate_eur_usd');
+  const exchangeHistory = getSeries('exchange_rate_eur_usd');
+   if (exchangeIndicator) {
+    kpis.exchange.value = exchangeIndicator.value.toFixed(3);
   }
+  if (exchangeHistory) {
+    kpis.exchange.trend = exchangeHistory.slice(-12).map(p => p.value);
+  }
+
+  // 4. Inflação
+  const inflationIndicator = getIndicator('latest_inflation_bportugal_headline_yoy_monthly');
+  const inflationHistory = getSeries('inflation_bportugal_headline_yoy_monthly');
+  if (inflationIndicator) {
+    kpis.inflation.value = inflationIndicator.value.toFixed(2);
+  }
+  if (inflationHistory) {
+    kpis.inflation.trend = inflationHistory.slice(-12).map(p => p.value);
+  }
+
 } catch (e) {
-  console.error('Erro a calcular KPIs:', e);
+  console.error('Erro a calcular KPIs para a homepage:', e);
 }
 
 // Collections
@@ -85,7 +79,7 @@ const tools = [
   { slug:'/plataformas/comparar',       titulo:'Comparador de Corretoras',   desc:'Compare taxas, regulação e custos.',                   icon:'heroicons:scale' }
 ];
 
-// --- JSON-LD MELHORADO ---
+// --- SEO (Preservado) ---
 const siteUrl = Astro.site?.href ?? 'https://www.ativos.pt/';
 const fullSchema = {
   "@context": "https://schema.org",
@@ -98,7 +92,7 @@ const fullSchema = {
     "name": "Ativos.pt",
     "logo": {
       "@type": "ImageObject",
-      "url": new URL('/logo.png', siteUrl).href // Assumindo que tem um logo em /public/logo.png
+      "url": new URL('/logo.png', siteUrl).href
     }
   },
   "inLanguage": "pt-PT",

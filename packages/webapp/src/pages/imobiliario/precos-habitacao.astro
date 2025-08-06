@@ -1,17 +1,16 @@
 ---
-// packages/webapp/src/pages/imobiliario/precos-habitacao.astro
-
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import HousingPriceChart from '~/components/HousingPriceChart.tsx';
+import { getIndicator } from '~/lib/db';
 
-// Importa o JSON gerado pelo script
-import kpiRow from '../../../public/data-housing-kpi.json';
+// --- LÓGICA DE DADOS CORRIGIDA PARA USAR A BASE DE DADOS ---
+const housingKpiIndicator = getIndicator('precos_habitacao_var');
 
 const kpi = {
-    value: kpiRow?.value ?? 0,
-    date: kpiRow?.reference_date
-      ? new Date(kpiRow.reference_date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' })
-      : ''
+    value: housingKpiIndicator?.value ?? 0,
+    date: housingKpiIndicator?.reference_date
+      ? new Date(housingKpiIndicator.reference_date).toLocaleString('pt-PT', { month: 'long', year: 'numeric' })
+      : 'data indisponível'
 };
 
 const title = "Observatório do Preço da Habitação em Portugal";
@@ -26,7 +25,6 @@ const faqSchema = {
     ]
 };
 
-// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
 const datasetSchema = {
     "@context": "https://schema.org",
     "@type": "Dataset",
@@ -45,7 +43,7 @@ const datasetSchema = {
     "creator": {
         "@type": "Organization",
         "name": "Ativos.pt",
-        "url": Astro.site.href
+        "url": Astro.site!.href
     },
     "license": "https://creativecommons.org/licenses/by/4.0/",
     "variableMeasured": [
@@ -57,7 +55,6 @@ const datasetSchema = {
 <BaseLayout {title} {description} {canonical}>
     <Fragment slot="head">
         <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
-        {/* --- NOVA LINHA ADICIONADA AQUI --- */}
         <script type="application/ld+json" is:inline set:html={JSON.stringify(datasetSchema)} />
     </Fragment>
 
@@ -91,25 +88,21 @@ const datasetSchema = {
             </div>
         </section>
 
-        {/* --- SECÇÃO EXPLICATIVA ATUALIZADA --- */}
         <section class="pt-8 border-t dark:border-gray-700">
             <h2 class="text-3xl font-bold text-center mb-8">Como Interpretar Estes Dados</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
-                {/* Caixa de explicação para o Índice */}
                 <div class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-md prose dark:prose-invert max-w-none">
                     <h3 class="text-xl font-semibold mt-0">O Índice de Preços (IPHab)</h3>
                     <p>O gráfico principal mostra o <strong>Índice de Preços da Habitação (IPHab)</strong>. Este índice não representa o preço médio de uma casa em euros, mas sim a sua evolução em relação a um ano base (neste caso, 2015 = 100). Um valor de <strong>150</strong>, por exemplo, significa que os preços estão <strong>50% mais altos</strong> do que estavam em 2015.</p>
                 </div>
 
-                {/* Caixa de explicação para a Variação */}
-                  <div class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-md prose dark:prose-invert max-w-none">
+                <div class="bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-md prose dark:prose-invert max-w-none">
                     <h3 class="text-xl font-semibold mt-0">A Variação Homóloga (YoY)</h3>
                     <p>O grande indicador no topo da página mostra a <strong>variação homóloga</strong>. Esta é a métrica mais comum para medir a "febre" do mercado. Ela compara o nível de preços de um trimestre com o <strong>mesmo trimestre do ano anterior</strong>. Um valor de <strong>+10%</strong> indica que as casas, em média, ficaram 10% mais caras no espaço de um ano.</p>
                 </div>
 
             </div>
         </section>
-
     </article>
 </BaseLayout>
