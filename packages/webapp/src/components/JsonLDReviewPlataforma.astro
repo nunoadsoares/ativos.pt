@@ -11,42 +11,51 @@ const { data, slug } = entry;
 const siteUrl = Astro.site?.href ?? 'https://www.ativos.pt';
 const pageUrl = new URL(`/plataformas/${slug}`, siteUrl).href;
 
+// NOTA: Para que 'datePublished' funcione, certifique-se que o frontmatter
+// do seu conteúdo em /src/content/plataformas/ tem um campo 'pubDate'.
+// Exemplo: pubDate: 2024-08-01
+const publicationDate = data.pubDate ? new Date(data.pubDate).toISOString() : new Date().toISOString();
+
+
 const schema = {
   "@context": "https://schema.org",
-  "@type": "Review",
-  "itemReviewed": {
-    "@type": "Product",
-    "name": data.nome,
-    "url": pageUrl,
-    "image": new URL(data.logo, siteUrl).href,
-    "brand": {
+  "@type": "Product", // ALTERADO: O tipo principal agora é 'Product'
+  "name": data.nome,
+  "description": data.description, // NOVO: Descrição do produto
+  "image": new URL(data.logo, siteUrl).href,
+  "url": data.url_afiliado, // NOVO: URL oficial do produto/serviço
+  "sku": slug, // NOVO: Identificador único do produto (o slug é perfeito para isto)
+  "brand": {
+    "@type": "Organization",
+    "name": data.nome
+  },
+  // CORREÇÃO PRINCIPAL: Adicionamos a propriedade 'review' para resolver o erro do Google.
+  "review": {
+    "@type": "Review",
+    "author": {
       "@type": "Organization",
-      "name": data.nome
-    }
-  },
-  "reviewRating": {
-    "@type": "Rating",
-    "ratingValue": data.rating ?? "4.5",
-    "bestRating": "5",
-    "worstRating": "1"
-  },
-  "author": {
-    "@type": "Organization",
-    "name": "Ativos.pt",
-    "url": siteUrl
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "Ativos.pt",
-    "logo": {
-      "@type": "ImageObject",
-      "url": new URL(logoImage.src, siteUrl).href
-    }
-  },
-  "headline": `Análise à ${data.nome}`,
-  "description": data.description,
-  "inLanguage": "pt-PT",
-  "mainEntityOfPage": pageUrl
+      "name": "Ativos.pt",
+      "url": siteUrl
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Ativos.pt",
+      "logo": {
+        "@type": "ImageObject",
+        "url": new URL(logoImage.src, siteUrl).href
+      }
+    },
+    "datePublished": publicationDate, // NOVO E IMPORTANTE: Data da análise
+    "reviewRating": {
+      "@type": "Rating",
+      "ratingValue": data.rating ?? "4.5",
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "reviewBody": data.description, // O corpo da review pode ser a meta description.
+    "inLanguage": "pt-PT",
+    "mainEntityOfPage": pageUrl // A URL onde esta review se encontra
+  }
 };
 ---
 
