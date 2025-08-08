@@ -2,29 +2,30 @@
 import sys, os, types
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 
-# Candidatos: layout local vs layout no container (/app/public)
-PUBLIC_DIR_CANDIDATES = [
-    os.path.join(PROJECT_ROOT, 'packages', 'webapp', 'public'),  # layout local
-    os.path.join(PROJECT_ROOT, 'public'),                        # layout container
-]
+def in_container() -> bool:
+    # heurística simples: no build estamos em /app/data-worker
+    return HERE.startswith("/app/")
 
-def _first_existing_or_default(candidates, default):
-    for p in candidates:
-        # aceitamos se a pasta existir OU se o parent existir (primeiro build)
-        if os.path.isdir(p) or os.path.isdir(os.path.dirname(p)):
-            return p
-    return default
+# LOCAL: repo raiz é dois níveis acima de packages/data-worker
+LOCAL_PROJECT_ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
+LOCAL_PUBLIC = os.path.join(LOCAL_PROJECT_ROOT, 'packages', 'webapp', 'public')
 
-PUBLIC_DIR = _first_existing_or_default(PUBLIC_DIR_CANDIDATES, os.path.join(PROJECT_ROOT, 'public'))
+# DOCKER: a public fica em /app/public (porque copiaste packages/webapp para /app)
+DOCKER_PUBLIC = "/app/public"
+
+if in_container():
+    PUBLIC_DIR = DOCKER_PUBLIC
+else:
+    PUBLIC_DIR = LOCAL_PUBLIC
+
 DB_PATH = os.path.join(PUBLIC_DIR, 'datahub.db')
 DATA_PATH = PUBLIC_DIR
 
-# Garante que a pasta pública existe (para a DB/CSVs)
+# Garante que a pasta existe (primeiro build)
 os.makedirs(PUBLIC_DIR, exist_ok=True)
 
-# Injeta um módulo 'config' virtual (para não mexer nos 15 scripts)
+# Injeta módulo virtual 'config' que os teus scripts importam
 config = types.ModuleType("config")
 config.DB_PATH = DB_PATH
 config.DATA_PATH = DATA_PATH
