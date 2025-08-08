@@ -18,13 +18,17 @@ jobs:
           script: |
             # Navega para a pasta principal do projeto
             cd /home/nuno/sites/ativos.pt
-            
+
             # Vai buscar as últimas alterações do código
             git pull
-            
+
+            # ALTERAÇÃO AQUI: Instala as dependências Python no servidor
+            echo "🐍 A instalar dependências Python..."
+            pip3 install -r ./packages/data-worker/requirements.txt
+
             # Entra na pasta da aplicação e executa a sequência de deploy
             cd packages/webapp && \
-            echo "A popular a base de dados com dados essenciais..." && \
+            echo "🌱 A popular a base de dados com dados essenciais..." && \
             node ./scripts/run-seed.js && \
-            echo "A reconstruir e reiniciar os contentores Docker..." && \
+            echo "🐳 A reconstruir e reiniciar os contentores Docker..." && \
             docker compose up --build -d
