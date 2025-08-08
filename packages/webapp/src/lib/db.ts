@@ -1,18 +1,16 @@
-// C:\Users\nunos\Desktop\ativos.pt\packages\webapp\src\lib\db.ts
+// packages/webapp/src/lib/db.ts
 
 import Database from 'better-sqlite3';
 import path from 'path';
 
-// *** CORREÇÃO AQUI ***
-// O caminho agora aponta para 'datahub.db', como no resto do teu projeto.
 const dbPath = path.join(process.cwd(), 'public', 'datahub.db');
 
-// O resto do ficheiro permanece igual.
-const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+// A "db" é exportada e tem permissões de escrita
+export const db = new Database(dbPath);
 
-console.log(`[DB] Conectado em modo 'readonly' a: ${dbPath}`);
+console.log(`[DB] Conectado com sucesso a: ${dbPath}`);
 
-// Tipos para os nossos dados, para garantir consistência
+// Manter as suas interfaces originais e detalhadas
 interface HistoricalData {
   date: string;
   value: number;
@@ -21,7 +19,7 @@ interface HistoricalData {
 interface KeyIndicatorData {
     indicator_key: string;
     label: string;
-    value: number;
+    value: number; // Mantendo os seus tipos originais
     unit: string;
     reference_date: string;
     updated_at: string;
@@ -32,12 +30,7 @@ interface QueryOptions {
   limit?: number;
 }
 
-/**
- * Busca uma série histórica completa.
- * @param key A 'series_key' da série a buscar.
- * @param options Opções para filtrar os dados (since, limit).
- * @returns Um array de objectos { date, value }.
- */
+// A sua função getSeries original e intacta
 export function getSeries(key: string, options: QueryOptions = {}): HistoricalData[] {
   let query = `
     SELECT date, value FROM historical_series
@@ -60,11 +53,7 @@ export function getSeries(key: string, options: QueryOptions = {}): HistoricalDa
   return db.prepare(query).all(...params) as HistoricalData[];
 }
 
-/**
- * Busca um único indicador chave.
- * @param key A 'indicator_key' do indicador a buscar.
- * @returns O objecto completo do indicador.
- */
+// A sua função getIndicator original e intacta
 export function getIndicator(key: string): KeyIndicatorData | null {
   const query = 'SELECT * FROM key_indicators WHERE indicator_key = ?';
   return db.prepare(query).get(key) as KeyIndicatorData | null;

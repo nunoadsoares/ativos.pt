@@ -1,114 +1,116 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
-import Sparkline from '~/components/Sparkline.tsx';
 import { Icon } from 'astro-icon/components';
+
+// --- IMPORTS PARA A HOMEPAGE DINÂMICA E UNIFICADA ---
+import { getHomepageData } from '~/lib/stock-data-fetcher';
+import SearchTicker from '~/components/acoes/SearchTicker.tsx';
+import StockSparklineCard from '~/components/homepage/StockSparklineCard.astro';
+import Sparkline from '~/components/Sparkline.tsx';
 import { getIndicator, getSeries } from '~/lib/db';
 
-export const prerender = true;
+// A página precisa de ser renderizada no servidor para ter dados sempre atualizados.
+export const prerender = false;
 
-// --- LÓGICA DE DADOS REFEITA PARA USAR A BASE DE DADOS ---
+// --- LÓGICA DE DADOS COMPLETA E UNIFICADA ---
+
+// 1. Dados de Mercado (Ações)
+let marketData;
+try {
+    marketData = await getHomepageData();
+} catch (e) {
+    console.error('Erro a obter dados de mercado para a homepage:', e);
+    marketData = { portugueseStocks: [], topGainers: [] };
+}
+
+// 2. Dados dos KPIs Macroeconómicos (Lógica Original Reintroduzida)
 let kpis = {
-  housing:   { value: 0, trend: [] as number[], color: '#ef4444' },
-  tan:       { value: 'N/D', trend: [] as number[]       },
-  exchange:  { value: 'N/D', trend: [] as number[]       },
-  inflation: { value: 'N/D', trend: [] as number[]       }
+    housing:   { value: 0, trend: [] as number[], color: '#ef4444' },
+    tan:       { value: 'N/D', trend: [] as number[] },
+    exchange:  { value: 'N/D', trend: [] as number[] },
+    inflation: { value: 'N/D', trend: [] as number[] }
 };
 
 try {
-  // 1. Habitação
-  const housingIndicator = getIndicator('precos_habitacao_var');
-  const housingHistory = getSeries('house_price_index_bportugal_total_quarterly');
-  if (housingIndicator) {
-    kpis.housing.value = housingIndicator.value;
-    kpis.housing.color = housingIndicator.value > 0 ? '#ef4444' : '#22c55e';
-  }
-  if (housingHistory) {
-    kpis.housing.trend = housingHistory.slice(-12).map(p => p.value);
-  }
+    // Habitação
+    const housingIndicator = getIndicator('precos_habitacao_var');
+    const housingHistory = getSeries('house_price_index_bportugal_total_quarterly');
+    if (housingIndicator) {
+        kpis.housing.value = housingIndicator.value;
+        kpis.housing.color = housingIndicator.value > 0 ? '#ef4444' : '#22c55e';
+    }
+    if (housingHistory) kpis.housing.trend = housingHistory.slice(-12).map(p => p.value);
 
-  // 2. TAN (Crédito Habitação)
-  const tanIndicator = getIndicator('latest_credito_habitacao_tan_variavel');
-  const tanHistory = getSeries('credito_habitacao_bportugal_tan_variavel_monthly');
-  if (tanIndicator) {
-    kpis.tan.value = tanIndicator.value.toFixed(2);
-  }
-  if (tanHistory) {
-    kpis.tan.trend = tanHistory.slice(-12).map(p => p.value);
-  }
+    // TAN (Crédito Habitação)
+    const tanIndicator = getIndicator('latest_credito_habitacao_tan_variavel');
+    const tanHistory = getSeries('credito_habitacao_bportugal_tan_variavel_monthly');
+    if (tanIndicator) kpis.tan.value = tanIndicator.value.toFixed(2);
+    if (tanHistory) kpis.tan.trend = tanHistory.slice(-12).map(p => p.value);
 
-  // 3. Câmbio EUR/USD
-  const exchangeIndicator = getIndicator('latest_exchange_rate_eur_usd');
-  const exchangeHistory = getSeries('exchange_rate_eur_usd');
-   if (exchangeIndicator) {
-    kpis.exchange.value = exchangeIndicator.value.toFixed(3);
-  }
-  if (exchangeHistory) {
-    kpis.exchange.trend = exchangeHistory.slice(-12).map(p => p.value);
-  }
+    // Câmbio EUR/USD
+    const exchangeIndicator = getIndicator('latest_exchange_rate_eur_usd');
+    const exchangeHistory = getSeries('exchange_rate_eur_usd');
+    if (exchangeIndicator) kpis.exchange.value = exchangeIndicator.value.toFixed(3);
+    if (exchangeHistory) kpis.exchange.trend = exchangeHistory.slice(-12).map(p => p.value);
 
-  // 4. Inflação
-  const inflationIndicator = getIndicator('latest_inflation_bportugal_headline_yoy_monthly');
-  const inflationHistory = getSeries('inflation_bportugal_headline_yoy_monthly');
-  if (inflationIndicator) {
-    kpis.inflation.value = inflationIndicator.value.toFixed(2);
-  }
-  if (inflationHistory) {
-    kpis.inflation.trend = inflationHistory.slice(-12).map(p => p.value);
-  }
+    // Inflação
+    const inflationIndicator = getIndicator('latest_inflation_bportugal_headline_yoy_monthly');
+    const inflationHistory = getSeries('inflation_bportugal_headline_yoy_monthly');
+    if (inflationIndicator) kpis.inflation.value = inflationIndicator.value.toFixed(2);
+    if (inflationHistory) kpis.inflation.trend = inflationHistory.slice(-12).map(p => p.value);
 
 } catch (e) {
-  console.error('Erro a calcular KPIs para a homepage:', e);
+    console.error('Erro a calcular KPIs para a homepage:', e);
 }
 
-// Collections
-const [guiasFiscais, plataformas] = await Promise.all([
-  getCollection('fiscais'),
-  getCollection('plataformas')
-]);
-const guiasFiscaisDestaque = guiasFiscais.slice(0,4);
-const plataformasDestaque = plataformas.slice(0,5);
 
-// Tools
+// --- LÓGICA ORIGINAL PRESERVADA (Collections, Tools, SEO) ---
+const [guiasFiscais, plataformas] = await Promise.all([
+    getCollection('fiscais'),
+    getCollection('plataformas')
+]);
+const guiasFiscaisDestaque = guiasFiscais.slice(0, 4);
+const plataformasDestaque = plataformas.slice(0, 5);
+
 const tools = [
-  { slug:'/inflacao',                   titulo:'Observatório da Inflação',   desc:'Acompanhe o IPC, histórico e repartição por setor.', icon:'heroicons:chart-pie' },
-  { slug:'/imobiliario',                titulo:'Observatório Imobiliário', desc:'Preços, crédito, risco e outros indicadores.',       icon:'heroicons:home-modern' },
-  { slug:'/euribor',                    titulo:'Observatório da Euribor',    desc:'Evolução das taxas que definem o seu crédito.',       icon:'heroicons:banknotes' },
-  { slug:'/simuladores/salario-liquido',  titulo:'Simulador Salário Líquido',  desc:'Calcule descontos e valor líquido.',                   icon:'heroicons:calculator' },
-  { slug:'/simuladores/mais-valias',    titulo:'Simulador Mais-Valias',      desc:'Apure imposto de ações e ETFs.',                       icon:'heroicons:receipt-refund' },
-  { slug:'/plataformas/comparar',       titulo:'Comparador de Corretoras',   desc:'Compare taxas, regulação e custos.',                   icon:'heroicons:scale' }
+    { slug:'/inflacao',                  titulo:'Observatório da Inflação',   desc:'Acompanhe o IPC, histórico e repartição por setor.', icon:'heroicons:chart-pie' },
+    { slug:'/imobiliario',               titulo:'Observatório Imobiliário', desc:'Preços, crédito, risco e outros indicadores.',     icon:'heroicons:home-modern' },
+    { slug:'/euribor',                   titulo:'Observatório da Euribor',    desc:'Evolução das taxas que definem o seu crédito.',     icon:'heroicons:banknotes' },
+    { slug:'/simuladores/salario-liquido', titulo:'Simulador Salário Líquido',  desc:'Calcule descontos e valor líquido.',                 icon:'heroicons:calculator' },
+    { slug:'/simuladores/mais-valias',   titulo:'Simulador Mais-Valias',      desc:'Apure imposto de ações e ETFs.',                   icon:'heroicons:receipt-refund' },
+    { slug:'/plataformas/comparar',      titulo:'Comparador de Corretoras',   desc:'Compare taxas, regulação e custos.',                 icon:'heroicons:scale' }
 ];
 
-// --- SEO (Preservado) ---
 const siteUrl = Astro.site?.href ?? 'https://www.ativos.pt/';
 const fullSchema = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "url": siteUrl,
-  "name": "Ativos.pt",
-  "description": "Dados de mercado em tempo real, simuladores e guias práticos para investir com confiança.",
-  "publisher": {
-    "@type": "Organization",
-    "name": "Ativos.pt",
-    "logo": {
-      "@type": "ImageObject",
-      "url": new URL('/logo.png', siteUrl).href
-    }
-  },
-  "inLanguage": "pt-PT",
-  "mainEntity": {
-    "@type": "WebPage",
-    "name": "Ativos.pt – O Dashboard Financeiro de Portugal",
+    "@context": "https://schema.org",
+    "@type": "WebSite",
     "url": siteUrl,
+    "name": "Ativos.pt",
+    "description": "Dados de mercado em tempo real, simuladores e guias práticos para investir com confiança.",
+    "publisher": {
+        "@type": "Organization",
+        "name": "Ativos.pt",
+        "logo": {
+            "@type": "ImageObject",
+            "url": new URL('/logo.png', siteUrl).href
+        }
+    },
+    "inLanguage": "pt-PT",
     "mainEntity": {
-        "@type": "FAQPage",
-        "mainEntity": [
-            { "@type": "Question", "name": "O que encontro no Ativos.pt?", "acceptedAnswer": { "@type": "Answer", "text": "Indicadores atualizados, simuladores e guias práticos." } },
-            { "@type": "Question", "name": "É gratuito?", "acceptedAnswer": { "@type": "Answer", "text": "Sim, sem registo e totalmente gratuito." } },
-            { "@type": "Question", "name": "Os dados são fiáveis?", "acceptedAnswer": { "@type": "Answer", "text": "Recolhidos de fontes oficiais (BPstat e INE)." } }
-        ]
+        "@type": "WebPage",
+        "name": "Ativos.pt – O Dashboard Financeiro de Portugal",
+        "url": siteUrl,
+        "mainEntity": {
+            "@type": "FAQPage",
+            "mainEntity": [
+                { "@type": "Question", "name": "O que encontro no Ativos.pt?", "acceptedAnswer": { "@type": "Answer", "text": "Indicadores atualizados, simuladores e guias práticos." } },
+                { "@type": "Question", "name": "É gratuito?", "acceptedAnswer": { "@type": "Answer", "text": "Sim, sem registo e totalmente gratuito." } },
+                { "@type": "Question", "name": "Os dados são fiáveis?", "acceptedAnswer": { "@type": "Answer", "text": "Recolhidos de fontes oficiais (BPstat, INE, Yahoo Finance)." } }
+            ]
+        }
     }
-  }
 };
 ---
 
@@ -120,67 +122,100 @@ const fullSchema = {
         <script type="application/ld+json" is:inline set:html={JSON.stringify(fullSchema)} />
     </Fragment>
 
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <main class="bg-gray-50 dark:bg-brand-dark">
 
-        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-20 text-center">
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 text-center">
             <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                O Dashboard Financeiro de <span class="text-primary">Portugal</span>
+                O <span class="text-primary">Dashboard</span> Financeiro de Portugal
             </h1>
             <p class="mt-6 max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
-                Indicadores chave, ferramentas práticas e guias atualizados. Tome decisões com dados.
+                Aceda a cotações em tempo real, ferramentas de análise e guias para tomar decisões informadas.
             </p>
 
-            <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
-                <a href="/inflacao" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[110px] sm:min-h-[120px] overflow-hidden">
-                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
-                        <Icon name="heroicons:arrow-trending-up" class="h-4 w-4" />
-                        Inflação (YoY)
-                    </h3>
-                    <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
-                        <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{kpis.inflation.value}%</p>
-                        <div class="flex-shrink-0 w-[80px] sm:w-[120px] overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
-                            <Sparkline client:only="react" seriesData={kpis.inflation.trend} color="#8b5cf6" />
-                        </div>
+            <div class="mt-10 max-w-2xl mx-auto">
+                <SearchTicker client:load />
+            </div>
+
+            <div x-data="{ tab: 'nacional' }" class="mt-12 text-left">
+                <div class="flex flex-wrap justify-center border-b border-gray-200 dark:border-gray-700 mb-6">
+                    <button @click="tab = 'nacional'" :class="{ 'border-primary text-primary': tab === 'nacional', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:border-gray-500': tab !== 'nacional' }"
+                        class="px-4 py-3 font-semibold border-b-2 transition-colors focus:outline-none">
+                        Ações Nacionais
+                    </button>
+                    <button @click="tab = 'global'" :class="{ 'border-primary text-primary': tab === 'global', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:border-gray-500': tab !== 'global' }"
+                        class="px-4 py-3 font-semibold border-b-2 transition-colors focus:outline-none">
+                        Destaques Globais
+                    </button>
+                    <button @click="tab = 'kpis'" :class="{ 'border-primary text-primary': tab === 'kpis', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:border-gray-500': tab !== 'kpis' }"
+                        class="px-4 py-3 font-semibold border-b-2 transition-colors focus:outline-none">
+                        Indicadores Chave
+                    </button>
+                </div>
+
+                <div>
+                    <div x-show="tab === 'nacional'" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        {marketData.portugueseStocks.map(stock => <StockSparklineCard {...stock} />)}
                     </div>
-                </a>
-                <a href="/imobiliario/precos-habitacao" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[110px] sm:min-h-[120px] overflow-hidden">
-                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
-                        <Icon name="heroicons:home" class="h-4 w-4" />
-                        Preço Habitação (YoY)
-                    </h3>
-                    <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
-                        <p class:list={["text-xl sm:text-2xl font-bold", kpis.housing.value > 0 ? "text-red-500" : "text-green-500"]}>
-                            {kpis.housing.value > 0 ? '+' : ''}{kpis.housing.value}%
-                        </p>
-                        <div class="flex-shrink-0 w-[80px] sm:w-[120px] overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
-                            <Sparkline client:only="react" seriesData={kpis.housing.trend} color={kpis.housing.color} />
-                        </div>
+
+                    <div x-show="tab === 'global'" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        {marketData.topGainers.map(stock => <StockSparklineCard {...stock} />)}
                     </div>
-                </a>
-                <a href="/imobiliario/condicoes-credito" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[120px] overflow-hidden">
-                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
-                        <Icon name="heroicons:receipt-percent" class="h-4 w-4" />
-                        TAN Crédito
-                    </h3>
-                    <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
-                        <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{kpis.tan.value}%</p>
-                        <div class="flex-shrink-0 w-[80px] sm:w-[120px] overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
-                            <Sparkline client:only="react" seriesData={kpis.tan.trend} color="#3b82f6" />
-                        </div>
+
+                    <div x-show="tab === 'kpis'" x-cloak class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+                        
+                        <a href="/inflacao" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[110px] sm:min-h-[120px] overflow-hidden">
+                            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
+                                <Icon name="heroicons:arrow-trending-up" class="h-4 w-4" /> Inflação (YoY)
+                            </h3>
+                            <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
+                                <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{kpis.inflation.value}%</p>
+                                <div class="flex-shrink-0 w-[80px] sm:w-[120px] overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
+                                    <Sparkline client:visible seriesData={kpis.inflation.trend} color="#8b5cf6" />
+                                </div>
+                            </div>
+                        </a>
+                        
+                        <a href="/imobiliario/precos-habitacao" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[110px] sm:min-h-[120px] overflow-hidden">
+                            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
+                                <Icon name="heroicons:home" class="h-4 w-4" /> Preço Habitação (YoY)
+                            </h3>
+                            <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
+                                <p class:list={["text-xl sm:text-2xl font-bold", kpis.housing.value > 0 ? "text-red-500" : "text-green-500"]}>
+                                    {kpis.housing.value > 0 ? '+' : ''}{kpis.housing.value}%
+                                </p>
+                                <div class="flex-shrink-0 w-[80px] sm:w-[120px] overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
+                                    <Sparkline client:visible seriesData={kpis.housing.trend} color={kpis.housing.color} />
+                                </div>
+                            </div>
+                        </a>
+
+                        <a href="/imobiliario/condicoes-credito" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[120px] overflow-hidden">
+                            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
+                                <Icon name="heroicons:receipt-percent" class="h-4 w-4" /> TAN Crédito
+                            </h3>
+                            <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
+                                <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{kpis.tan.value}%</p>
+                                <div class="flex-shrink-0 w-[80px] sm:w-[120px] overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
+                                    <Sparkline client:visible seriesData={kpis.tan.trend} color="#3b82f6" />
+                                </div>
+                            </div>
+                        </a>
+
+                        <a href="/cambios" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[120px] overflow-hidden">
+                            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
+                                <Icon name="heroicons:currency-dollar" class="h-4 w-4" /> EUR / USD
+                            </h3>
+                            <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
+                                <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{kpis.exchange.value}</p>
+                                <div class="flex-shrink-0 w-[80px] sm:w-[120px] overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
+                                    <Sparkline client:visible seriesData={kpis.exchange.trend} color="#10b981" />
+                                </div>
+                            </div>
+                        </a>
                     </div>
-                </a>
-                <a href="/cambios" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[120px] overflow-hidden">
-                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
-                        <Icon name="heroicons:currency-dollar" class="h-4 w-4" />
-                        EUR / USD
-                    </h3>
-                    <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
-                        <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{kpis.exchange.value}</p>
-                        <div class="flex-shrink-0 w-[80px] sm:w-[120px] overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
-                            <Sparkline client:only="react" seriesData={kpis.exchange.trend} color="#10b981" />
-                        </div>
-                    </div>
-                </a>
+                </div>
             </div>
         </section>
 

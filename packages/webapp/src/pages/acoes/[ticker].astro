@@ -1,0 +1,239 @@
+---
+// C:\Users\nunos\Desktop\ativos.pt\packages\webapp\src\pages\acoes\[ticker].astro
+
+// Layout e Componentes
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import RealTimeInfo from '~/components/acoes/RealTimeInfo.tsx';
+import StockChart from '~/components/acoes/StockChart.tsx';
+import RevEarnChart from '~/components/acoes/RevEarnChart.tsx';
+import KeyMetricsGrid from '~/components/acoes/KeyMetricsGrid.tsx';
+import EpsCard from '~/components/acoes/EpsCard.tsx';
+import PriceTargetCard from '~/components/acoes/PriceTargetCard.tsx';
+import RecTrendChart from '~/components/acoes/RecTrendChart.tsx';
+import CalendarEventsCard from '~/components/acoes/CalendarEventsCard.tsx';
+import InstitutionOwnershipCard from '~/components/acoes/InstitutionOwnershipCard.tsx';
+import { IconChevronRight } from '@tabler/icons-react';
+
+// --- NOVOS IMPORTS PARA A MENSAGEM DE ERRO MELHORADA ---
+import { Icon } from 'astro-icon/components';
+import SearchTicker from '~/components/acoes/SearchTicker.tsx';
+
+// Lógica de Dados
+import { getStockPageData } from '~/lib/stock-data-fetcher';
+import type { FinancialData, QuoteData, HistoricalPoint, ResearchData } from '~/lib/stock-data-fetcher';
+
+export const prerender = false;
+
+const { ticker } = Astro.params;
+if (!ticker) {
+    return Astro.redirect('/404');
+}
+
+// Busca de dados
+let pageData: {
+    financials: FinancialData;
+    quote: QuoteData;
+    chart: HistoricalPoint[];
+    research: ResearchData;
+} | null = null;
+let hasError = false; // Usamos um booleano em vez de uma string de erro para mais controlo
+
+try {
+    pageData = await getStockPageData(ticker.toUpperCase());
+    if (!pageData?.financials?.name) {
+        // Validação extra: se não vier nome, consideramos um erro
+        throw new Error("Dados do ticker inválidos ou incompletos.");
+    }
+} catch (e: any) {
+    console.error(`Falha ao obter dados para ${ticker}:`, e.message);
+    hasError = true;
+}
+
+const financials = pageData?.financials;
+const quote = pageData?.quote;
+const chart = pageData?.chart;
+const research = pageData?.research;
+
+// Geração de Logo e Placeholder
+let logoUrl: string | null = null;
+if (financials?.website) {
+    try {
+        const domain = new URL(financials.website).hostname;
+        logoUrl = `https://logo.clearbit.com/${domain}`;
+    } catch {}
+}
+const companyInitials = financials?.name?.split(' ').map(n => n[0]).slice(0, 2).join('') || ticker.slice(0, 2).toUpperCase();
+
+// Preparação de dados para gráficos
+const priceSeries = chart?.map(p => [new Date(p.date).getTime(), p.value]) ?? [];
+
+// Otimização de SEO
+const pageTitle = financials && !hasError ? `${financials.name} (${financials.ticker}) | Cotação e Análise Financeira` : `Ticker não encontrado: ${ticker.toUpperCase()} | Ativos.pt`;
+const pageDesc = financials && !hasError
+    ? `Análise financeira completa de ${financials.name} (${financials.ticker}): cotação em tempo real, gráficos interativos, análise de receita e lucro, acionistas institucionais, próximos eventos, histórico de EPS, previsões de analistas, e todos os rácios chave.`
+    : `Não foram encontrados dados para o ticker ${ticker.toUpperCase()}. Use a nossa pesquisa para encontrar ações e outros ativos.`;
+
+const jsonLd = financials && !hasError ? {
+    "@context": "https://schema.org",
+    "@type": "FinancialProduct",
+    "name": financials.name,
+    "tickerSymbol": financials.ticker,
+    "exchange": financials.exchange,
+    "url": Astro.url.href,
+    "description": pageDesc,
+    "brand": {
+        "@type": "Organization",
+        "name": financials.name,
+        "logo": logoUrl
+    }
+} : null;
+---
+
+<BaseLayout title={pageTitle} description={pageDesc}>
+    <Fragment slot="head">
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta property="og:url" content={Astro.url.href} />
+        {logoUrl && <meta property="og:image" content={logoUrl} />}
+        {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    </Fragment>
+
+    <main class="max-w-screen-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {hasError || !pageData || !financials || !research ? (
+            <div class="flex items-center justify-center min-h-[60vh]">
+                <div class="w-full max-w-2xl text-center p-8 bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                        <Icon name="heroicons:exclamation-triangle-20-solid" class="h-9 w-9 text-red-600 dark:text-red-400" />
+                    </div>
+                    <h1 class="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+                        Ticker Não Encontrado
+                    </h1>
+                    <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                        Não foi possível encontrar dados para o ticker <code class="font-mono bg-gray-100 dark:bg-gray-800 text-red-500 dark:text-red-400 px-2 py-1 rounded-md">{ticker.toUpperCase()}</code>.
+                    </p>
+                    <p class="mt-2 text-base text-gray-500 dark:text-gray-500">
+                        Verifique se o símbolo está correto ou tente uma nova pesquisa.
+                    </p>
+                    <div class="mt-8">
+                        <SearchTicker client:load />
+                    </div>
+                    <div class="mt-8 flex justify-center items-center gap-6">
+                        <a href="/" class="text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary-dark transition">
+                            Voltar à Página Inicial
+                        </a>
+                        <a href="/acoes" class="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                            Explorar Ações
+                        </a>
+                    </div>
+                </div>
+            </div>
+        ) : (
+            <>
+                <nav class="mb-6 flex items-center gap-2 text-sm">
+                    <a href="/acoes" class="font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">Ações</a>
+                    <IconChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
+                    <span class="text-gray-800 dark:text-gray-200">{financials.ticker}</span>
+                </nav>
+
+                <header class="mb-8">
+                    <div class="flex flex-wrap items-center gap-4 sm:gap-6">
+                        {logoUrl ? (
+                            <>
+                                <img
+                                    id="company-logo"
+                                    src={logoUrl}
+                                    width="80" height="80"
+                                    loading="lazy"
+                                    class="rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white"
+                                    alt={`Logo de ${financials.name}`}
+                                />
+                                <div id="logo-placeholder" style="display: none;" class="w-20 h-20 flex-shrink-0 items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700">
+                                    <span class="text-3xl font-bold text-gray-600 dark:text-gray-400">{companyInitials}</span>
+                                </div>
+                            </>
+                        ) : (
+                             <div class="w-20 h-20 flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700">
+                                 <span class="text-3xl font-bold text-gray-600 dark:text-gray-400">{companyInitials}</span>
+                             </div>
+                        )}
+                        
+                        <div>
+                            <h1 class="text-4xl lg:text-5xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
+                                {financials.name}
+                            </h1>
+                            <p class="text-lg text-gray-500 dark:text-gray-400 mt-1">
+                                {financials.exchange}: <span class="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md text-base">{financials.ticker}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <RealTimeInfo ticker={financials.ticker} initialQuote={quote} client:load />
+                    </div>
+                </header>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">
+                    <div class="lg:col-span-2 space-y-8">
+                        <section class="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                            <StockChart chartData={priceSeries} companyName={financials.name} client:visible />
+                        </section>
+                        
+                        <section class="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Receita vs. Lucro <span class="text-sm font-medium text-gray-500">(Trimestral)</span></h2>
+                            <RevEarnChart data={research.revenueEarningsHistory} client:visible />
+                        </section>
+
+                        <section class="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Histórico de Surpresas de EPS</h2>
+                            <EpsCard data={research.epsHistory} client:visible />
+                        </section>
+                        
+                        <section class="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Sentimento dos Analistas</h2>
+                            <RecTrendChart trends={research.recommendations} client:visible />
+                        </section>
+                    </div>
+                    
+                    <aside class="lg:col-span-1 space-y-8">
+                        <section>
+                            <KeyMetricsGrid stats={financials} client:visible />
+                        </section>
+                        
+                        <section class="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
+                            <PriceTargetCard target={research.priceTarget} client:visible />
+                        </section>
+
+                        <section>
+                            <CalendarEventsCard events={research.calendarEvents} client:visible />
+                        </section>
+
+                        <section>
+                            <InstitutionOwnershipCard owners={research.topInstitutions} client:visible />
+                        </section>
+                    </aside>
+                </div>
+
+                {financials.website && (
+                    <footer class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
+                        <a href={financials.website} target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                            Visitar Website Oficial de {financials.name} &rarr;
+                        </a>
+                    </footer>
+                )}
+            </>
+        )}
+    </main>
+
+    <script is:inline>
+        const logoImg = document.getElementById('company-logo');
+        const placeholder = document.getElementById('logo-placeholder');
+
+        if (logoImg && placeholder) {
+            logoImg.addEventListener('error', () => {
+                // Usa style.display para ser mais direto e fiável
+                logoImg.style.display = 'none';
+                placeholder.style.display = 'flex';
+            });
+        }
+    </script>
+</BaseLayout>

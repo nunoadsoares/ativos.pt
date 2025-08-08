@@ -16,4 +16,19 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /home/nuno/sites/ativos.pt && git pull && cd packages/webapp && docker compose up --build -d
+            # Navega para a pasta principal do site
+            cd /home/nuno/sites/ativos.pt
+            
+            # Vai buscar o código mais recente do GitHub
+            git pull
+            
+            # Navega para a pasta da aplicação web
+            cd packages/webapp
+            
+            # PASSO ADICIONADO: Popula a base de dados com os dados essenciais
+            # Garante que as novas páginas não dão erro antes do cron diário correr.
+            # É importante que o Node.js esteja instalado no teu servidor.
+            node ./scripts/run-seed.js
+            
+            # Reconstrói e reinicia os contentores do Docker em background
+            docker compose up --build -d

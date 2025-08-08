@@ -4,6 +4,7 @@
 /* 2. Tailwind base, components e utilities */
 @tailwind base;
 
+
 @layer base {
   html {
     font-family: "InterVariable", system-ui, sans-serif;

@@ -1,0 +1,126 @@
+---
+// C:\Users\nunos\Desktop\ativos.pt\packages\webapp\src\pages\acoes\index.astro
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import SearchTicker from '~/components/acoes/SearchTicker.tsx';
+import { getIndexPageData } from '~/lib/stock-data-fetcher';
+import type { MoverData, PortugueseStock } from '~/lib/stock-data-fetcher';
+import { IconTrendingUp, IconActivity, IconBook, IconCalculator, IconBuildingBank } from '@tabler/icons-react';
+
+export const prerender = false;
+const { topGainers, trendingPortugal, portugueseStocks } = await getIndexPageData();
+
+const pageTitle = "Explorar Ações | Análise de Mercado e Cotações";
+const pageDesc = "Encontre e analise ações. Pesquise por ticker, descubra as maiores subidas do mercado, as tendências em Portugal e use as nossas ferramentas de apoio ao investidor.";
+---
+
+<BaseLayout title={pageTitle} description={pageDesc}>
+    <main class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 space-y-20">
+        <section class="text-center">
+            <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
+                Explore Mercados de Ações
+            </h1>
+            <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500 dark:text-gray-400">
+                Aceda a dados financeiros detalhados, gráficos interativos e análises de mercado.
+            </p>
+            <div class="mt-8">
+                <SearchTicker client:load />
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <a href="/ativos/acoes" class="group block bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 transition-all hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-2xl hover:-translate-y-1">
+                <div class="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-lg inline-block">
+                    <IconBook size={28} className="text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 class="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">O que são Ações?</h3>
+                <p class="mt-2 text-gray-500 dark:text-gray-400">Aprenda os conceitos fundamentais, como declarar no IRS e qual a tributação aplicada.</p>
+                <p class="mt-4 font-semibold text-blue-600 dark:text-blue-400 group-hover:underline">Saber Mais &rarr;</p>
+            </a>
+            <a href="/simuladores/mais-valias" class="group block bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 transition-all hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-2xl hover:-translate-y-1">
+                <div class="bg-emerald-100 dark:bg-emerald-900/50 p-3 rounded-lg inline-block">
+                    <IconCalculator size={28} className="text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <h3 class="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">Simulador de Mais-Valias</h3>
+                <p class="mt-2 text-gray-500 dark:text-gray-400">Calcule facilmente o imposto a pagar sobre os seus lucros com a nossa ferramenta gratuita.</p>
+                <p class="mt-4 font-semibold text-emerald-600 dark:text-emerald-400 group-hover:underline">Calcular Agora &rarr;</p>
+            </a>
+            <a href="/plataformas" class="group block bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 transition-all hover:border-violet-500 dark:hover:border-violet-500 hover:shadow-2xl hover:-translate-y-1">
+                <div class="bg-violet-100 dark:bg-violet-900/50 p-3 rounded-lg inline-block">
+                    <IconBuildingBank size={28} className="text-violet-600 dark:text-violet-400" />
+                </div>
+                <h3 class="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">Melhores Corretoras</h3>
+                <p class="mt-2 text-gray-500 dark:text-gray-400">Analise e compare as principais corretoras de investimento disponíveis para si em Portugal.</p>
+                <p class="mt-4 font-semibold text-violet-600 dark:text-violet-400 group-hover:underline">Comparar Corretoras &rarr;</p>
+            </a>
+        </section>
+
+        <section>
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Empresas Portuguesas em Destaque</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                {portugueseStocks.map(stock => (
+                    <a href={`/acoes/${stock.ticker}`} class="block bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 text-center transition-transform hover:-translate-y-1 hover:shadow-xl">
+                        <img src={stock.logoUrl} alt={`Logo de ${stock.name}`} width="48" height="48" class="mx-auto rounded-full mb-3 bg-white" />
+                        <p class="font-bold text-gray-900 dark:text-gray-100 truncate" title={stock.name}>{stock.name}</p>
+                        <p class="text-sm font-mono text-gray-500 dark:text-gray-400">{stock.ticker}</p>
+                        <p class={`mt-2 font-bold text-lg ${stock.changePercent == null || stock.changePercent >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                            {stock.changePercent != null && stock.changePercent > 0 ? '+' : ''}
+                            {stock.changePercent?.toFixed(2) ?? '0.00'}%
+                        </p>
+                    </a>
+                ))}
+            </div>
+        </section>
+
+        <section>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
+                    <div class="flex items-center gap-3 mb-4">
+                        <IconTrendingUp size={28} className="text-emerald-500" />
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Maiores Ganhos (EUA)</h3>
+                    </div>
+                    <ul class="space-y-3">
+                        {topGainers.length > 0 ? topGainers.map(mover => (
+                           <li class="border-b border-gray-200 dark:border-gray-700 pb-3 last:border-b-0">
+                                <a href={`/acoes/${mover.ticker}`} class="flex justify-between items-center gap-4 group">
+                                    <div>
+                                        <p class="font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">{mover.ticker}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-[150px] truncate">{mover.name}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-semibold font-mono text-gray-900 dark:text-gray-100">{mover.price?.toFixed(2) ?? '—'}</p>
+                                        <p class="font-semibold font-mono text-emerald-500">+{mover.changePercent?.toFixed(2) ?? '0.00'}%</p>
+                                    </div>
+                                </a>
+                           </li>
+                        )) : <p class="text-sm text-gray-500 dark:text-gray-400">Não foi possível obter os dados de mercado neste momento.</p>}
+                    </ul>
+                </div>
+
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
+                    <div class="flex items-center gap-3 mb-4">
+                        <IconActivity size={28} className="text-violet-500" />
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Mais Ativas (Portugal)</h3>
+                    </div>
+                    <ul class="space-y-3">
+                        {trendingPortugal.length > 0 ? trendingPortugal.map(mover => (
+                           <li class="border-b border-gray-200 dark:border-gray-700 pb-3 last:border-b-0">
+                                <a href={`/acoes/${mover.ticker}`} class="flex justify-between items-center gap-4 group">
+                                    <div>
+                                        <p class="font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">{mover.ticker}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-[150px] truncate">{mover.name}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-semibold font-mono text-gray-900 dark:text-gray-100">{mover.price?.toFixed(2) ?? '—'}</p>
+                                        <p class={`font-semibold font-mono ${mover.changePercent == null || mover.changePercent >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                            {mover.changePercent != null && mover.changePercent >= 0 ? '+' : ''}{mover.changePercent?.toFixed(2) ?? '0.00'}%
+                                        </p>
+                                    </div>
+                                </a>
+                           </li>
+                        )) : <p class="text-sm text-gray-500 dark:text-gray-400">Dados de tendências para Portugal indisponíveis de momento. A mostrar destaques.</p>}
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+</BaseLayout>

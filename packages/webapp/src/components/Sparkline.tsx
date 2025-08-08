@@ -1,6 +1,21 @@
-import { type FC } from 'react';
-import ApexChart from 'react-apexcharts';
+// C:\Users\nunos\Desktop\ativos.pt\packages\webapp\src\components\Sparkline.tsx
+
+import React, { useState, useEffect } from 'react';
+import type { FC } from 'react';
 import type { ApexOptions } from 'apexcharts';
+
+// Função utilitária para converter HEX para RGBA
+function hexToRgba(hex: string, alpha: number) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) {
+    hex = hex.split('').map(x => x + x).join('');
+  }
+  const bigint = parseInt(hex, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 interface Props {
   seriesData: number[];
@@ -15,21 +30,32 @@ const Sparkline: FC<Props> = ({
   width = 120,
   height = 40
 }) => {
-  if (!seriesData || seriesData.length === 0 || seriesData.every(v => v === null || typeof v !== 'number')) {
+  // NOVO: Estado para guardar o componente do gráfico, que só será carregado no browser.
+  const [Chart, setChart] = useState<any>(null);
+
+  // NOVO: Efeito que só corre no browser.
+  useEffect(() => {
+    // Importamos dinamicamente a biblioteca de gráficos aqui.
+    import('react-apexcharts').then(mod => {
+      // Quando a importação termina, guardamos o componente no nosso estado.
+      setChart(() => mod.default);
+    });
+  }, []);
+
+  // Enquanto o componente do gráfico não estiver carregado, mostramos um placeholder.
+  if (!Chart) {
     return (
-      <div
-        style={{
-          width: typeof width === 'number' ? `${width}px` : width,
-          height: `${height}px`,
-          background: '#f3f4f6',
-          borderRadius: '6px'
-        }}
-      />
+        <div
+            style={{
+                width: typeof width === 'number' ? `${width}px` : width,
+                height: `${height}px`,
+                background: 'transparent',
+            }}
+        />
     );
   }
 
-  // Garante que a linha é sempre totalmente opaca
-  const mainColor = color.startsWith('#') ? color : '#8b5cf6'; // fallback
+  const mainColor = color.startsWith('#') ? color : '#8b5cf6';
   const fillColor = color.startsWith('#') ? hexToRgba(color, 0.32) : 'rgba(139,92,246,0.32)';
 
   const options: ApexOptions = {
@@ -41,12 +67,12 @@ const Sparkline: FC<Props> = ({
     stroke: {
       curve: 'smooth',
       width: 2.5,
-      colors: [mainColor], // Linha: sempre opaca
+      colors: [mainColor],
     },
     fill: {
       type: 'solid',
       opacity: 1,
-      colors: [fillColor], // Fill com mais opacidade
+      colors: [fillColor],
     },
     tooltip: { enabled: false },
     markers: { size: 0 },
@@ -55,25 +81,11 @@ const Sparkline: FC<Props> = ({
     yaxis: { show: false, min: undefined, max: undefined },
   };
 
-  const series = [
-    {
-      name: 'Tendência',
-      data: seriesData,
-    },
-  ];
+  const series = [{ name: 'Tendência', data: seriesData }];
 
   return (
-    <div
-      style={{
-        width: typeof width === 'number' ? `${width}px` : width,
-        height: `${height}px`,
-        minWidth: 0,
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-      }}
-    >
-      <ApexChart
+    <div style={{ width: typeof width === 'number' ? `${width}px` : width, height: `${height}px` }}>
+      <Chart
         type="line"
         height={height}
         width={width}
@@ -83,20 +95,5 @@ const Sparkline: FC<Props> = ({
     </div>
   );
 };
-
-// Função utilitária para converter HEX para RGBA
-function hexToRgba(hex: string, alpha: number) {
-  // Remove o # se existir
-  hex = hex.replace('#', '');
-  // Se for shorthand, expande
-  if (hex.length === 3) {
-    hex = hex.split('').map(x => x + x).join('');
-  }
-  const bigint = parseInt(hex, 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  return `rgba(${r},${g},${b},${alpha})`;
-}
 
 export default Sparkline;

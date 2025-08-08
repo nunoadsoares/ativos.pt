@@ -22,3 +22,13 @@ Thumbs.db
 
 # Certificados Let's Encrypt
 packages/webapp/certbot/
+
+# Ficheiros de ambiente (Guardam segredos como API Keys, passwords, etc.)
+.env
+.env.local
+.env.*.local
+
+# Ficheiros da base de dados SQLite (Dados, não código)
+packages/webapp/public/datahub.db
+packages/webapp/public/datahub.db-shm
+packages/webapp/public/datahub.db-wal
