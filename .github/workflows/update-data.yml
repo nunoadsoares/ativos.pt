@@ -26,11 +26,21 @@ jobs:
       - name: Install dependencies
         run: pip install -r ./packages/data-worker/requirements.txt
 
-      # 4. Executar o script que atualiza os dados
+      # 3.1. Expor packages/data-worker ao PYTHONPATH (para sitecustomize carregar)
+      - name: Expose data-worker to Python (sitecustomize)
+        shell: bash
+        run: |
+          echo "PYTHONPATH=$PYTHONPATH:$(pwd)/packages/data-worker" >> $GITHUB_ENV
+
+      # 4. Inicializar DB (garante schema)
+      - name: Init DB schema
+        run: python ./packages/data-worker/init_db.py
+
+      # 5. Executar o script que atualiza os dados
       - name: Run Data Worker
         run: python ./packages/data-worker/update_all.py
 
-      # 5. Commit e push se existirem alterações
+      # 6. Commit e push se existirem alterações
       - name: Commit and push if data changed
         shell: bash
         env:
@@ -40,13 +50,11 @@ jobs:
           git config user.email "bot@users.noreply.github.com"
 
           git add -A
-          # Faz commit apenas se existirem alterações
           if git diff --staged --quiet; then
             echo "✅ No changes to commit."
             exit 0
           fi
           git commit -m "Data: Atualização automática dos indicadores económicos"
 
-          # Adiciona o novo remote e faz o push
           git remote add pat_origin "https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}"
           git push pat_origin HEAD:master

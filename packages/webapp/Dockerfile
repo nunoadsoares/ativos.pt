@@ -12,19 +12,14 @@ RUN apk add --no-cache python3 py3-pip make g++ git
 # Copia os requisitos do Python
 COPY packages/data-worker/requirements.txt /app/data-worker/requirements.txt
 
-# ==================================================================
-# ALTERAÇÃO: Cria e ativa um ambiente virtual para o Python
-# ==================================================================
 # Cria o ambiente virtual na pasta do worker
 RUN python3 -m venv /app/data-worker/.venv
 
-# Define o caminho para o executável do pip dentro do venv
+# Define o caminho para o executável do pip/python dentro do venv
 ENV PATH="/app/data-worker/.venv/bin:$PATH"
 
 # Instala as dependências Python DENTRO do ambiente virtual
 RUN pip install -r /app/data-worker/requirements.txt
-# ==================================================================
-
 
 # --- LÓGICA DA APLICAÇÃO (NODE.JS) ---
 # Copia e instala as dependências Node
@@ -38,11 +33,24 @@ COPY packages/data-worker ./data-worker
 # ==================================================================
 # EXECUTAR TUDO NA ORDEM CERTA
 # ==================================================================
-# 1. Executa o script Python para criar e popular o datahub.db
-#    O comando `python` agora aponta para o do nosso venv por causa do ENV PATH acima
+
+# 0) Garante que /app/data-worker está no sys.path via .pth
+#    Isto faz o Python carregar automaticamente o sitecustomize.py
+RUN python - << 'PY'
+import site, os
+sp = site.getsitepackages()[0]
+pth = os.path.join(sp, "dataworker.pth")
+open(pth, "w").write("/app/data-worker")
+print("Escrito:", pth)
+PY
+
+# 1) Cria a DB e as tabelas (usa os paths injetados pelo sitecustomize)
+RUN python /app/data-worker/init_db.py
+
+# 2) Atualiza todos os dados (scripts continuam a usar "from config import ...")
 RUN python /app/data-worker/update_all.py
 
-# 2. Agora o build do Astro pode correr com a DB já pronta
+# 3) Agora o build do Astro corre com a DB já pronta
 RUN npm run build
 
 #############################################

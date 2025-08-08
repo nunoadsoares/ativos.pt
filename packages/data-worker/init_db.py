@@ -3,18 +3,16 @@ import sqlite3
 import os
 
 def main():
-    # O caminho para a base de dados, visto da raiz do projeto
-    db_path = os.path.join(os.path.dirname(__file__), '..', 'webapp', 'public', 'datahub.db')
+    here = os.path.abspath(os.path.dirname(__file__))              # …/packages/data-worker
+    public_dir = os.path.abspath(os.path.join(here, '..', 'webapp', 'public'))
+    db_path = os.path.join(public_dir, 'datahub.db')
 
     print(f"A garantir que a base de dados existe e tem as tabelas em: {db_path}")
-
-    # Garante que a pasta /public existe
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    os.makedirs(public_dir, exist_ok=True)
 
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Cria a tabela key_indicators se não existir
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS key_indicators (
         indicator_key TEXT PRIMARY KEY,
@@ -25,7 +23,6 @@ def main():
     )
     ''')
 
-    # Cria a tabela historical_series se não existir
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS historical_series (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

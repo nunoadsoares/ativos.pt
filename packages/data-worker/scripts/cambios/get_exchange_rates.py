@@ -1,5 +1,3 @@
-# packages/data-worker/scripts/cambios/get_exchange_rates.py
-
 import pandas as pd
 import requests
 from pyjstat import pyjstat
@@ -8,10 +6,12 @@ import sqlite3
 import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
 
-# --- Configuração da Base de Dados ---
-DB_PATH = os.path.join(
-    os.path.dirname(__file__), '..', '..', '..', 'webapp', 'public', 'datahub.db'
-)
+# ==================================================================
+# ALTERAÇÃO: Importa o caminho da DB a partir do ficheiro central de configuração.
+# Isto garante que o script encontra sempre a base de dados, independentemente
+# de onde é executado (localmente, no Docker, etc.).
+# ==================================================================
+from config import DB_PATH
 
 # --- Configuração da API BPstat ---
 API_BASE_URL = "https://bpstat.bportugal.pt/data/v1"
@@ -100,10 +100,10 @@ def update_key_indicators(conn, df_final):
         
         key = f"latest_exchange_rate_eur_{currency_code}"
         label = f"EUR / {currency_code.upper()} ({CURRENCY_LABELS.get(currency_code, currency_code.upper())})"
-        unit = currency_code.upper()
         
-        cur.execute("INSERT OR REPLACE INTO key_indicators (indicator_key, label, value, unit, reference_date, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-                    (key, label, value, unit, reference_date, updated_at))
+        # A coluna 'unit' pode não existir na tua tabela, ajusta se necessário
+        cur.execute("INSERT OR REPLACE INTO key_indicators (indicator_key, label, value, reference_date, updated_at) VALUES (?, ?, ?, ?, ?)",
+                      (key, label, value, reference_date, updated_at))
         
         print(f"  [DEBUG] Indicador '{key}' atualizado para o valor {value}.")
         rows_updated += 1
@@ -133,14 +133,9 @@ def main():
     df_combined.reset_index(inplace=True)
     df_combined['Data'] = pd.to_datetime(df_combined['Data'])
     
-    # *** LINHAS CORRIGIDAS AQUI (VOLTAMOS À ABORDAGEM MAIS SEGURA) ***
-    # 1. Cria uma coluna temporária com o ano e mês para agrupar
     df_combined['year_month'] = df_combined['Data'].dt.to_period('M')
-    # 2. Remove duplicados, mantendo apenas a primeira ocorrência de cada mês, usando o NOME da coluna
     df_monthly = df_combined.drop_duplicates(subset='year_month', keep='first').copy()
-    # 3. Remove a coluna temporária
     df_monthly.drop(columns=['year_month'], inplace=True)
-    # *** FIM DA CORREÇÃO ***
     
     print(f"  ✅ Dados reduzidos de {len(df_combined)} para {len(df_monthly)} registos.")
 
@@ -150,7 +145,9 @@ def main():
     
     print("\n✅ Todas as séries de câmbio foram combinadas e processadas.")
 
+    conn = None # Garante que a variável existe
     try:
+        # A variável DB_PATH agora vem do config.py e está sempre correta
         conn = sqlite3.connect(DB_PATH, isolation_level=None)
         cur = conn.cursor()
         cur.execute("PRAGMA journal_mode = WAL;")
@@ -160,7 +157,7 @@ def main():
         print(f"❌ Erro na base de dados: {e}")
         return False
     finally:
-        if 'conn' in locals() and conn:
+        if conn:
             conn.close()
     
     print("\n🎉 Processo concluído com sucesso!")
