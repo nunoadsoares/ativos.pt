@@ -22,13 +22,8 @@ jobs:
             # Vai buscar as últimas alterações do código
             git pull
 
-            # ALTERAÇÃO AQUI: Instala as dependências Python no servidor
-            echo "🐍 A instalar dependências Python..."
-            pip3 install -r ./packages/data-worker/requirements.txt
-
-            # Entra na pasta da aplicação e executa a sequência de deploy
+            # Entra na pasta da aplicação e executa o Docker Compose
+            # O Dockerfile agora tem toda a lógica necessária.
             cd packages/webapp && \
-            echo "🌱 A popular a base de dados com dados essenciais..." && \
-            node ./scripts/run-seed.js && \
-            echo "🐳 A reconstruir e reiniciar os contentores Docker..." && \
-            docker compose up --build -d
+            echo "🐳 A reconstruir e reiniciar os contentores Docker... (Toda a lógica está agora no Dockerfile)" && \
+            docker compose up --build -d --force-recreate

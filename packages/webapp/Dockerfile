@@ -2,29 +2,39 @@
 # ESTÁGIO 1 — BUILD                         #
 #############################################
 FROM node:20-alpine AS builder
+
+# Define o diretório de trabalho principal para o monorepo
 WORKDIR /app
 
-# Instala as dependências do sistema (Python para os nossos scripts)
-RUN apk add --no-cache python3 make g++
+# Instala as dependências do sistema (Python e Git)
+RUN apk add --no-cache python3 py3-pip make g++ git
 
-# Instala dependências Node.js
+# --- LÓGICA DE DADOS (PYTHON) ---
+
+# Copia os requisitos do Python primeiro
+COPY ../data-worker/requirements.txt /app/data-worker/requirements.txt
+
+# Instala as dependências Python
+RUN python3 -m pip install -r /app/data-worker/requirements.txt
+
+# --- LÓGICA DA APLICAÇÃO (NODE.JS) ---
+
+# Copia os package.json para instalar dependências Node
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 
-# ==================================================================
-# ALTERAÇÃO: Inicializa a base de dados ANTES do build
-# ==================================================================
-# 1. Copia os scripts Python para uma pasta temporária
-COPY ../data-worker /tmp/data-worker
-
-# 2. Executa o script que cria o ficheiro datahub.db com as tabelas vazias
-RUN python3 /tmp/data-worker/init_db.py
-# ==================================================================
-
-# Copia o resto do código da aplicação
+# Copia o resto do código de ambas as pastas
 COPY . .
+COPY ../data-worker ./data-worker
 
-# Agora o build pode correr, pois a base de dados já existe
+# ==================================================================
+# AGORA EXECUTAMOS TUDO NA ORDEM CERTA
+# ==================================================================
+# 1. Executa o script Python completo para criar e popular o datahub.db
+#    dentro da pasta /public, onde o build do Astro o vai encontrar.
+RUN python3 /app/data-worker/update_all.py
+
+# 2. Agora o build do Astro pode correr com a DB já pronta
 RUN npm run build
 
 #############################################
@@ -38,7 +48,7 @@ ENV PORT 8080
 
 EXPOSE 8080
 
-# Artefactos e dependências do estágio de build
+# Copia apenas o que é necessário do estágio de build
 COPY --from=builder /app/dist           ./dist
 COPY --from=builder /app/public/        ./public/
 COPY --from=builder /app/node_modules   ./node_modules
