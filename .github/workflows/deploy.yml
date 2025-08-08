@@ -16,14 +16,12 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # Navega para a pasta principal do projeto
+            # Navega para a raiz do projeto no servidor
             cd /home/nuno/sites/ativos.pt
 
-            # Vai buscar as últimas alterações do código
+            # Vai buscar as últimas alterações (incluindo o novo docker-compose.yml)
             git pull
 
-            # Entra na pasta da aplicação e executa o Docker Compose
-            # O Dockerfile agora tem toda a lógica necessária.
-            cd packages/webapp && \
-            echo "🐳 A reconstruir e reiniciar os contentores Docker... (Toda a lógica está agora no Dockerfile)" && \
+            # Executa o Docker Compose a partir da raiz. É tudo o que é preciso.
+            echo "🐳 A reconstruir e reiniciar os contentores a partir da raiz..."
             docker compose up --build -d --force-recreate

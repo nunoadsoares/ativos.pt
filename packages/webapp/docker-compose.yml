@@ -1,4 +1,4 @@
-# packages/webapp/docker-compose.yml
+# docker-compose.yml (na raiz do projeto)
 # ------------------------------------------------------------------
 #  ▸ SSR app (Astro/Node) + Nginx reverse-proxy + Certbot renovação
 #  ▸ Reinicia sempre que necessário e com health-check no app
@@ -16,8 +16,11 @@ services:
   # ---------- APP SSR (Node) ----------
   app:
     build:
+      # ALTERAÇÃO: O contexto de build é a raiz do projeto (.),
+      # para que o Dockerfile possa aceder tanto a 'webapp' como a 'data-worker'.
       context: .
-      dockerfile: Dockerfile
+      # O Dockerfile está dentro da pasta da aplicação.
+      dockerfile: packages/webapp/Dockerfile
     image: ativos-pt-app
     container_name: webapp-app
     restart: unless-stopped
@@ -25,7 +28,6 @@ services:
       - "8080"
     networks:
       - webnet
-
     # Health-check: testa a porta 8080 a cada 30 s
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
@@ -33,28 +35,29 @@ services:
       timeout: 5s
       retries: 3
 
-  # ---------- NGINX reverse-proxy ----------
+  # ---------- NGINX reverse-proxy (SEM ALTERAÇÕES) ----------
   web:
     image: nginx:1.25-alpine
     container_name: webapp-web
     depends_on:
-      - app                    # espera o container, não o health
+      - app
     restart: always
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # IMPORTANTE: O caminho para o nginx.conf agora precisa de ser relativo à raiz
+      - ./packages/webapp/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - certbot-etc:/etc/letsencrypt
       - certbot-www:/var/www/certbot
     networks:
       - webnet
 
-  # ---------- Certbot renovação em background ----------
+  # ---------- Certbot renovação em background (SEM ALTERAÇÕES) ----------
   certbot:
     image: certbot/certbot
     container_name: webapp-certbot
-    user: "1000:1000"          # evita root em volume host
+    user: "1000:1000"
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-www:/var/www/certbot

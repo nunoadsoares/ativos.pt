@@ -3,35 +3,31 @@
 #############################################
 FROM node:20-alpine AS builder
 
-# Define o diretório de trabalho principal para o monorepo
+# O diretório de trabalho continua a ser /app dentro do contentor
 WORKDIR /app
 
-# Instala as dependências do sistema (Python e Git)
+# Instala as dependências do sistema
 RUN apk add --no-cache python3 py3-pip make g++ git
 
 # --- LÓGICA DE DADOS (PYTHON) ---
-
-# Copia os requisitos do Python primeiro
-COPY ../data-worker/requirements.txt /app/data-worker/requirements.txt
-
-# Instala as dependências Python
+# Copia os requisitos do Python. O caminho agora parte da raiz do contexto.
+COPY packages/data-worker/requirements.txt /app/data-worker/requirements.txt
 RUN python3 -m pip install -r /app/data-worker/requirements.txt
 
 # --- LÓGICA DA APLICAÇÃO (NODE.JS) ---
-
-# Copia os package.json para instalar dependências Node
-COPY package*.json ./
+# Copia os package.json da webapp
+COPY packages/webapp/package*.json ./
 RUN npm ci --legacy-peer-deps
 
-# Copia o resto do código de ambas as pastas
-COPY . .
-COPY ../data-worker ./data-worker
+# Copia o código de AMBAS as pastas para dentro do contentor
+COPY packages/webapp .
+COPY packages/data-worker ./data-worker
 
 # ==================================================================
-# AGORA EXECUTAMOS TUDO NA ORDEM CERTA
+# EXECUTAR TUDO NA ORDEM CERTA DENTRO DE UM AMBIENTE UNIFICADO
 # ==================================================================
-# 1. Executa o script Python completo para criar e popular o datahub.db
-#    dentro da pasta /public, onde o build do Astro o vai encontrar.
+
+# 1. Executa o script Python para criar e popular o datahub.db
 RUN python3 /app/data-worker/update_all.py
 
 # 2. Agora o build do Astro pode correr com a DB já pronta
