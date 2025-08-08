@@ -18,10 +18,10 @@ jobs:
           script: |
             # Navega para a raiz do projeto no servidor
             cd /home/nuno/sites/ativos.pt
-
-            # Vai buscar as últimas alterações (incluindo o novo docker-compose.yml)
+            
+            # Vai buscar as últimas alterações
             git pull
-
-            # Executa o Docker Compose a partir da raiz. É tudo o que é preciso.
-            echo "🐳 A reconstruir e reiniciar os contentores a partir da raiz..."
-            docker compose up --build -d --force-recreate
+            
+            # Executa o Docker Compose, especificando o caminho para o ficheiro de configuração
+            echo "🐳 A reconstruir e reiniciar os contentores..."
+            docker compose -f packages/webapp/docker-compose.yml up --build -d --force-recreate
