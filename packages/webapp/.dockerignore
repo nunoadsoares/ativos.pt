@@ -1,14 +1,51 @@
-# Ignorar tudo o que não interessa no build
+# .dockerignore
 
-node_modules
-certbot
-dist
-.astro
-.vscode
-__pycache__
-*.log
+# Ignorar o Git e a configuração do Docker
 .git
-.idea
-.DS_Store
+.gitignore
 Dockerfile
+docker-compose.yml
 .dockerignore
+
+# Ignorar pastas de IDE e ficheiros de sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Ignorar logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Ignorar TODAS as pastas node_modules em qualquer sítio do projeto
+**/node_modules
+
+# Ignorar pastas de build e cache
+**/dist
+**/.astro
+
+# Ignorar o ambiente virtual e cache do Python
+packages/data-worker/.venv/
+**/__pycache__/
+*.pyc
+
+# ==================================================================
+# IGNORAR DADOS SENSÍVEIS E FICHEIROS DE SERVIDOR
+# (Esta é a parte mais importante para corrigir o teu erro)
+# ==================================================================
+
+# Ignorar a pasta dos certificados SSL para resolver o erro de "permission denied"
+packages/webapp/certbot/
+
+# Ignorar ficheiros de ambiente que contêm segredos
+.env
+.env.*
+!.env.example
+
+# Ignorar a base de dados local, que é recriada no servidor
+packages/webapp/public/datahub.db
+packages/webapp/public/datahub.db-shm
+packages/webapp/public/datahub.db-wal
