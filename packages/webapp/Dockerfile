@@ -1,4 +1,3 @@
-# C:\Users\nunos\Desktop\ativos.pt\packages\webapp\Dockerfile
 #############################################
 # ESTÁGIO 1 — BUILD                         #
 #############################################
@@ -10,12 +9,25 @@ WORKDIR /app
 RUN apk add --no-cache python3 py3-pip make g++ git
 
 # --- LÓGICA DE DADOS (PYTHON) ---
-# Copia e instala as dependências Python. O caminho parte da raiz do contexto.
+# Copia os requisitos do Python
 COPY packages/data-worker/requirements.txt /app/data-worker/requirements.txt
-RUN python3 -m pip install -r /app/data-worker/requirements.txt
+
+# ==================================================================
+# ALTERAÇÃO: Cria e ativa um ambiente virtual para o Python
+# ==================================================================
+# Cria o ambiente virtual na pasta do worker
+RUN python3 -m venv /app/data-worker/.venv
+
+# Define o caminho para o executável do pip dentro do venv
+ENV PATH="/app/data-worker/.venv/bin:$PATH"
+
+# Instala as dependências Python DENTRO do ambiente virtual
+RUN pip install -r /app/data-worker/requirements.txt
+# ==================================================================
+
 
 # --- LÓGICA DA APLICAÇÃO (NODE.JS) ---
-# Copia e instala as dependências Node. O caminho parte da raiz do contexto.
+# Copia e instala as dependências Node
 COPY packages/webapp/package*.json ./
 RUN npm ci --legacy-peer-deps
 
@@ -24,10 +36,11 @@ COPY packages/webapp .
 COPY packages/data-worker ./data-worker
 
 # ==================================================================
-# EXECUTAR TUDO NA ORDEM CERTA DENTRO DE UM AMBIENTE UNIFICADO
+# EXECUTAR TUDO NA ORDEM CERTA
 # ==================================================================
-# 1. Executa o script Python completo para criar e popular o datahub.db
-RUN python3 /app/data-worker/update_all.py
+# 1. Executa o script Python para criar e popular o datahub.db
+#    O comando `python` agora aponta para o do nosso venv por causa do ENV PATH acima
+RUN python /app/data-worker/update_all.py
 
 # 2. Agora o build do Astro pode correr com a DB já pronta
 RUN npm run build
