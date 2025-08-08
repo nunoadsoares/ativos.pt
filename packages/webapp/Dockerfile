@@ -5,28 +5,28 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Instala as dependências do sistema
+# Dependências de sistema para build
 RUN apk add --no-cache python3 py3-pip make g++ git
 
 # --- LÓGICA DE DADOS (PYTHON) ---
-# Copia os requisitos do Python
+# Requisitos do Python
 COPY packages/data-worker/requirements.txt /app/data-worker/requirements.txt
 
-# Cria o ambiente virtual na pasta do worker
+# Ambiente virtual
 RUN python3 -m venv /app/data-worker/.venv
 
-# Define o caminho para o executável do pip/python dentro do venv
+# Usar o venv por omissão
 ENV PATH="/app/data-worker/.venv/bin:$PATH"
 
-# Instala as dependências Python DENTRO do ambiente virtual
+# Instalar deps Python no venv
 RUN pip install -r /app/data-worker/requirements.txt
 
 # --- LÓGICA DA APLICAÇÃO (NODE.JS) ---
-# Copia e instala as dependências Node
+# Dependências Node
 COPY packages/webapp/package*.json ./
 RUN npm ci --legacy-peer-deps
 
-# Copia o código fonte de ambas as pastas
+# Código fonte
 COPY packages/webapp .
 COPY packages/data-worker ./data-worker
 
@@ -34,8 +34,7 @@ COPY packages/data-worker ./data-worker
 # EXECUTAR TUDO NA ORDEM CERTA
 # ==================================================================
 
-# 0) Garante que /app/data-worker está no sys.path via .pth
-#    Isto faz o Python carregar automaticamente o sitecustomize.py
+# 0) Garantir /app/data-worker no sys.path via .pth (para carregar sitecustomize.py)
 RUN python - << 'PY'
 import site, os
 sp = site.getsitepackages()[0]
@@ -44,13 +43,13 @@ open(pth, "w").write("/app/data-worker")
 print("Escrito:", pth)
 PY
 
-# 1) Cria a DB e as tabelas (usa os paths injetados pelo sitecustomize)
+# 1) Criar DB e tabelas
 RUN python /app/data-worker/init_db.py
 
-# 2) Atualiza todos os dados (scripts continuam a usar "from config import ...")
+# 2) Atualizar dados (scrapers)
 RUN python /app/data-worker/update_all.py
 
-# 3) Agora o build do Astro corre com a DB já pronta
+# 3) Build do Astro com DB pronta
 RUN npm run build
 
 #############################################
@@ -59,12 +58,18 @@ RUN npm run build
 FROM node:20-alpine AS app
 WORKDIR /app
 
+# 👉 Necessário para healthchecks e debug
+RUN apk add --no-cache curl sqlite
+
 ENV NODE_ENV=production
-ENV PORT 8080
+ENV PORT=8080
 
 EXPOSE 8080
 
-# Copia apenas o que é necessário do estágio de build
+# (Opcional) Healthcheck básico — muda a rota se tiveres /health
+HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD curl -fsS http://localhost:8080/ || exit 1
+
+# Copiar artefactos do build
 COPY --from=builder /app/dist           ./dist
 COPY --from=builder /app/public/        ./public/
 COPY --from=builder /app/node_modules   ./node_modules
