@@ -17,6 +17,8 @@ jobs:
           script: |
             set -Eeuo pipefail
 
+            DOMAIN="www.ativos.pt"
+
             echo "→ A navegar para a pasta do projeto"
             cd /home/nuno/sites/ativos.pt
 
@@ -31,9 +33,6 @@ jobs:
             pip install -U pip
             pip install -r requirements.txt
 
-            # --- CORREÇÃO: A chamada a init_db.py foi removida מכאן ---
-            # O update_all.py já trata da inicialização da base de dados.
-            
             echo "→ A atualizar todos os dados (a partir da fonte de verdade)"
             python3 update_all.py
 
@@ -51,10 +50,13 @@ jobs:
             done
 
             echo "→ Testes rápidos (smoke tests) na API"
-            # Usar -k porque o certificado não cobre 'localhost' (ok em CI)
-            curl -skf https://localhost/api/health | grep -q '"ok":true'
-            curl -skf https://localhost/api/data/exchangeRatesChart >/dev/null
-            curl -skf https://localhost/api/data/housePriceIndexChart >/dev/null || true
-            curl -skf https://localhost/api/data/euriborQuotasChart >/dev/null || true
+            # Força SNI/Host correto e liga ao Nginx local (127.0.0.1)
+            curl -skf --resolve "$DOMAIN:443:127.0.0.1" -H "Host: $DOMAIN" "https://$DOMAIN/api/health" \
+              | tr -d " \t\n\r" | grep -q '"ok":true' \
+              || { echo "✗ Health check falhou"; docker compose ps; docker compose logs --tail=200 app web; exit 1; }
+
+            curl -skf --resolve "$DOMAIN:443:127.0.0.1" -H "Host: $DOMAIN" "https://$DOMAIN/api/data/exchangeRatesChart" >/dev/null
+            curl -skf --resolve "$DOMAIN:443:127.0.0.1" -H "Host: $DOMAIN" "https://$DOMAIN/api/data/housePriceIndexChart" >/dev/null || true
+            curl -skf --resolve "$DOMAIN:443:127.0.0.1" -H "Host: $DOMAIN" "https://$DOMAIN/api/data/euriborQuotasChart" >/dev/null || true
 
             echo "✓ Deploy concluído com sucesso!"
