@@ -47,6 +47,9 @@ RUN python /app/data-worker/init_db.py
 # 2) Atualizar todos os dados (preenche historical_series e key_indicators)
 RUN python /app/data-worker/update_all.py
 
+# 2.5) Compatibilidade: alguns caminhos do build procuram /packages/webapp/public/datahub.db
+RUN mkdir -p /packages/webapp/public && ln -sf /app/public/datahub.db /packages/webapp/public/datahub.db
+
 # 3) Build do Astro com a DB pronta
 RUN npm run build
 
@@ -70,8 +73,9 @@ COPY --from=builder /app/public/        ./public/
 COPY --from=builder /app/node_modules   ./node_modules
 COPY --from=builder /app/package*.json  ./
 
-# (Opcional mas útil) symlink caso algum código legacy procure /app/webapp/public
+# Symlinks de compatibilidade para caminhos legacy
 RUN mkdir -p /app/webapp/public && ln -sf /app/public/datahub.db /app/webapp/public/datahub.db
+RUN mkdir -p /packages/webapp/public && ln -sf /app/public/datahub.db /packages/webapp/public/datahub.db
 
 EXPOSE 8080
 
