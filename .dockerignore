@@ -44,7 +44,4 @@ packages/webapp/certbot/
 .env.*
 !.env.example
 
-# Ignorar a base de dados local, que é recriada no servidor
-packages/webapp/public/datahub.db
-packages/webapp/public/datahub.db-shm
-packages/webapp/public/datahub.db-wal
+
