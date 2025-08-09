@@ -17,45 +17,44 @@ jobs:
           script: |
             set -Eeuo pipefail
 
-            echo "→ cd projeto"
+            echo "→ A navegar para a pasta do projeto"
             cd /home/nuno/sites/ativos.pt
 
-            echo "→ git pull (hard reset em origin/master)"
+            echo "→ A atualizar o código para a versão mais recente"
             git fetch --all --prune
             git reset --hard origin/master
 
-            echo "→ preparar venv do data-worker"
+            echo "→ A preparar o ambiente do data-worker"
             cd packages/data-worker
             python3 -m venv .venv || true
             . .venv/bin/activate
             pip install -U pip
             pip install -r requirements.txt
 
-            echo "→ seed/ensure DB schema"
-            python3 init_db.py
-
-            echo "→ atualizar dados (single source of truth)"
+            # --- CORREÇÃO: A chamada a init_db.py foi removida מכאן ---
+            # O update_all.py já trata da inicialização da base de dados.
+            
+            echo "→ A atualizar todos os dados (a partir da fonte de verdade)"
             python3 update_all.py
 
             deactivate || true
             cd - >/dev/null
 
-            echo "→ rebuild & (re)start containers"
+            echo "→ A reconstruir e reiniciar os contentores Docker"
             docker compose up -d --build --force-recreate
 
-            echo "→ esperar app ficar healthy"
+            echo "→ A aguardar que a aplicação fique saudável"
             for i in $(seq 1 30); do
               status=$(docker inspect -f '{{.State.Health.Status}}' webapp-app 2>/dev/null || echo "starting")
               [ "$status" = "healthy" ] && break
               sleep 5
             done
 
-            echo "→ smoke tests (API/BD)"
-            # usar -k porque o cert não cobre 'localhost' (ok em CI)
+            echo "→ Testes rápidos (smoke tests) na API"
+            # Usar -k porque o certificado não cobre 'localhost' (ok em CI)
             curl -skf https://localhost/api/health | grep -q '"ok":true'
             curl -skf https://localhost/api/data/exchangeRatesChart >/dev/null
-            # põe aqui 2-3 KPIs críticos que existam no KPI_MAP:
-            curl -skf https://localhost/api/data/latestInflationYoY >/dev/null || true
-            curl -skf https://localhost/api/data/latestEuriborRate3m >/dev/null || true
+            curl -skf https://localhost/api/data/housePriceIndexChart >/dev/null || true
+            curl -skf https://localhost/api/data/euriborQuotasChart >/dev/null || true
 
-            echo "✓ deploy concluído"
+            echo "✓ Deploy concluído com sucesso!"
