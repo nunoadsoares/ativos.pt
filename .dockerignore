@@ -34,7 +34,6 @@ packages/data-worker/.venv/
 
 # ==================================================================
 # IGNORAR DADOS SENSÍVEIS E FICHEIROS DE SERVIDOR
-# (Esta é a parte mais importante para corrigir o teu erro)
 # ==================================================================
 
 # Ignorar a pasta dos certificados SSL para resolver o erro de "permission denied"

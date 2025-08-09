@@ -76,7 +76,6 @@ RUN mkdir -p /app/webapp/public && ln -sf /app/public/datahub.db /app/webapp/pub
 EXPOSE 8080
 
 # HEALTHCHECK simples: responde 200 em /health (ou /)
-# Se ainda não tiveres /api/health, ver abaixo como adicionar.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=5 \
   CMD curl -fsS "http://localhost:${PORT}/api/health" || curl -fsS "http://localhost:${PORT}/" || exit 1
 
