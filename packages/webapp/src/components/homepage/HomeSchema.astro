@@ -1,8 +1,48 @@
 ---
 // src/components/homepage/HomeSchema.astro
 const siteUrl = Astro.site?.href ?? 'https://www.ativos.pt/';
-const fullSchema = { "@context": "https://schema.org", "@type": "WebSite", "url": siteUrl, "name": "Ativos.pt", "description": "Dados de mercado em tempo real, simuladores e guias práticos para investir com confiança.", "publisher": { "@type": "Organization", "name": "Ativos.pt", "logo": { "@type": "ImageObject", "url": new URL('/logo.png', siteUrl).href } }, "inLanguage": "pt-PT" };
+
+// ⚙️ Ativa só se tiveres pesquisa interna (ex.: /search?q=)
+const HAS_SITE_SEARCH = false; // <- muda para true quando tiveres rota de pesquisa
+
+const websiteId = new URL('#website', siteUrl).href;
+const orgId = new URL('#org', siteUrl).href;
+
+const webSite = {
+  "@type": "WebSite",
+  "@id": websiteId,
+  "url": siteUrl,
+  "name": "Ativos.pt",
+  "description": "Dados de mercado em tempo real, simuladores e guias práticos para investir com confiança.",
+  "inLanguage": "pt-PT",
+  "publisher": { "@id": orgId },
+  ...(HAS_SITE_SEARCH ? {
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": new URL('/search?q={search_term_string}', siteUrl).href,
+      "query-input": "required name=search_term_string"
+    }
+  } : {})
+};
+
+const organization = {
+  "@type": "Organization",
+  "@id": orgId,
+  "name": "Ativos.pt",
+  "url": siteUrl,
+  "logo": {
+    "@type": "ImageObject",
+    "url": new URL('/logo.png', siteUrl).href
+    // Se souberes, adiciona "width"/"height"
+  }
+  // Opcional: "sameAs": ["https://x.com/...", "https://www.linkedin.com/company/..."]
+};
+
+const fullSchema = {
+  "@context": "https://schema.org",
+  "@graph": [webSite, organization]
+};
 ---
 <Fragment slot="head">
-    <script type="application/ld+json" is:inline set:html={JSON.stringify(fullSchema)} />
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(fullSchema)} />
 </Fragment>

@@ -4,161 +4,188 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 import { Icon } from 'astro-icon/components';
 
-// --- IMPORTS DOS COMPONENTES DA HOMEPAGE ---
+// --- COMPONENTES DA HOMEPAGE ---
 import HeroHome from '~/components/homepage/HeroHome.astro';
 import KpiDeck from '~/components/homepage/KpiDeck.astro';
 import MarketTabs from '~/components/homepage/MarketTabs.astro';
-import ResourceCard from '~/components/homepage/ResourceCard.astro'; // Componente de card reutilizável
+import ResourceCard from '~/components/homepage/ResourceCard.astro';
 import InvestorResources from '~/components/homepage/InvestorResources.astro';
 import NewsletterBlock from '~/components/homepage/NewsletterBlock.astro';
 import HomeSchema from '~/components/homepage/HomeSchema.astro';
 
-// --- IMPORTS DOS UTILITÁRIOS DE DADOS ---
+// --- UTILITÁRIOS DE DADOS ---
 import { getHomepageData } from '~/lib/stock-data-fetcher';
 import { getIndicator, getSeries } from '~/lib/db';
 
 export const prerender = false;
 
-// --- LÓGICA DE DADOS CENTRALIZADA E ORGANIZADA ---
+// Cache leve (2 minutos) para alívio de carga quando em SSR
+try {
+  Astro.response.headers.set('Cache-Control', 'public, max-age=120, s-maxage=120');
+} catch { /* ignora se não suportado no adaptador */ }
 
-// 1. Dados de Mercado (Ações)
+// Helpers de segurança
+const safeFixed = (v: unknown, d: number) => {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n.toFixed(d) : null;
+};
+const lastN = (arr: Array<{ value: number }>|null|undefined, n = 12) =>
+  Array.isArray(arr) ? arr.slice(-n).map(p => p?.value).filter(Number.isFinite) as number[] : [];
+
+// 1) Dados de Mercado
 const marketData = await getHomepageData().catch(e => {
-    console.error('Erro a obter dados de mercado para a homepage:', e);
-    return { portugueseStocks: [], topGainers: [] };
+  console.error('Erro a obter dados de mercado para a homepage:', e);
+  return { portugueseStocks: [], topGainers: [] };
 });
 
-// 2. Dados dos KPIs Macroeconómicos
-const kpis = {
-    housing:    { value: 0, trend: [] as number[], color: '#ef4444' },
-    tan:        { value: 'N/D', trend: [] as number[] },
-    exchange:   { value: 'N/D', trend: [] as number[] },
-    inflation:  { value: 'N/D', trend: [] as number[] }
+// 2) KPIs Macroeconómicos (robustos)
+const kpis: {
+  housing:   { value: number;        trend: number[]; color: string };
+  tan:       { value: string | 'N/D';        trend: number[] };
+  exchange:  { value: string | 'N/D';        trend: number[] };
+  inflation: { value: string | 'N/D';        trend: number[] };
+} = {
+  housing:   { value: 0,    trend: [], color: '#ef4444' },
+  tan:       { value: 'N/D', trend: [] },
+  exchange:  { value: 'N/D', trend: [] },
+  inflation: { value: 'N/D', trend: [] }
 };
+
 try {
-    const housingIndicator = getIndicator('house_price_yoy_bportugal_total_quarterly');
-    const housingHistory = getSeries('house_price_index_bportugal_total_quarterly');
-    if (housingIndicator) {
-        kpis.housing.value = housingIndicator.value;
-        kpis.housing.color = housingIndicator.value >= 0 ? '#ef4444' : '#22c55e';
-    }
-    if (housingHistory) kpis.housing.trend = housingHistory.slice(-12).map(p => p.value);
-    const tanIndicator = getIndicator('latest_credito_habitacao_tan_variavel');
-    const tanHistory = getSeries('credito_habitacao_bportugal_tan_variavel_monthly');
-    if (tanIndicator) kpis.tan.value = tanIndicator.value.toFixed(2);
-    if (tanHistory) kpis.tan.trend = tanHistory.slice(-12).map(p => p.value);
-    const exchangeIndicator = getIndicator('latest_exchange_rate_eur_usd');
-    const exchangeHistory = getSeries('exchange_rate_eur_usd');
-    if (exchangeIndicator) kpis.exchange.value = exchangeIndicator.value.toFixed(3);
-    if (exchangeHistory) kpis.exchange.trend = exchangeHistory.slice(-12).map(p => p.value);
-    const inflationIndicator = getIndicator('latest_inflation_bportugal_headline_yoy_monthly');
-    const inflationHistory = getSeries('inflation_bportugal_headline_yoy_monthly');
-    if (inflationIndicator) kpis.inflation.value = inflationIndicator.value.toFixed(2);
-    if (inflationHistory) kpis.inflation.trend = inflationHistory.slice(-12).map(p => p.value);
+  const housingIndicator = getIndicator('house_price_yoy_bportugal_total_quarterly');
+  const housingHistory   = getSeries('house_price_index_bportugal_total_quarterly');
+  if (housingIndicator && Number.isFinite(housingIndicator.value)) {
+    kpis.housing.value = housingIndicator.value;
+    kpis.housing.color = housingIndicator.value >= 0 ? '#ef4444' : '#22c55e';
+  }
+  kpis.housing.trend = lastN(housingHistory, 12);
+
+  const tanIndicator = getIndicator('latest_credito_habitacao_tan_variavel');
+  const tanHistory   = getSeries('credito_habitacao_bportugal_tan_variavel_monthly');
+  const tanFx = safeFixed(tanIndicator?.value, 2);
+  if (tanFx) kpis.tan.value = tanFx;
+  kpis.tan.trend = lastN(tanHistory, 12);
+
+  const exchangeIndicator = getIndicator('latest_exchange_rate_eur_usd');
+  const exchangeHistory   = getSeries('exchange_rate_eur_usd');
+  const exFx = safeFixed(exchangeIndicator?.value, 3);
+  if (exFx) kpis.exchange.value = exFx;
+  kpis.exchange.trend = lastN(exchangeHistory, 12);
+
+  const inflationIndicator = getIndicator('latest_inflation_bportugal_headline_yoy_monthly');
+  const inflationHistory   = getSeries('inflation_bportugal_headline_yoy_monthly');
+  const infFx = safeFixed(inflationIndicator?.value, 2);
+  if (infFx) kpis.inflation.value = infFx;
+  kpis.inflation.trend = lastN(inflationHistory, 12);
 } catch (e) {
-    console.error('Erro a calcular KPIs para a homepage:', e);
+  console.error('Erro a calcular KPIs para a homepage:', e);
 }
 
-// 3. Dados de Conteúdo (Guias, Ferramentas, etc.)
+// 3) Conteúdo (Guias e Plataformas)
 const [guiasFiscais, todasAsPlataformas] = await Promise.all([
-    getCollection('fiscais'),
-    getCollection('plataformas')
+  getCollection('fiscais'),
+  getCollection('plataformas')
 ]);
 
-// 4. Lógica de Curadoria das Plataformas
-const plataformasDestacadasConfig = { 'xtb': { order: 1 }, 'fpmarkets': { order: 2 } };
-let plataformasOrdenadas = [...todasAsPlataformas];
-plataformasOrdenadas.sort((a, b) => {
-    const aInfo = plataformasDestacadasConfig[a.slug];
-    const bInfo = plataformasDestacadasConfig[b.slug];
-    if (aInfo && bInfo) return aInfo.order - bInfo.order;
-    if (aInfo) return -1;
-    if (bInfo) return 1;
-    return 0;
+// 4) Curadoria das Plataformas
+const plataformasDestacadasConfig: Record<string, { order: number }> = {
+  'xtb': { order: 1 },
+  'fpmarkets': { order: 2 },
+};
+const plataformasOrdenadas = [...todasAsPlataformas].sort((a, b) => {
+  const aInfo = plataformasDestacadasConfig[a.slug];
+  const bInfo = plataformasDestacadasConfig[b.slug];
+  if (aInfo && bInfo) return aInfo.order - bInfo.order;
+  if (aInfo) return -1;
+  if (bInfo) return 1;
+  return 0;
 });
 const plataformasParaHomepage = plataformasOrdenadas.slice(0, 4);
 const guiasFiscaisDestaque = guiasFiscais.slice(0, 4);
 
-// 5. Separação de Ferramentas: Observatórios vs. Simuladores
+// 5) Ferramentas: Observatórios vs. Simuladores
 const allTools = [
-    { slug:'/inflacao',                 titulo:'Observatório da Inflação',   desc:'Acompanhe o IPC, histórico e repartição por setor.', icon:'heroicons:chart-pie-solid', type: 'observatorio' },
-    { slug:'/imobiliario',              titulo:'Observatório Imobiliário', desc:'Preços, crédito, risco e outros indicadores.',     icon:'heroicons:home-modern-solid', type: 'observatorio' },
-    { slug:'/euribor',                    titulo:'Observatório da Euribor',    desc:'Evolução das taxas que definem o seu crédito.',     icon:'heroicons:banknotes-solid', type: 'observatorio' },
-    { slug:'/simuladores/salario-liquido', titulo:'Simulador Salário Líquido',  desc:'Calcule descontos e valor líquido.',               icon:'heroicons:calculator-solid', type: 'simulador' },
-    { slug:'/simuladores/mais-valias',    titulo:'Simulador Mais-Valias',      desc:'Apure imposto de ações e ETFs.',               icon:'heroicons:receipt-refund-solid', type: 'simulador' },
-    { slug:'/plataformas/comparar',       titulo:'Comparador de Corretoras',   desc:'Compare taxas, regulação e custos.',               icon:'heroicons:scale-solid', type: 'simulador' }
+  { slug:'/inflacao',                   titulo:'Observatório da Inflação',   desc:'Acompanhe o IPC, histórico e repartição por setor.',        icon:'heroicons:chart-pie-solid',      type: 'observatorio' },
+  { slug:'/imobiliario',                titulo:'Observatório Imobiliário',   desc:'Preços, crédito, risco e outros indicadores.',              icon:'heroicons:home-modern-solid',     type: 'observatorio' },
+  { slug:'/euribor',                    titulo:'Observatório da Euribor',    desc:'Evolução das taxas que definem o seu crédito.',            icon:'heroicons:banknotes-solid',       type: 'observatorio' },
+  { slug:'/simuladores/salario-liquido',titulo:'Simulador Salário Líquido',  desc:'Calcule descontos e valor líquido.',                        icon:'heroicons:calculator-solid',      type: 'simulador' },
+  { slug:'/simuladores/mais-valias',    titulo:'Simulador Mais-Valias',      desc:'Apure imposto de ações e ETFs.',                           icon:'heroicons:receipt-refund-solid',  type: 'simulador' },
+  { slug:'/plataformas/comparar',       titulo:'Comparador de Corretoras',   desc:'Compare taxas, regulação e custos.',                        icon:'heroicons:scale-solid',           type: 'simulador' }
 ];
-
 const observatorios = allTools.filter(t => t.type === 'observatorio');
-const simuladores = allTools.filter(t => t.type === 'simulador');
+const simuladores   = allTools.filter(t => t.type === 'simulador');
 
 // SEO
-const pageTitle = "Ativos.pt – O Dashboard Financeiro de Portugal";
-const pageDesc = "Dados de mercado em tempo real, simuladores e guias práticos para investir com confiança.";
+const pageTitle = 'Ativos.pt – O Dashboard Financeiro de Portugal';
+const pageDesc  = 'Dados de mercado em tempo real, simuladores e guias práticos para investir com confiança.';
 ---
 
 <BaseLayout title={pageTitle} description={pageDesc}>
-    
-    <HomeSchema />
+  <HomeSchema />
 
-    <main class="bg-gray-50 dark:bg-brand-dark">
-        
-        <HeroHome />
+  <main class="bg-gray-50 dark:bg-brand-dark">
+    <a href="#conteudo-principal" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-2 rounded">
+      Saltar para o conteúdo
+    </a>
 
-        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
-            <KpiDeck kpis={kpis} />
-        </section>
-        
-        <section id="observatorios" class="bg-white dark:bg-gray-900/40 py-20">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center mb-14">
-                    <h2 class="text-base font-semibold text-primary uppercase tracking-wider">Análise Profunda</h2>
-                    <p class="mt-2 text-4xl font-bold text-gray-900 dark:text-white">Observatórios de Mercado</p>
-                    <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                        Explore dashboards interativos com dados oficiais para analisar as tendências que marcam a economia.
-                    </p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {observatorios.map(obs => (
-                        <ResourceCard 
-                            href={obs.slug}
-                            icon={obs.icon}
-                            title={obs.titulo}
-                            description={obs.desc}
-                        />
-                    ))}
-                </div>
-            </div>
-        </section>
+    <HeroHome />
 
-        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-            <MarketTabs marketData={marketData} />
-        </section>
+    <section id="conteudo-principal" aria-labelledby="kpis-heading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
+      <h2 id="kpis-heading" class="sr-only">Indicadores-chave</h2>
+      <KpiDeck kpis={kpis} />
+    </section>
 
-        <section id="simuladores" class="bg-white dark:bg-gray-900/40 py-20">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center mb-14">
-                    <h2 class="text-base font-semibold text-primary uppercase tracking-wider">Ferramentas Práticas</h2>
-                    <p class="mt-2 text-4xl font-bold text-gray-900 dark:text-white">Simuladores Financeiros</p>
-                     <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                        Calcule cenários, impostos e tome decisões informadas em minutos.
-                    </p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {simuladores.map(sim => (
-                         <ResourceCard 
-                            href={sim.slug}
-                            icon={sim.icon}
-                            title={sim.titulo}
-                            description={sim.desc}
-                        />
-                    ))}
-                </div>
-            </div>
-        </section>
+    <section id="observatorios" aria-labelledby="observatorios-heading" class="bg-white dark:bg-gray-900/40 py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14">
+          <h2 id="observatorios-heading" class="text-base font-semibold text-primary uppercase tracking-wider">Análise Profunda</h2>
+          <p class="mt-2 text-4xl font-bold text-gray-900 dark:text-white">Observatórios de Mercado</p>
+          <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Explore dashboards interativos com dados oficiais para analisar as tendências que marcam a economia.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {observatorios.map(obs => (
+            <ResourceCard
+              href={obs.slug}
+              icon={obs.icon}
+              title={obs.titulo}
+              description={obs.desc}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
 
-        <InvestorResources guias={guiasFiscaisDestaque} plataformas={plataformasParaHomepage} />
+    <section aria-labelledby="mercado-heading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <h2 id="mercado-heading" class="sr-only">Mercados e Destaques</h2>
+      <MarketTabs marketData={marketData} />
+    </section>
 
-        <NewsletterBlock />
+    <section id="simuladores" aria-labelledby="simuladores-heading" class="bg-white dark:bg-gray-900/40 py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14">
+          <h2 id="simuladores-heading" class="text-base font-semibold text-primary uppercase tracking-wider">Ferramentas Práticas</h2>
+          <p class="mt-2 text-4xl font-bold text-gray-900 dark:text-white">Simuladores Financeiros</p>
+          <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Calcule cenários, impostos e tome decisões informadas em minutos.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {simuladores.map(sim => (
+            <ResourceCard
+              href={sim.slug}
+              icon={sim.icon}
+              title={sim.titulo}
+              description={sim.desc}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
 
-    </main>
+    <InvestorResources guias={guiasFiscaisDestaque} plataformas={plataformasParaHomepage} />
+
+    <NewsletterBlock />
+  </main>
 </BaseLayout>
