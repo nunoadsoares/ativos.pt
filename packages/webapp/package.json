@@ -3,7 +3,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "prebuild": "node ./scripts/export-housing-kpi.cjs",
+    "export:data": "node ./scripts/run-exports.mjs",
+    "predev": "npm run export:data",
+    "prebuild": "npm run export:data",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",

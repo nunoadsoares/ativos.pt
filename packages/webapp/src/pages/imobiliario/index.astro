@@ -1,40 +1,42 @@
 ---
+// C:\Users\nunos\Desktop\ativos.pt\packages\webapp\src\pages\imobiliario\index.astro
 import BaseLayout from '~/layouts/BaseLayout.astro';
-import { getIndicator } from '~/lib/db';
-import Database from 'better-sqlite3';
-import path from 'path';
+// Importamos a nossa instância da BD e a função getIndicator, como manda a nossa arquitetura
+import { db, getIndicator } from '~/lib/db';
+import type { KeyIndicatorData } from '~/lib/db';
 
-// --- LÓGICA DE DADOS CORRIGIDA ---
+// --- LÓGICA DE DADOS 100% CORRIGIDA E OTIMIZADA ---
 
-const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleString('pt-PT', { month: 'long', year: 'numeric' });
+const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'data indisponível';
+    // Adiciona T00:00:00 para garantir que a data é interpretada como UTC e evitar problemas de timezone
+    return new Date(`${dateString}T00:00:00Z`).toLocaleString('pt-PT', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 };
 
-// 1. Preços da Habitação (Chave corrigida para 'precos_habitacao_var')
-const housingIndicator = getIndicator('precos_habitacao_var');
+// 1. Preços da Habitação (Chave corrigida)
+const housingIndicator = getIndicator('house_price_yoy_bportugal_total_quarterly');
 const housingKpi = {
     value: housingIndicator?.value ?? 0,
     date: formatDate(housingIndicator?.reference_date)
 };
 
-// 2. Risco de Incumprimento (Lógica corrigida para ler da BD)
+// 2. Risco de Incumprimento (Lógica otimizada para ler da BD de forma eficiente)
 let highestRisk = { value: 'N/D', name: 'N/D' };
 try {
-  const dbPath = path.join(process.cwd(), 'public', 'datahub.db');
-  const db = new Database(dbPath, { readonly: true });
-  const allIndicators = db.prepare('SELECT * FROM key_indicators').all() as any[];
-  
-  const riskIndicators = allIndicators
-    .filter(i => i.indicator_key.startsWith('risk_incumprimento_bportugal_'))
-    .map(i => ({ name: i.label.replace('Risco Incumprimento: ', ''), value: i.value }));
+    // Usamos a nossa instância 'db' partilhada e uma query SQL direta e eficiente
+    const topRiskIndicator = db.prepare(`
+        SELECT label, value 
+        FROM key_indicators 
+        WHERE indicator_key LIKE 'risk_incumprimento_bportugal_%' 
+        ORDER BY value DESC 
+        LIMIT 1
+    `).get() as KeyIndicatorData | undefined;
 
-  if (riskIndicators.length > 0) {
-    riskIndicators.sort((a, b) => b.value - a.value);
-    const topRisk = riskIndicators[0];
-    highestRisk.value = topRisk.value.toFixed(2);
-    highestRisk.name = topRisk.name.replace(' (NUTS II)', '').replace(' (NUTS III)', '');
-  }
+    if (topRiskIndicator) {
+        highestRisk.value = (topRiskIndicator.value ?? 0).toFixed(2);
+        // Limpa o nome para uma apresentação mais amigável
+        highestRisk.name = (topRiskIndicator.label ?? '').replace('Risco Incumprimento: ', '').replace(/\s*\([^)]+\)$/, '');
+    }
 } catch (e) {
     console.error("Falha ao processar indicadores de risco da BD:", e);
 }

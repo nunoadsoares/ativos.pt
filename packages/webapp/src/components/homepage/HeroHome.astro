@@ -1,0 +1,35 @@
+---
+// src/components/homepage/HeroHome.astro
+import { Icon } from 'astro-icon/components';
+import SearchTickerHomepage from '~/components/homepage/SearchTickerHomepage.tsx';
+
+const categories = [
+    { label: "Observatórios", href: "#observatorios", icon: "heroicons:chart-pie" },
+    { label: "Simuladores", href: "#simuladores", icon: "heroicons:calculator" },
+    { label: "Ações", href: "#mercado", icon: "heroicons:presentation-chart-line" },
+    { label: "Corretoras", href: "#recursos", icon: "heroicons:scale" },
+    { label: "Guias Fiscais", href: "#recursos", icon: "heroicons:document-text" },
+]
+---
+<section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-gray-100 to-gray-50 dark:from-brand-dark dark:to-gray-900/70"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 md:pt-28 md:pb-24 text-center">
+        <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+            O <span class="text-primary">Dashboard Financeiro</span> de Portugal
+        </h1>
+        <p class="mt-6 max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
+            Dados oficiais, simuladores e ferramentas para investir com confiança.
+        </p>
+        <div class="mt-10">
+            <SearchTickerHomepage client:load />
+        </div>
+        <div class="mt-8 flex flex-wrap justify-center items-center gap-3">
+            {categories.map(cat => (
+                <a href={cat.href} class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-full shadow-sm hover:bg-white dark:hover:bg-gray-800 hover:text-primary transition-all">
+                    <Icon name={cat.icon} class="h-4 w-4" />
+                    <span>{cat.label}</span>
+                </a>
+            ))}
+        </div>
+    </div>
+</section>

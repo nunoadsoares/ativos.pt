@@ -1,28 +1,61 @@
-# C:\Users\nunos\Desktop\ativos.pt\.github\workflows\deploy.yml
 name: Deploy to Hetzner VPS
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@master
+      - name: Deploy to VPS (ordered, DB-first)
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # Navega para a raiz do projeto no servidor
+            set -Eeuo pipefail
+
+            echo "→ cd projeto"
             cd /home/nuno/sites/ativos.pt
-            
-            # Vai buscar as últimas alterações
-            git pull
-            
-            # Executa o Docker Compose a partir da raiz. Simples e correto.
-            echo "🐳 A reconstruir e reiniciar os contentores a partir da raiz..."
-            docker compose up --build -d --force-recreate
+
+            echo "→ git pull (hard reset em origin/master)"
+            git fetch --all --prune
+            git reset --hard origin/master
+
+            echo "→ preparar venv do data-worker"
+            cd packages/data-worker
+            python3 -m venv .venv || true
+            . .venv/bin/activate
+            pip install -U pip
+            pip install -r requirements.txt
+
+            echo "→ seed/ensure DB schema"
+            python3 init_db.py
+
+            echo "→ atualizar dados (single source of truth)"
+            python3 update_all.py
+
+            deactivate || true
+            cd - >/dev/null
+
+            echo "→ rebuild & (re)start containers"
+            docker compose up -d --build --force-recreate
+
+            echo "→ esperar app ficar healthy"
+            for i in $(seq 1 30); do
+              status=$(docker inspect -f '{{.State.Health.Status}}' webapp-app 2>/dev/null || echo "starting")
+              [ "$status" = "healthy" ] && break
+              sleep 5
+            done
+
+            echo "→ smoke tests (API/BD)"
+            # usar -k porque o cert não cobre 'localhost' (ok em CI)
+            curl -skf https://localhost/api/health | grep -q '"ok":true'
+            curl -skf https://localhost/api/data/exchangeRatesChart >/dev/null
+            # põe aqui 2-3 KPIs críticos que existam no KPI_MAP:
+            curl -skf https://localhost/api/data/latestInflationYoY >/dev/null || true
+            curl -skf https://localhost/api/data/latestEuriborRate3m >/dev/null || true
+
+            echo "✓ deploy concluído"

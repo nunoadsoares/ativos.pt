@@ -1,8 +1,4 @@
-# docker-compose.yml (na raiz do projeto)
-# ------------------------------------------------------------------
-#  ▸ SSR app (Astro/Node) + Nginx reverse-proxy + Certbot renovação
-#  ▸ Reinicia sempre que necessário e com health-check no app
-# ------------------------------------------------------------------
+version: '3.7'
 
 volumes:
   certbot-etc:
@@ -13,55 +9,45 @@ networks:
     driver: bridge
 
 services:
-  # ---------- APP SSR (Node) ----------
   app:
     build:
-      # ALTERAÇÃO: O contexto de build é a raiz do projeto (.),
-      # para que o Dockerfile possa aceder tanto a 'webapp' como a 'data-worker'.
       context: .
-      # O Dockerfile está dentro da pasta da aplicação.
       dockerfile: packages/webapp/Dockerfile
     image: ativos-pt-app
     container_name: webapp-app
     restart: unless-stopped
-    expose:
-      - "8080"
-    networks:
-      - webnet
-    # Health-check: testa a porta 8080 a cada 30 s
+    expose: ["8080"]
+    networks: [webnet]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 30s
       timeout: 5s
       retries: 3
+    # 👉 monta a mesma pasta 'public' que contém a datahub.db
+    volumes:
+      - ./packages/webapp/public:/app/public
 
-  # ---------- NGINX reverse-proxy (SEM ALTERAÇÕES) ----------
   web:
     image: nginx:1.25-alpine
     container_name: webapp-web
-    depends_on:
-      - app
+    depends_on: [app]
     restart: always
-    ports:
-      - "80:80"
-      - "443:443"
+    ports: ["80:80", "443:443"]
     volumes:
-      # IMPORTANTE: O caminho para o nginx.conf agora precisa de ser relativo à raiz
       - ./packages/webapp/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - certbot-etc:/etc/letsencrypt
       - certbot-www:/var/www/certbot
-    networks:
-      - webnet
+      - ./packages/webapp/public:/app/public   # nginx também vê a mesma BD/estáticos
+    networks: [webnet]
 
-  # ---------- Certbot renovação em background (SEM ALTERAÇÕES) ----------
   certbot:
-    image: certbot/certbot
+    image: certbot/dns-cloudflare
     container_name: webapp-certbot
-    user: "1000:1000"
+    user: "0:0"
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-www:/var/www/certbot
-    # loop simples: tenta renovar a cada 12 h
+      - ./secrets/cloudflare.ini:/root/.secrets/certbot/cloudflare.ini:ro
     entrypoint: >
       /bin/sh -c '
         trap exit TERM;
@@ -70,5 +56,4 @@ services:
           sleep 12h & wait $${!};
         done
       '
-    networks:
-      - webnet
+    networks: [webnet]

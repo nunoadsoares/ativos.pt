@@ -1,7 +1,5 @@
 // C:\Users\nunos\Desktop\ativos.pt\packages\webapp\src\components\Sparkline.tsx
-
-import React, { useState, useEffect } from 'react';
-import type { FC } from 'react';
+import React, { useState, useEffect, type FC } from 'react';
 import type { ApexOptions } from 'apexcharts';
 
 // Função utilitária para converter HEX para RGBA
@@ -30,17 +28,17 @@ const Sparkline: FC<Props> = ({
   width = 120,
   height = 40
 }) => {
-  // NOVO: Estado para guardar o componente do gráfico, que só será carregado no browser.
+  // Estado para guardar o componente do gráfico, que só será carregado no browser.
   const [Chart, setChart] = useState<any>(null);
 
-  // NOVO: Efeito que só corre no browser.
+  // Efeito que só corre no browser. Esta é a forma correta.
   useEffect(() => {
     // Importamos dinamicamente a biblioteca de gráficos aqui.
     import('react-apexcharts').then(mod => {
       // Quando a importação termina, guardamos o componente no nosso estado.
       setChart(() => mod.default);
     });
-  }, []);
+  }, []); // O array vazio garante que isto só corre uma vez.
 
   // Enquanto o componente do gráfico não estiver carregado, mostramos um placeholder.
   if (!Chart) {

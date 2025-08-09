@@ -1,7 +1,10 @@
 # packages/data-worker/update_all.py
 
+# --- Inicializador da Base de Dados (Passo CRÍTICO) ---
+# Garante que a BD e as tabelas existem ANTES de qualquer outra operação.
+from init_db import main as initialize_database
+
 # --- Core Scrapers ---
-# Nota: Otimizámos os 3 scripts de quotas para um único script mais eficiente.
 from scripts.euribor.get_euribor_quotas import main as update_euribor_quotas
 from scripts.euribor.get_euribor_rates import main as update_euribor_rates
 from scripts.update_interest_rates_series import main as update_taeg_tan
@@ -12,16 +15,17 @@ from scripts.cambios.get_exchange_rates import main as update_exchange_rates
 from scripts.risco_incumprimento.update_default_risk_map_data import main as update_risk_map
 from scripts.inflacao.get_inflation_data import main as fetch_inflation_data
 
-
-# --- Legacy (manter se ainda for usado para outros dados) ---
-from apibp.apibp import main as update_macro
-
 def main():
     """
     Orquestrador principal para atualizar todos os dados do site Ativos.pt.
     """
     print("--- INÍCIO DO PROCESSO DE ATUALIZAÇÃO DE DADOS ---")
 
+    # 1. GARANTIR QUE A BASE DE DADOS E TABELAS ESTÃO PRONTAS
+    print("\n--- A inicializar e verificar a estrutura da base de dados ---")
+    initialize_database()
+
+    # 2. ATUALIZAR TODOS OS DADOS
     print("\n--- A atualizar dados de Crédito e Taxas de Juro ---")
     update_euribor_quotas()
     update_euribor_rates()
@@ -35,11 +39,6 @@ def main():
     
     print("\n--- A atualizar dados de Mercados Internacionais ---")
     update_exchange_rates()
-
-    # Se o apibp.py ainda for necessário para outros dados, mantemo-lo.
-    # Caso contrário, pode ser comentado ou removido.
-    #print("\n--- A iniciar atualização de indicadores macro (legacy apibp.py) ---")
-    #update_macro()
     
     print("\n--- A ATUALIZAR DADOS DA INFLAÇÃO ---")
     fetch_inflation_data()

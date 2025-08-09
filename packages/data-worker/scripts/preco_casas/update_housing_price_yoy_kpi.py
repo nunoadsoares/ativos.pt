@@ -1,18 +1,20 @@
 # packages/data-worker/scripts/preco_casas/update_housing_price_yoy_kpi.py
 import pandas as pd
 from pyjstat import pyjstat
-import os
 import sqlite3
 import datetime as dt
 
-# --- Configuração ---
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'webapp', 'public', 'datahub.db')
+# --- ALTERAÇÃO IMPORTANTE ---
+# Removemos o cálculo manual do caminho e importamos a configuração central.
+from config import DB_PATH
+
+# --- Configuração (sem o DB_PATH manual) ---
 DOMAIN_ID = 39
 DATASET_ID = "b8cc662879c9f7b0f3faf89c7871fc38"
 BPSTAT_API_URL = "https://bpstat.bportugal.pt/data/v1"
 
 TARGET_INFO = {
-    "key": "house_price_yoy_bportugal_total_quarterly", # Chave padronizada
+    "key": "house_price_yoy_bportugal_total_quarterly",
     "label": "Preços Habitação (Var. Homóloga)", 
     "filters": {"Indicadores": "Preços de habitação", "Métrica": "Taxa de variação homóloga"}
 }
@@ -22,7 +24,7 @@ def main():
     label = TARGET_INFO['label']
     print(f"-> A processar (KPI): {label}")
     
-    conn = None # Inicializar a conexão
+    conn = None
     try:
         url = f"{BPSTAT_API_URL}/domains/{DOMAIN_ID}/datasets/{DATASET_ID}/?lang=PT"
         dataset = pyjstat.Dataset.read(url, timeout=45)
@@ -42,7 +44,6 @@ def main():
         
         print(f"   ✅ Valor encontrado: {valor} (Data: {data_referencia})")
         
-        # Guardar na Base de Dados com o nosso padrão
         conn = sqlite3.connect(DB_PATH, isolation_level=None)
         cursor = conn.cursor()
         cursor.execute("PRAGMA journal_mode = WAL;")

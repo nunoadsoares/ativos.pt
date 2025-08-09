@@ -1,9 +1,9 @@
 ---
+// packages/webapp/src/pages/simuladores/comparador-custos.astro
+
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import CheckboxCard from '~/components/CheckboxCard.astro';
-
-// cópia para build/SSR
-import costsSSR from '~/data/brokerscustos.json';
+import fs from 'node:fs/promises';
 
 export const prerender = true;
 
@@ -11,388 +11,344 @@ const title = 'Comparador de Custos de Corretoras';
 const description =
   'Calcula o custo anual estimado (comissões, câmbio, custódia) das principais corretoras usadas em Portugal.';
 
-// transforma objecto -> array e adiciona logo
-const brokersSSR = Object.values(costsSSR as any).map((b: any) => ({
-  ...b,
-  logo: b.logo ?? `/assets/logos/${b.slug}.png`,
-}));
+// LER JSON DO PUBLIC EM SSR (caminho correto: ../../../public/…)
+let brokersSSR: any[] = [];
+try {
+  const fileUrl = new URL('../../../public/data/brokerscustos.json', import.meta.url);
+  const txt = await fs.readFile(fileUrl, 'utf-8');
+  const raw = JSON.parse(txt);
+  const list = Array.isArray(raw) ? raw : Object.values(raw);
+  brokersSSR = list.map((b: any) => ({ ...b, logo: b.logo ?? `/assets/logos/${b.slug}.png` }));
+} catch (e) {
+  console.error('[comparador-custos] Falha a ler public/data/brokerscustos.json:', e);
+  brokersSSR = [];
+}
 
-// --- NOVO CÓDIGO JSON-LD ADICIONADO AQUI ---
+// -------- JSON-LD --------
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 
 const softwareSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": title,
-    "description": description,
-    "url": canonical,
-    "applicationCategory": "FinanceApplication",
-    "operatingSystem": "Web Browser",
-    "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "EUR"
-    },
-    "creator": {
-        "@type": "Organization",
-        "name": "Ativos.pt",
-        "url": Astro.site.href
-    }
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": title,
+  "description": description,
+  "url": canonical,
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Web Browser",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "creator": { "@type": "Organization", "name": "Ativos.pt", "url": Astro.site.href }
 };
 
 const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-        {
-            "@type": "Question",
-            "name": "O que é que este simulador calcula?",
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "O simulador calcula uma estimativa dos custos anuais totais de investir através de diferentes corretoras, com base no seu perfil de investimento. Inclui custos de comissão de transação, taxas de câmbio e taxas de custódia."
-            }
-        },
-        {
-            "@type": "Question",
-            "name": "Os resultados são exatos?",
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Os resultados são uma estimativa baseada nos preçários públicos das corretoras e nos parâmetros que introduziu. Devem ser usados como uma ferramenta de orientação. Verifique sempre os termos e condições de cada corretora antes de tomar uma decisão."
-            }
-        }
-    ]
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "O que é que este simulador calcula?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "O simulador calcula uma estimativa dos custos anuais totais de investir através de diferentes corretoras, com base no seu perfil de investimento. Inclui custos de comissão de transação, taxas de câmbio e taxas de custódia."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Os resultados são exatos?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Os resultados são uma estimativa baseada nos preçários públicos das corretoras e nos parâmetros que introduziu. Verifique sempre os termos e condições de cada corretora antes de tomar uma decisão."
+      }
+    }
+  ]
 };
+// -------------------------
 ---
+
 <BaseLayout title={title} description={description}>
-    <Fragment slot="head">
-        <script type="application/ld+json" is:inline set:html={JSON.stringify(softwareSchema)} />
-        <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
-    </Fragment>
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(softwareSchema)} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
+    <link rel="preload" href="/data/brokerscustos.json" as="fetch" crossorigin="anonymous" />
+  </Fragment>
 
-    <article class="max-w-4xl mx-auto py-12 px-4">
-        <header class="text-center mb-12">
-            <h1 class="text-4xl md:text-6xl font-extrabold">{title}</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-4">
-                Introduz o teu volume de ordens e valores médios. Comparamos automaticamente o custo anual estimado em cada corretora.
-            </p>
-        </header>
+  <article class="max-w-4xl mx-auto py-12 px-4">
+    <header class="text-center mb-12">
+      <h1 class="text-4xl md:text-6xl font-extrabold">{title}</h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-4">
+        Introduz o teu volume de ordens e valores médios. Comparamos automaticamente o custo anual estimado em cada corretora.
+      </p>
+    </header>
 
-        <section class="mb-12">
-            <h2 class="text-lg font-semibold mb-4">Escolhe as corretoras a comparar</h2>
-            <div id="broker-select" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {brokersSSR.map((b, i) => (
-                    <CheckboxCard value={b.slug} label={b.nome} logo={b.logo} checked={i < 2} />
-                ))}
-            </div>
-            <p class="text-xs text-gray-400 mt-2">Podes marcar/desmarcar à vontade (máx. 6 mostradas na tabela).</p>
-        </section>
+    <section class="mb-12">
+      <h2 class="text-lg font-semibold mb-4">Escolhe as corretoras a comparar</h2>
 
-        <section class="mb-12">
-            <h2 class="text-lg font-semibold mb-4">Parâmetros da simulação</h2>
-            <form id="sim-form" class="grid md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm mb-1" for="ordersEU">Ordens/mês (UE)</label>
-                    <input
-                        id="ordersEU"
-                        name="ordersEU"
-                        type="number"
-                        value="2"
-                        min="0"
-                        class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2"
-                    />
-                </div>
-                <div>
-                    <label class="block text-sm mb-1" for="ticketEU">Ticket médio (€)</label>
-                    <input
-                        id="ticketEU"
-                        name="ticketEU"
-                        type="number"
-                        value="1000"
-                        min="0"
-                        class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2"
-                    />
-                </div>
-                <div>
-                    <label class="block text-sm mb-1" for="ordersUS">Ordens/mês (EUA)</label>
-                    <input
-                        id="ordersUS"
-                        name="ordersUS"
-                        type="number"
-                        value="2"
-                        min="0"
-                        class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2"
-                    />
-                </div>
-                <div>
-                    <label class="block text-sm mb-1" for="ticketUS">Ticket médio ($)</label>
-                    <input
-                        id="ticketUS"
-                        name="ticketUS"
-                        type="number"
-                        value="1000"
-                        min="0"
-                        class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2"
-                    />
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-sm mb-1" for="carteira">Valor da carteira (€)</label>
-                    <input
-                        id="carteira"
-                        name="carteira"
-                        type="number"
-                        value="20000"
-                        min="0"
-                        class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2"
-                    />
-                </div>
-                <div class="md:col-span-2 flex items-center gap-2">
-                    <input
-                        id="fx"
-                        name="fx"
-                        type="checkbox"
-                        checked
-                        class="h-4 w-4 rounded border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800"
-                    />
-                    <label for="fx" class="text-sm">Há conversão cambial?</label>
-                </div>
-            </form>
+      <!-- ✅ Mantemos as CheckboxCard em SSR -->
+      <div id="broker-select" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {brokersSSR.map((b, i) => (
+          <CheckboxCard value={b.slug} label={b.nome} logo={b.logo} checked={i < 2} />
+        ))}
+      </div>
 
-            <button
-                id="calcBtn"
-                class="mt-6 inline-block bg-primary text-white font-semibold py-2 px-8 rounded-full hover:opacity-90 transition"
-            >
-                Calcular
-            </button>
-        </section>
+      <p class="text-xs text-gray-400 mt-2">Podes marcar/desmarcar à vontade (máx. 6 mostradas na tabela).</p>
+    </section>
 
-        <section id="results" class="hidden mb-12">
-            <h2 class="text-lg font-semibold mb-4">Resultados (estimativa anual)</h2>
-            <div class="overflow-x-auto border rounded-lg">
-                <table id="cost-table" class="w-full text-sm sticky-first"></table>
-            </div>
-        </section>
-    </article>
+    <section class="mb-12">
+      <h2 class="text-lg font-semibold mb-4">Parâmetros da simulação</h2>
+      <form id="sim-form" class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm mb-1" for="ordersEU">Ordens/mês (UE)</label>
+          <input id="ordersEU" name="ordersEU" type="number" value="2" min="0"
+            class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm mb-1" for="ticketEU">Ticket médio (€)</label>
+          <input id="ticketEU" name="ticketEU" type="number" value="1000" min="0"
+            class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm mb-1" for="ordersUS">Ordens/mês (EUA)</label>
+          <input id="ordersUS" name="ordersUS" type="number" value="2" min="0"
+            class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm mb-1" for="ticketUS">Ticket médio ($)</label>
+          <input id="ticketUS" name="ticketUS" type="number" value="1000" min="0"
+            class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1" for="carteira">Valor da carteira (€)</label>
+          <input id="carteira" name="carteira" type="number" value="20000" min="0"
+            class="w-full rounded-lg border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 px-3 py-2" />
+        </div>
+        <div class="md:col-span-2 flex items-center gap-2">
+          <input id="fx" name="fx" type="checkbox" checked
+            class="h-4 w-4 rounded border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800" />
+          <label for="fx" class="text-sm">Há conversão cambial?</label>
+        </div>
+      </form>
 
-    <script is:inline>
-        // ------- cálculo helpers -------
-        function commissionCost(comm, ordersPerMonth, ticket) {
-            if (!comm) return 0;
-            const months = 12;
-            const ordersYear = ordersPerMonth * months;
-            const volumeYear = ordersPerMonth * ticket * months;
+      <button
+        id="calcBtn"
+        class="mt-6 inline-block bg-primary text-white font-semibold py-2 px-8 rounded-full hover:opacity-90 transition"
+      >
+        Calcular
+      </button>
+    </section>
 
-            switch (comm.type) {
-                case 'tier_free_pct': {
-                    const freeY = comm.free_volume_month * months;
-                    if (volumeYear <= freeY) return 0;
-                    const volOver = volumeYear - freeY;
-                    const pctCost = volOver * comm.over_pct;
-                    const freeOrders = Math.floor(freeY / ticket);
-                    const ordersOver = Math.max(0, ordersYear - freeOrders);
-                    const minCost = ordersOver * comm.over_min;
-                    return Math.max(pctCost, minCost);
-                }
-                case 'flat':
-                    return ordersYear * comm.value;
-                case 'pct_min':
-                    return Math.max(volumeYear * comm.pct, ordersYear * comm.min);
-                case 'flat_plus_fee':
-                    return ordersYear * (comm.flat + comm.fee);
-                case 'fee_only':
-                    return ordersYear * comm.fee;
-                case 'pct_min_dual': {
-                    const esc = Math.max(volumeYear * comm.pct, ordersYear * comm.min_escalonado);
-                    const fix = Math.max(volumeYear * comm.pct, ordersYear * comm.min_fixo);
-                    return Math.min(esc, fix);
-                }
-                case 'per_share': {
-                    const sharesYear = volumeYear / ticket;
-                    const esc = Math.max(sharesYear * comm.per_share_escalonado, comm.min_escalonado);
-                    const fix = Math.max(sharesYear * comm.per_share_fixo, comm.min_fixo);
-                    const cap = comm.max_pct ? volumeYear * comm.max_pct : Infinity;
-                    return Math.min(esc, fix, cap);
-                }
-                case 'per_share_plus_monthly': {
-                    const sharesYear = volumeYear / ticket;
-                    const base = Math.max(sharesYear * comm.per_share, comm.min);
-                    return base + (comm.monthly_fee || 0) * 12;
-                }
-                case 'pct_min_side':
-                    return 2 * Math.max(volumeYear * comm.pct, ordersYear * comm.min);
-                case 'per_share_side': {
-                    const sharesYear = volumeYear / ticket;
-                    return 2 * Math.max(sharesYear * comm.per_share, ordersYear * comm.min);
-                }
-                case 'spread_only':
-                case 'none':
-                default:
-                    return 0;
-            }
+    <section id="results" class="hidden mb-12">
+      <h2 class="text-lg font-semibold mb-4">Resultados (estimativa anual)</h2>
+      <div class="overflow-x-auto border rounded-lg">
+        <table id="cost-table" class="w-full text-sm sticky-first"></table>
+      </div>
+    </section>
+  </article>
+
+  <script is:inline>
+    const DATA_URL = '/data/brokerscustos.json';
+
+    // ------- helpers -------
+    function commissionCost(comm, ordersPerMonth, ticket) {
+      if (!comm) return 0;
+      const months = 12;
+      const ordersYear = ordersPerMonth * months;
+      const volumeYear = ordersPerMonth * ticket * months;
+
+      switch (comm.type) {
+        case 'tier_free_pct': {
+          const freeY = comm.free_volume_month * months;
+          if (volumeYear <= freeY) return 0;
+          const volOver = volumeYear - freeY;
+          const pctCost = volOver * comm.over_pct;
+          const freeOrders = Math.floor(freeY / ticket);
+          const ordersOver = Math.max(0, ordersYear - freeOrders);
+          const minCost = ordersOver * comm.over_min;
+          return Math.max(pctCost, minCost);
+        }
+        case 'flat': return ordersYear * comm.value;
+        case 'pct_min': return Math.max(volumeYear * comm.pct, ordersYear * comm.min);
+        case 'flat_plus_fee': return ordersYear * (comm.flat + comm.fee);
+        case 'fee_only': return ordersYear * comm.fee;
+        case 'pct_min_dual': {
+          const esc = Math.max(volumeYear * comm.pct, ordersYear * comm.min_escalonado);
+          const fix = Math.max(volumeYear * comm.pct, ordersYear * comm.min_fixo);
+          return Math.min(esc, fix);
+        }
+        case 'per_share': {
+          const sharesYear = volumeYear / ticket;
+          const esc = Math.max(sharesYear * comm.per_share_escalonado, comm.min_escalonado);
+          const fix = Math.max(sharesYear * comm.per_share_fixo, comm.min_fixo);
+          const cap = comm.max_pct ? volumeYear * comm.max_pct : Infinity;
+          return Math.min(esc, fix, cap);
+        }
+        case 'per_share_plus_monthly': {
+          const sharesYear = volumeYear / ticket;
+          const base = Math.max(sharesYear * comm.per_share, comm.min);
+          return base + (comm.monthly_fee || 0) * 12;
+        }
+        case 'pct_min_side': return 2 * Math.max(volumeYear * comm.pct, ordersYear * comm.min);
+        case 'per_share_side': {
+          const sharesYear = volumeYear / ticket;
+          return 2 * Math.max(sharesYear * comm.per_share, ordersYear * comm.min);
+        }
+        case 'spread_only':
+        case 'none':
+        default: return 0;
+      }
+    }
+
+    function fxCost(fx, volumeEUR) {
+      if (!fx) return 0;
+      switch (fx.type) {
+        case 'percent': return volumeEUR * fx.value;
+        case 'percent_plus_flat': return volumeEUR * fx.percent + (fx.flat_escalonado || fx.flat_fixo || 0);
+        case 'included_in_spread':
+        case 'included':
+        default: return 0;
+      }
+    }
+
+    function custodyCost(c, carteira) {
+      if (!c || c.type === 'none') return 0;
+      const months = 12;
+      if (carteira <= c.threshold) return 0;
+      const excedente = carteira - c.threshold;
+      const anualPct = excedente * c.pct;
+      const minAnual = c.min_month * months;
+      return Math.max(anualPct, minAnual);
+    }
+
+    function calcBrokerCost(b, p) {
+      const custoEU = commissionCost(b.fees.stocks_eu || b.fees.stocksEU, p.ordEU, p.ticketEU);
+      const custoUS = commissionCost(b.fees.stocks_us || b.fees.stocksUS, p.ordUS, p.ticketUS);
+
+      const volEUR = p.ordEU * p.ticketEU * 12;
+      const volUS_EUR = p.ordUS * p.ticketUS * 12;
+      const volFx = p.fx ? volEUR + volUS_EUR : 0;
+      const cambio = fxCost(b.fx || b.fx_fee, volFx);
+
+      const custodia = custodyCost(b.custodia || b.custody, p.carteira);
+
+      const total = custoEU + custoUS + cambio + custodia;
+      return { custo_eu: custoEU, custo_us: custoUS, cambio, custodia, total };
+    }
+    // -----------------------
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1) carregar JSON público
+      let brokers = [];
+      try {
+        const res = await fetch(DATA_URL, { cache: 'no-cache' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const raw = await res.json();
+        brokers = Array.isArray(raw) ? raw : Object.values(raw);
+        brokers = brokers.map(b => ({ ...b, logo: b.logo || `/assets/logos/${b.slug}.png` }));
+        if (!brokers.length) throw new Error('JSON vazio');
+      } catch (e) {
+        console.error('Erro a carregar JSON', DATA_URL, e);
+        alert('Não foi possível carregar os dados das corretoras.');
+        return;
+      }
+
+      // 2) seletores
+      const formEl = document.getElementById('sim-form');
+      const btn = document.getElementById('calcBtn');
+      const results = document.getElementById('results');
+      const table = document.getElementById('cost-table');
+
+      const boxes = () =>
+        Array.from(document.querySelectorAll('#broker-select input[type=checkbox]'));
+
+      const fmtEUR = v =>
+        new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+
+      function getParams() {
+        const fd = new FormData(formEl);
+        return {
+          ordEU: Number(fd.get('ordersEU')),
+          ticketEU: Number(fd.get('ticketEU')),
+          ordUS: Number(fd.get('ordersUS')),
+          ticketUS: Number(fd.get('ticketUS')),
+          carteira: Number(fd.get('carteira')),
+          fx: fd.get('fx') === 'on',
+        };
+      }
+
+      function render(rows) {
+        table.innerHTML = `
+          <thead>
+            <tr class="bg-gray-100 dark:bg-gray-700/50">
+              <th class="p-3 text-left">Corretora</th>
+              <th class="p-3 text-right">UE</th>
+              <th class="p-3 text-right">EUA</th>
+              <th class="p-3 text-right">Câmbio</th>
+              <th class="p-3 text-right">Custódia</th>
+              <th class="p-3 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr class="border-b dark:border-gray-700">
+                <td class="p-3 flex items-center gap-2 font-medium">
+                  <img src="${r.logo}" alt="${r.nome}" class="w-5 h-5" /> ${r.nome}
+                </td>
+                <td class="p-3 text-right ${r.bestEU ? 'bg-green-50 dark:bg-green-900/30 font-semibold' : ''}">${fmtEUR(r.custo_eu)}</td>
+                <td class="p-3 text-right ${r.bestUS ? 'bg-green-50 dark:bg-green-900/30 font-semibold' : ''}">${fmtEUR(r.custo_us)}</td>
+                <td class="p-3 text-right">${fmtEUR(r.cambio)}</td>
+                <td class="p-3 text-right">${fmtEUR(r.custodia)}</td>
+                <td class="p-3 text-right font-semibold ${r.bestTotal ? 'bg-green-50 dark:bg-green-900/30' : ''}">${fmtEUR(r.total)}</td>
+              </tr>`).join('')}
+          </tbody>`;
+        results.classList.remove('hidden');
+        results.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      // 3) calcular no click
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+
+        const picked = boxes().filter(i => i.checked).map(i => i.value);
+
+        if (!picked.length) {
+          alert('Seleciona pelo menos uma corretora.');
+          return;
+        }
+        if (picked.length > 6) {
+          alert('Pode mostrar um máximo de 6 corretoras na tabela.');
+          return;
         }
 
-        function fxCost(fx, volumeEUR) {
-            if (!fx) return 0;
-            switch (fx.type) {
-                case 'percent':
-                    return volumeEUR * fx.value;
-                case 'percent_plus_flat':
-                    return volumeEUR * fx.percent + (fx.flat_escalonado || fx.flat_fixo || 0);
-                case 'included_in_spread':
-                case 'included':
-                default:
-                    return 0;
-            }
-        }
-
-        function custodyCost(c, carteira) {
-            if (!c || c.type === 'none') return 0;
-            const months = 12;
-            if (carteira <= c.threshold) return 0;
-            const excedente = carteira - c.threshold;
-            const anualPct = excedente * c.pct;
-            const minAnual = c.min_month * months;
-            return Math.max(anualPct, minAnual);
-        }
-
-        function calcBrokerCost(b, p) {
-            const custoEU = commissionCost(b.fees.stocks_eu || b.fees.stocksEU, p.ordEU, p.ticketEU);
-            const custoUS = commissionCost(b.fees.stocks_us || b.fees.stocksUS, p.ordUS, p.ticketUS);
-
-            const volEUR = p.ordEU * p.ticketEU * 12;
-            const volUS_EUR = p.ordUS * p.ticketUS * 12;
-            const volFx = p.fx ? volEUR + volUS_EUR : 0;
-            const cambio = fxCost(b.fx || b.fx_fee, volFx);
-
-            const custodia = custodyCost(b.custodia || b.custody, p.carteira);
-
-            const total = custoEU + custoUS + cambio + custodia;
-            return { custo_eu: custoEU, custo_us: custoUS, cambio, custodia, total };
-        }
-        // --------------------------------
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 1) carregar JSON público
-            let brokers = [];
-            try {
-                const res = await fetch('/data/brokerscustos.json');
-                brokers = await res.json();
-                if (!Array.isArray(brokers)) brokers = Object.values(brokers);
-                brokers = brokers.map(b => ({ ...b, logo: b.logo || `/assets/logos/${b.slug}.png` }));
-            } catch (e) {
-                console.error('Erro a carregar JSON', e);
-                alert('Não foi possível carregar os dados das corretoras.');
-                return;
-            }
-
-            const formEl = document.getElementById('sim-form');
-            const btn = document.getElementById('calcBtn');
-            const results = document.getElementById('results');
-            const table = document.getElementById('cost-table');
-            const boxes = () => Array.from(document.querySelectorAll('#broker-select input[type=checkbox]'));
-
-            const fmtEUR = v =>
-                new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
-
-            function getParams() {
-                const fd = new FormData(formEl);
-                return {
-                    ordEU: Number(fd.get('ordersEU')),
-                    ticketEU: Number(fd.get('ticketEU')),
-                    ordUS: Number(fd.get('ordersUS')),
-                    ticketUS: Number(fd.get('ticketUS')),
-                    carteira: Number(fd.get('carteira')),
-                    fx: fd.get('fx') === 'on',
-                };
-            }
-
-            function render(rows) {
-                table.innerHTML = `
-                  <thead>
-                    <tr class="bg-gray-100 dark:bg-gray-700/50">
-                      <th class="p-3 text-left">Corretora</th>
-                      <th class="p-3 text-right">UE</th>
-                      <th class="p-3 text-right">EUA</th>
-                      <th class="p-3 text-right">Câmbio</th>
-                      <th class="p-3 text-right">Custódia</th>
-                      <th class="p-3 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${rows
-                      .map(
-                        r => `
-                      <tr class="border-b dark:border-gray-700">
-                        <td class="p-3 flex items-center gap-2 font-medium">
-                          <img src="${r.logo}" alt="${r.nome}" class="w-5 h-5" /> ${r.nome}
-                        </td>
-                        <td class="p-3 text-right ${r.bestEU ? 'bg-green-50 dark:bg-green-900/30 font-semibold' : ''}">${fmtEUR(
-                          r.custo_eu
-                        )}</td>
-                        <td class="p-3 text-right ${r.bestUS ? 'bg-green-50 dark:bg-green-900/30 font-semibold' : ''}">${fmtEUR(
-                          r.custo_us
-                        )}</td>
-                        <td class="p-3 text-right">${fmtEUR(r.cambio)}</td>
-                        <td class="p-3 text-right">${fmtEUR(r.custodia)}</td>
-                        <td class="p-3 text-right font-semibold ${
-                          r.bestTotal ? 'bg-green-50 dark:bg-green-900/30' : ''
-                        }">${fmtEUR(r.total)}</td>
-                      </tr>`
-                      )
-                      .join('')}
-                  </tbody>`;
-                results.classList.remove('hidden');
-                results.scrollIntoView({ behavior: 'smooth' });
-            }
-
-            btn.addEventListener('click', e => {
-                e.preventDefault();
-
-                const picked = boxes()
-                    .filter(i => i.checked)
-                    .map(i => i.value);
-                if (!picked.length) {
-                    alert('Seleciona pelo menos uma corretora.');
-                    return;
-                }
-                
-                // Limitar a 6 na tabela
-                if (picked.length > 6) {
-                    alert('Pode mostrar um máximo de 6 corretoras na tabela.');
-                    return;
-                }
-
-                const p = getParams();
-                const computed = picked.map(slug => {
-                    const b = brokers.find(x => x.slug === slug);
-                    const c = calcBrokerCost(b, p);
-                    return { ...b, ...c };
-                });
-
-                const minEU = Math.min(...computed.map(r => r.custo_eu));
-                const minUS = Math.min(...computed.map(r => r.custo_us));
-                const minTotal = Math.min(...computed.map(r => r.total));
-
-                const rows = computed
-                    .sort((a,b) => a.total - b.total) // Ordenar por custo total
-                    .map(r => ({
-                        ...r,
-                        bestEU: r.custo_eu === minEU,
-                        bestUS: r.custo_us === minUS,
-                        bestTotal: r.total === minTotal,
-                    }));
-
-                render(rows);
-            });
+        const p = getParams();
+        const computed = picked.map(slug => {
+          const b = brokers.find(x => x.slug === slug);
+          const c = calcBrokerCost(b, p);
+          return { ...b, ...c };
         });
-    </script>
 
-    <style>
-        .sticky-first th:first-child,
-        .sticky-first td:first-child {
-            position: sticky;
-            left: 0;
-            background: inherit;
-            z-index: 1;
-        }
-    </style>
+        const minEU = Math.min(...computed.map(r => r.custo_eu));
+        const minUS = Math.min(...computed.map(r => r.custo_us));
+        const minTotal = Math.min(...computed.map(r => r.total));
+
+        const rows = computed
+          .sort((a, b) => a.total - b.total)
+          .map(r => ({
+            ...r,
+            bestEU: r.custo_eu === minEU,
+            bestUS: r.custo_us === minUS,
+            bestTotal: r.total === minTotal,
+          }));
+
+        render(rows);
+      });
+    });
+  </script>
+
+  <style>
+    .sticky-first th:first-child,
+    .sticky-first td:first-child {
+      position: sticky;
+      left: 0;
+      background: inherit;
+      z-index: 1;
+    }
+  </style>
 </BaseLayout>

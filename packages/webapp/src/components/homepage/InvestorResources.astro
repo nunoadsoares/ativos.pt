@@ -1,0 +1,78 @@
+---
+// C:\Users\nunos\Desktop\ativos.pt\packages\webapp\src\components\homepage\InvestorResources.astro
+import { Icon } from 'astro-icon/components';
+
+// O componente agora recebe apenas as props de que realmente precisa.
+const { guias, plataformas } = Astro.props;
+
+// A configuração dos destaques continua aqui para a renderização.
+const plataformasDestacadasConfig = {
+    'xtb': { highlight: 'Ações', icon: 'heroicons:star-solid', color: 'text-amber-500' },
+    'fpmarkets': { highlight: 'Forex', icon: 'heroicons:globe-alt-solid', color: 'text-emerald-500' }
+};
+---
+<section id="recursos" class="py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14">
+            <h2 class="text-4xl font-bold text-gray-900 dark:text-white">Recursos para o Investidor</h2>
+            <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                Desde guias fiscais detalhados a análises de corretoras, temos a informação de que precisa para investir melhor.
+            </p>
+        </div>
+
+        {/* A grelha de ferramentas foi removida daqui. */}
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div class="bg-white dark:bg-gray-800/60 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col h-full shadow-sm">
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Corretoras Recomendadas</h3>
+                <div class="space-y-4 flex-grow">
+                    {plataformas.map((p) => {
+                        const destaque = plataformasDestacadasConfig[p.slug];
+                        return (
+                            <a href={`/plataformas/${p.slug}`} class="flex items-center gap-4 group p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-900/50 transition">
+                                <img src={p.data.logo} alt={p.data.nome} class="h-10 w-10 object-contain rounded-full bg-white flex-shrink-0" />
+                                <div class="flex-grow">
+                                    <h4 class="font-bold text-gray-900 dark:text-white group-hover:text-primary">{p.data.nome}</h4>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{p.data.description}</p>
+                                </div>
+                                {destaque && (
+                                    <div class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 bg-gray-100 dark:bg-gray-700/50">
+                                        <Icon name={destaque.icon} class:list={["h-4 w-4", destaque.color]} />
+                                        <span class="text-gray-700 dark:text-gray-300">{destaque.highlight}</span>
+                                    </div>
+                                )}
+                            </a>
+                        );
+                    })}
+                </div>
+                <div class="mt-8 text-center">
+                    <a href="/plataformas" class="inline-flex items-center gap-2 font-semibold text-primary hover:underline">
+                        Ver todas as corretoras
+                    </a>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800/60 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col h-full shadow-sm">
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Guias Fiscais Essenciais</h3>
+                <div class="space-y-4 flex-grow">
+                    {guias.map((g) => (
+                        <a href={`/guias-fiscais/${g.slug}`} class="flex items-start gap-4 group p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-900/50 transition">
+                            <div class="flex-shrink-0 h-10 w-10 mt-1 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+                                <Icon name="heroicons:document-duplicate-solid" class="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-900 dark:text-white group-hover:text-primary">{g.data.title}</h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{g.data.description}</p>
+                            </div>
+                        </a>
+                    ))}
+                </div>
+                <div class="mt-8 text-center">
+                    <a href="/guias-fiscais" class="inline-flex items-center gap-2 font-semibold text-primary hover:underline">
+                        Ver todos os guias
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

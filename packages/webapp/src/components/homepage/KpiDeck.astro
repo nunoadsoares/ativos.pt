@@ -1,0 +1,55 @@
+---
+// src/components/homepage/KpiDeck.astro
+import Sparkline from '~/components/Sparkline.tsx';
+import { Icon } from 'astro-icon/components';
+
+const { kpis } = Astro.props;
+---
+<div id="kpis" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
+    <a href="/inflacao" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[120px] overflow-hidden">
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
+            <Icon name="heroicons:arrow-trending-up" class="h-4 w-4" /> Inflação (YoY)
+        </h3>
+        <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
+            <p class="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white">{kpis.inflation.value}%</p>
+            <div class="flex-shrink-0 w-[80px] sm:w-[120px] opacity-70 group-hover:opacity-100 transition-opacity">
+                <Sparkline client:visible seriesData={kpis.inflation.trend} color="#8b5cf6" />
+            </div>
+        </div>
+    </a>
+    <a href="/imobiliario/precos-habitacao" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[120px] overflow-hidden">
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
+            <Icon name="heroicons:home" class="h-4 w-4" /> Preço Habitação (YoY)
+        </h3>
+        <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
+            <p class:list={["text-xl sm:text-3xl font-bold", kpis.housing.value > 0 ? "text-red-500" : "text-green-500"]}>
+                {kpis.housing.value >= 0 ? '+' : ''}{kpis.housing.value}%
+            </p>
+            <div class="flex-shrink-0 w-[80px] sm:w-[120px] opacity-70 group-hover:opacity-100 transition-opacity">
+                <Sparkline client:visible seriesData={kpis.housing.trend} color={kpis.housing.color} />
+            </div>
+        </div>
+    </a>
+    <a href="/imobiliario/condicoes-credito" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[120px] overflow-hidden">
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
+            <Icon name="heroicons:receipt-percent" class="h-4 w-4" /> TAN Crédito
+        </h3>
+        <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
+            <p class="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white">{kpis.tan.value}%</p>
+            <div class="flex-shrink-0 w-[80px] sm:w-[120px] opacity-70 group-hover:opacity-100 transition-opacity">
+                <Sparkline client:visible seriesData={kpis.tan.trend} color="#3b82f6" />
+            </div>
+        </div>
+    </a>
+    <a href="/cambios" class="group block p-4 rounded-xl border bg-white/70 dark:bg-gray-800/50 dark:border-gray-700 border-gray-200 hover:border-primary transition shadow-sm flex flex-col min-h-[120px] overflow-hidden">
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 text-left flex items-center gap-2">
+            <Icon name="heroicons:currency-dollar" class="h-4 w-4" /> EUR / USD
+        </h3>
+        <div class="flex-grow flex justify-between items-end mt-1 min-w-0">
+            <p class="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white">{kpis.exchange.value}</p>
+            <div class="flex-shrink-0 w-[80px] sm:w-[120px] opacity-70 group-hover:opacity-100 transition-opacity">
+                <Sparkline client:visible seriesData={kpis.exchange.trend} color="#10b981" />
+            </div>
+        </div>
+    </a>
+</div>

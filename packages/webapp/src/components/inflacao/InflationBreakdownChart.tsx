@@ -1,10 +1,10 @@
-import { useEffect, useState, type FC } from 'react';
-import ApexChart from 'react-apexcharts';
+// C:\Users\nunos\Desktop\ativos.pt\packages\webapp\src\components\inflacao\InflationBreakdownChart.tsx
+import React, { useEffect, useState, useMemo, type FC, type ComponentType } from 'react';
 import type { ApexOptions } from 'apexcharts';
 
-// Tipos de dados da nossa API (um indicador completo)
-interface Indicator { value: number; /* outros campos... */ };
-type ApiData = Record<string, Indicator | null>;
+// Tipos de dados
+interface Indicator { value: number; };
+interface ApiResponse { ok: boolean; data: Record<string, Indicator | null> };
 
 const categoryNames: { [key: string]: string } = {
     food_drinks: "Alimentação e Bebidas", alcoholic_tobacco: "Bebidas Alcoólicas e Tabaco", clothing_footwear: "Vestuário e Calçado",
@@ -13,17 +13,35 @@ const categoryNames: { [key: string]: string } = {
     misc_goods_services: "Bens e Serviços Diversos"
 };
 
+const ChartPlaceholder: FC<{ message: string }> = ({ message }) => (
+    <div className="flex h-[500px] items-center justify-center text-center p-8 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+        <p className="text-gray-500 dark:text-gray-400">{message}</p>
+    </div>
+);
+
 const InflationBreakdownChart: FC = () => {
+    const [ChartComponent, setChartComponent] = useState<ComponentType<any> | null>(null);
     const [series, setSeries] = useState<ApexAxisChartSeries>([]);
     const [categories, setCategories] = useState<string[]>([]);
-    const [theme, setTheme] = useState<'dark' | 'light'>('light');
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [theme, setTheme] = useState<'dark' | 'light'>('light');
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
+        import('react-apexcharts')
+            .then(mod => setChartComponent(() => mod.default))
+            .catch(err => {
+                console.error("Falha ao carregar ApexCharts:", err);
+                setError("Não foi possível carregar o componente do gráfico.");
+            });
+    }, []);
+
+    useEffect(() => {
         const isDark = () => document.documentElement.classList.contains('dark');
-        setTheme(isDark() ? 'dark' : 'light');
-        const obs = new MutationObserver(() => setTheme(isDark() ? 'dark' : 'light'));
+        const updateTheme = () => setTheme(isDark() ? 'dark' : 'light');
+        updateTheme();
+        const obs = new MutationObserver(updateTheme);
         obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -37,11 +55,15 @@ const InflationBreakdownChart: FC = () => {
     }, []);
 
     useEffect(() => {
-        // Busca os dados do grupo de indicadores da nossa API
+        if (!ChartComponent) return;
+
         fetch('/api/data/inflationBreakdownIndicators')
-            .then(res => res.json())
-            .then((data: ApiData) => {
-                const breakdown = Object.entries(data)
+            .then(res => {
+                if (!res.ok) throw new Error("Falha na resposta do servidor.");
+                return res.json();
+            })
+            .then((response: ApiResponse) => {
+                const breakdown = Object.entries(response.data)
                     .map(([key, indicator]) => ({ key, value: indicator?.value ?? 0 }))
                     .filter(item => item.value !== 0);
                 
@@ -49,41 +71,32 @@ const InflationBreakdownChart: FC = () => {
                 
                 setCategories(sortedData.map(item => categoryNames[item.key] || item.key));
                 setSeries([{ name: 'Inflação Homóloga', data: sortedData.map(item => item.value) }]);
-                setLoading(false);
             })
             .catch(err => {
                 console.error("Falha ao carregar dados de breakdown da inflação:", err);
+                setError("Não foi possível carregar os dados do gráfico.");
+            })
+            .finally(() => {
                 setLoading(false);
             });
-    }, []);
+    }, [ChartComponent]);
 
-    if (loading) {
-        return <div className="text-center p-8 text-gray-500 dark:text-gray-400">A carregar gráfico...</div>;
-    }
-
-    const labelColor = theme === 'dark' ? '#9ca3af' : '#374151';
-    const gridColor = theme === 'dark' ? '#374151' : '#e5e7eb';
-
-    const options: ApexOptions = {
+    const options: ApexOptions = useMemo(() => ({
         chart: { id: 'inflation-breakdown-chart', toolbar: { show: false }, background: 'transparent' },
         plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '70%' } },
-        colors: [(ctx: { w: any; dataPointIndex: number }) => {
-            return (ctx.w.globals.series[0][ctx.dataPointIndex] < 0) ? '#ef4444' : '#10b981';
-        }],
+        colors: [(ctx: any) => (ctx.w.globals.series[0][ctx.dataPointIndex] < 0) ? '#ef4444' : '#10b981'],
         xaxis: {
             categories: categories,
             labels: { 
-                show: !isMobile,
                 formatter: (val: string) => parseFloat(val).toFixed(1) + '%', 
-                style: { colors: labelColor, fontWeight: 500 } 
+                style: { colors: theme === 'dark' ? '#9ca3af' : '#4b5563' } 
             },
             axisBorder: { show: false }, 
             axisTicks: { show: false },
         },
         yaxis: { 
             labels: { 
-                show: true,
-                style: { colors: labelColor, fontWeight: 500, fontSize: '13px' } 
+                style: { colors: theme === 'dark' ? '#9ca3af' : '#4b5563', fontSize: '13px' } 
             } 
         },
         tooltip: {
@@ -94,14 +107,17 @@ const InflationBreakdownChart: FC = () => {
             },
         },
         grid: { 
-            borderColor: gridColor, 
+            borderColor: theme === 'dark' ? '#374151' : '#e5e7eb', 
             xaxis: { lines: { show: true } },
             yaxis: { lines: { show: false } } 
         },
         dataLabels: { enabled: false }
-    };
+    }), [categories, theme, isMobile]);
 
-    return <ApexChart type="bar" height={500} series={series} options={options} />;
+    if (loading || !ChartComponent) return <ChartPlaceholder message="A carregar gráfico..." />;
+    if (error) return <ChartPlaceholder message={error} />;
+
+    return <ChartComponent type="bar" height={500} series={series} options={options} />;
 };
 
 export default InflationBreakdownChart;

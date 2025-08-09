@@ -3,8 +3,8 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import HousingPriceChart from '~/components/HousingPriceChart.tsx';
 import { getIndicator } from '~/lib/db';
 
-// --- LÓGICA DE DADOS CORRIGIDA PARA USAR A BASE DE DADOS ---
-const housingKpiIndicator = getIndicator('precos_habitacao_var');
+// --- CORREÇÃO: Usar a chave exata que o script Python utiliza ---
+const housingKpiIndicator = getIndicator('house_price_yoy_bportugal_total_quarterly');
 
 const kpi = {
     value: housingKpiIndicator?.value ?? 0,
@@ -31,25 +31,10 @@ const datasetSchema = {
     "name": "Observatório do Preço da Habitação em Portugal (IPHab)",
     "description": description,
     "url": canonical,
-    "keywords": [
-        "preço habitação",
-        "mercado imobiliário",
-        "índice de preços da habitação",
-        "IPHab",
-        "comprar casa",
-        "investimento imobiliário",
-        "portugal"
-    ],
-    "creator": {
-        "@type": "Organization",
-        "name": "Ativos.pt",
-        "url": Astro.site!.href
-    },
+    "keywords": [ "preço habitação", "mercado imobiliário", "índice de preços da habitação", "IPHab", "comprar casa", "investimento imobiliário", "portugal" ],
+    "creator": { "@type": "Organization", "name": "Ativos.pt", "url": Astro.site!.href },
     "license": "https://creativecommons.org/licenses/by/4.0/",
-    "variableMeasured": [
-        "Variação Homóloga (Year-over-Year) do Índice de Preços da Habitação.",
-        "Índice de Preços da Habitação (Base 100 = 2015)."
-    ]
+    "variableMeasured": [ "Variação Homóloga (Year-over-Year) do Índice de Preços da Habitação.", "Índice de Preços da Habitação (Base 100 = 2015)." ]
 };
 ---
 <BaseLayout {title} {description} {canonical}>

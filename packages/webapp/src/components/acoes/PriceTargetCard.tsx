@@ -1,24 +1,25 @@
 // C:\Users\nunos\Desktop\ativos.pt\packages\webapp\src\components\acoes\PriceTargetCard.tsx
-
 import React from 'react';
 import type { PriceTarget } from '~/lib/stock-data-fetcher';
-import { IconTargetOff } from '@tabler/icons-react';
+import { IconTargetOff, IconInfoCircle } from '@tabler/icons-react';
 
 const PriceTargetCard: React.FC<{ target?: PriceTarget | null }> = ({ target }) => {
     // Validação robusta dos dados
     if (!target || target.low == null || target.mean == null || target.high == null || target.currentPrice == null) {
         return (
-            <div className="flex flex-col items-center justify-center h-full min-h-[150px] text-center">
-                <IconTargetOff size={32} className="text-gray-400 dark:text-gray-500 mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">Dados de Preço-Alvo indisponíveis.</p>
-            </div>
+            <>
+                {/* --- MELHORIA: Título visível mesmo sem dados --- */}
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Preço Alvo de Analistas</h3>
+                <div className="flex flex-col items-center justify-center h-full min-h-[150px] text-center">
+                    <IconTargetOff size={32} className="text-gray-400 dark:text-gray-500 mb-3" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Dados de Preço-Alvo indisponíveis.</p>
+                </div>
+            </>
         );
     }
     
-    // CORREÇÃO: Extrair a moeda do objeto 'target', com 'USD' como fallback
     const { low, mean, high, currentPrice, currency = 'USD' } = target;
 
-    // Garante que o range nunca é zero para evitar divisão por zero
     const range = (high - low) === 0 ? 1 : (high - low);
     
     const calculatePosition = (value: number) => {
@@ -29,11 +30,9 @@ const PriceTargetCard: React.FC<{ target?: PriceTarget | null }> = ({ target }) 
     const currentPosition = calculatePosition(currentPrice);
     const meanPosition = calculatePosition(mean);
 
-    // CORREÇÃO: A função de formatação agora usa a moeda dinâmica que vem da API
+    // Função de formatação de moeda
     const fmt = (v: number) => {
-        // Usamos 'de-DE' para euros para que o símbolo (€) apareça à direita, que é mais comum em Portugal.
-        const locale = currency === 'EUR' ? 'de-DE' : 'en-US';
-        return new Intl.NumberFormat(locale, { 
+        return new Intl.NumberFormat('en-US', { 
             style: 'currency', 
             currency: currency,
             minimumFractionDigits: 2,
@@ -43,8 +42,11 @@ const PriceTargetCard: React.FC<{ target?: PriceTarget | null }> = ({ target }) 
 
     return (
         <div className="space-y-4">
+            {/* --- MELHORIA: Título adicionado --- */}
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Preço Alvo de Analistas</h3>
+
             {/* Callout Principal: Preço Atual */}
-            <div className="text-center">
+            <div className="text-center pt-2">
                 <p className="text-sm text-gray-500 dark:text-gray-400">Preço Atual</p>
                 <p className="text-4xl font-bold font-mono text-gray-900 dark:text-gray-100">{fmt(currentPrice)}</p>
             </div>

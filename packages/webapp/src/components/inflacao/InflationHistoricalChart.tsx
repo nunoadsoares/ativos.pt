@@ -1,23 +1,45 @@
-import { useEffect, useState, type FC } from 'react';
-import ApexChart from 'react-apexcharts';
+// C:\Users\nunos\Desktop\ativos.pt\packages\webapp\src\components\inflacao\InflationHistoricalChart.tsx
+import React, { useEffect, useState, useMemo, type FC, type ComponentType } from 'react';
 import type { ApexOptions } from 'apexcharts';
 
-// Tipos de dados da nossa API
-interface ApiData {
-    yoy: { date: string, value: number }[];
-    core_yoy: { date: string, value: number }[];
-}
+// Tipos de dados
+interface ApiSeriesData { date: string, value: number };
+interface ApiResponse {
+    ok: boolean;
+    data: {
+        yoy: ApiSeriesData[];
+        core_yoy: ApiSeriesData[];
+    }
+};
+
+const ChartPlaceholder: FC<{ message: string }> = ({ message }) => (
+    <div className="flex h-96 items-center justify-center text-center p-8 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+        <p className="text-gray-500 dark:text-gray-400">{message}</p>
+    </div>
+);
 
 const InflationHistoricalChart: FC = () => {
+    const [ChartComponent, setChartComponent] = useState<ComponentType<any> | null>(null);
     const [series, setSeries] = useState<ApexAxisChartSeries>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [theme, setTheme] = useState<'dark' | 'light'>('light');
     const [isMobile, setIsMobile] = useState(false);
-    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        import('react-apexcharts')
+            .then(mod => setChartComponent(() => mod.default))
+            .catch(err => {
+                console.error("Falha ao carregar ApexCharts:", err);
+                setError("Não foi possível carregar o componente do gráfico.");
+            });
+    }, []);
 
     useEffect(() => {
         const isDark = () => document.documentElement.classList.contains('dark');
-        setTheme(isDark() ? 'dark' : 'light');
-        const obs = new MutationObserver(() => setTheme(isDark() ? 'dark' : 'light'));
+        const updateTheme = () => setTheme(isDark() ? 'dark' : 'light');
+        updateTheme();
+        const obs = new MutationObserver(updateTheme);
         obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -31,33 +53,32 @@ const InflationHistoricalChart: FC = () => {
     }, []);
 
     useEffect(() => {
-        // Busca os dados da nossa API centralizada
+        if (!ChartComponent) return;
+
         fetch('/api/data/inflationHistoricalChart')
-            .then(res => res.json())
-            .then((data: ApiData) => {
-                // Transforma os dados da API para o formato que o gráfico espera
-                const formatData = (d: { date: string, value: number }[]) => d.map(p => [new Date(p.date).getTime(), p.value]);
+            .then(res => {
+                if (!res.ok) throw new Error("Falha na resposta do servidor.");
+                return res.json();
+            })
+            .then((response: ApiResponse) => {
+                const data = response.data;
+                const formatData = (d: ApiSeriesData[]) => d ? d.map(p => [new Date(p.date).getTime(), p.value]) : [];
                 
                 setSeries([
                     { name: 'Inflação Homóloga', data: formatData(data.yoy) },
                     { name: 'Inflação Subjacente', data: formatData(data.core_yoy) },
                 ]);
-                setLoading(false);
             })
             .catch(err => {
                 console.error("Falha ao carregar dados históricos da inflação:", err);
+                setError("Não foi possível carregar os dados do gráfico.");
+            })
+            .finally(() => {
                 setLoading(false);
             });
-    }, []);
+    }, [ChartComponent]);
 
-    if (loading) {
-        return <div className="text-center p-8 text-gray-500 dark:text-gray-400">A carregar gráfico...</div>;
-    }
-
-    const labelColor = theme === 'dark' ? '#9ca3af' : '#374151';
-    const gridColor = theme === 'dark' ? '#374151' : '#e5e7eb';
-
-    const options: ApexOptions = {
+    const options: ApexOptions = useMemo(() => ({
         chart: {
             id: 'inflation-historical-chart',
             zoom: { enabled: true },
@@ -68,12 +89,12 @@ const InflationHistoricalChart: FC = () => {
         stroke: { width: 2.5, curve: 'smooth' },
         xaxis: {
             type: 'datetime',
-            labels: { style: { colors: labelColor, fontWeight: 500 } },
-            axisBorder: { color: gridColor },
-            axisTicks: { color: gridColor },
+            labels: { style: { colors: theme === 'dark' ? '#9ca3af' : '#4b5563' } },
+            axisBorder: { color: theme === 'dark' ? '#374151' : '#e5e7eb' },
+            axisTicks: { color: theme === 'dark' ? '#374151' : '#e5e7eb' },
         },
         yaxis: {
-            labels: { formatter: (val: number) => val.toFixed(1) + '%', style: { colors: labelColor, fontWeight: 500 } },
+            labels: { formatter: (val: number) => val.toFixed(1) + '%', style: { colors: theme === 'dark' ? '#9ca3af' : '#4b5563' } },
         },
         tooltip: { theme, style: { fontSize: '12px' }, x: { format: 'MMM yyyy' } },
         legend: {
@@ -81,13 +102,16 @@ const InflationHistoricalChart: FC = () => {
             horizontalAlign: 'left',
             offsetX: 10,
             fontSize: '14px',
-            labels: { colors: labelColor },
+            labels: { colors: theme === 'dark' ? '#e5e7eb' : '#374151' },
             itemMargin: { horizontal: 16 }
         },
-        grid: { borderColor: gridColor },
-    };
+        grid: { borderColor: theme === 'dark' ? '#374151' : '#e5e7eb' },
+    }), [theme, isMobile]);
 
-    return <ApexChart type="line" height={isMobile ? 350 : 400} series={series} options={options} />;
+    if (loading || !ChartComponent) return <ChartPlaceholder message="A carregar gráfico..." />;
+    if (error) return <ChartPlaceholder message={error} />;
+
+    return <ChartComponent type="line" height={isMobile ? 350 : 400} series={series} options={options} />;
 };
 
 export default InflationHistoricalChart;

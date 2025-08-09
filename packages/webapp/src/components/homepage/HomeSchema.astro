@@ -1,0 +1,8 @@
+---
+// src/components/homepage/HomeSchema.astro
+const siteUrl = Astro.site?.href ?? 'https://www.ativos.pt/';
+const fullSchema = { "@context": "https://schema.org", "@type": "WebSite", "url": siteUrl, "name": "Ativos.pt", "description": "Dados de mercado em tempo real, simuladores e guias práticos para investir com confiança.", "publisher": { "@type": "Organization", "name": "Ativos.pt", "logo": { "@type": "ImageObject", "url": new URL('/logo.png', siteUrl).href } }, "inLanguage": "pt-PT" };
+---
+<Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(fullSchema)} />
+</Fragment>
